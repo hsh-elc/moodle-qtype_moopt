@@ -26,3 +26,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Programmieraufgabe';
+$string['pluginname_help'] = 'Programmingtask questions allow the use of ProFormA tasks.';
+$string['pluginname_link'] = 'question/type/programmingtask';
+$string['pluginnameadding'] = 'Adding a ProFormA programming task';
+$string['pluginnameediting'] = 'Editing a ProFormA programming task';
+$string['pluginnamesummary'] = 'Questions of this type represent a ProFormA task.';

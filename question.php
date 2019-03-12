@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -21,7 +22,6 @@
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 defined('MOODLE_INTERNAL') || die();
 
 // For a complete list of base question classes please examine the file
@@ -66,4 +66,33 @@ class qtype_programmingtask_question extends question_graded_automatically_with_
     public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) {
         return parent::check_file_access($qa, $options, $component, $filearea, $args, $forcedownload);
     }
+
+    public function compute_final_grade($responses, $totaltries): \numeric {
+        //TODO, auto implemented
+    }
+
+    public function get_validation_error(array $response): string {
+        //TODO, auto implemented
+    }
+
+    public function grade_response(array $response): array {
+        //TODO, auto implemented
+        return array(1, question_state::$gradedright);
+    }
+
+    public function is_complete_response(array $response): bool {
+        return true;
+        //TODO, auto implemented
+    }
+
+    public function is_same_response(array $prevresponse, array $newresponse): bool {
+        //TODO, auto implemented
+        return false;
+    }
+
+    public function summarise_response(array $response): string {
+        //TODO, auto implemented
+        return "No response yet";
+    }
+
 }
