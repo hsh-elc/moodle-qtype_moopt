@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -21,7 +22,6 @@
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -32,6 +32,48 @@ defined('MOODLE_INTERNAL') || die();
  */
 class qtype_programmingtask_edit_form extends question_edit_form {
 
+    protected function definition() {
+        global $COURSE, $PAGE;
+
+        $mform = $this->_form;
+
+        $mform->addElement('header', 'taskfile', get_string('taskfile', 'proforma'));
+
+        $mform->addElement('filemanager', 'proformataskfileupload', get_string('proformataskfileupload', 'proforma'), null, array('subdirs' => 0, 'maxbytes' => $COURSE->maxbytes, 'maxfiles' => 1));
+        $mform->addHelpButton('proformataskfileupload', 'proformataskfileupload', 'proforma');
+
+        $mform->addElement('button', 'loadproformataskfilebutton', get_string('loadproformataskfile', 'proforma'), array('id' => 'loadproformataskfilebutton'));
+
+        $mform->addElement('static', 'ajaxerrorlabel', '', '');
+
+        parent::definition();
+
+        $PAGE->requires->js_call_amd('qtype_programmingtask/creation_via_drag_and_drop', 'init');
+    }
+
+    protected function definition_inner($mform) {
+        $mform->addElement('editor', 'internaldescription', get_string('internaldescription', 'proforma'), array('rows' => 10), array('maxfiles' => 0,
+            'noclean' => true, 'context' => $this->context, 'subdirs' => true));
+        $mform->setType('internaldescription', PARAM_RAW); // no XSS prevention here, users must be trusted
+    }
+
+    protected function data_preprocessing($question) {
+        $question = parent::data_preprocessing($question);
+
+        if (isset($question->id)) {
+            $draftitemid = file_get_submitted_draft_itemid('proformataskfileupload');
+            file_prepare_draft_area($draftitemid, $this->context->id, 'qtype_programmingtask', proforma_TASKZIP_FILEAREA , $question->id, array('subdirs' => 0));
+            $question->proformataskfileupload = $draftitemid;
+        }
+
+        if (empty($question->options)) {
+            return $question;
+        }
+
+        $question->internaldescription = array('text' => $question->options->internaldescription);
+        return $question;
+    }
+
     /**
      * Returns the question type name.
      *
@@ -40,4 +82,5 @@ class qtype_programmingtask_edit_form extends question_edit_form {
     public function qtype() {
         return 'programmingtask';
     }
+
 }

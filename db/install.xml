@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?> <XMLDB PATH="question/type/programmmingtask/db" VERSION="20190312" COMMENT="XMLDB file for Moodle qtype_programmingtask"     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd" >
+    <TABLES>
+
+        <TABLE NAME="qtype_programmingtask_optns" COMMENT="Options for programming task questions">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
+                <FIELD NAME="internaldescription" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The internal description of the assignment."/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="questionid" TYPE="foreign-unique" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+            </KEYS>
+        </TABLE>
+
+        <TABLE NAME="qtype_programmingtask_files" COMMENT="This table keeps information about the files that are contained in a question.">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
+                <FIELD NAME="fileid" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="usedbygrader" TYPE="int" LENGTH="2" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="visibletostudents" TYPE="int" LENGTH="2" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="usagebylms" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="download" SEQUENCE="false"/>
+                <FIELD NAME="filepath" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="filearea" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="questionid" TYPE="foreign-unique" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="fileid" UNIQUE="false" FIELDS="fileid"/>
+            </INDEXES>
+        </TABLE>
+
+    </TABLES>
+</XMLDB>
