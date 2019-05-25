@@ -64,6 +64,34 @@ class qtype_programmingtask_question extends question_graded_automatically_with_
      * @return bool True if the user can access this file.
      */
     public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) {
+        global $DB;
+
+        $question = $qa->get_question();
+        $questionid = $question->id;
+
+        $context = context_module::instance($question->contextid);
+
+        $argscopy = $args;
+        unset($argscopy[0]);
+        $relativepath = implode('/', $argscopy);
+        if (in_array($filearea, array(proforma_TASKZIP_FILEAREA, proforma_ATTACHED_TASK_FILES_FILEAREA, proforma_EMBEDDED_TASK_FILES_FILEAREA))) {
+            //If it is one of those files we need to check permissions because students could just guess download urls and not all files should be downloadable by students
+            //From the DBs point of view this combination of fields doesn't guarantee uniqueness; however, conceptually it does
+            $records = $DB->get_records_sql('SELECT visibletostudents FROM {qtype_programmingtask_files} WHERE questionid = ? and ' . $DB->sql_concat('filepath', 'filename') . ' = ? and ' . $DB->sql_compare_text('filearea') . ' = ?', array($questionid, '/' . $relativepath, $filearea));
+            if (count($records) != 1) {
+                return false;
+            }
+            //$records[0] doesn't work because $records is an associative array with the keys being the ids of the record
+            $first_elem = reset($records);
+            $onlyteacher = $first_elem->visibletostudents == 0 ? true : false;
+            if ($onlyteacher && !has_capability('mod/quiz:grade', $context)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        //Not our thing - delegate to parent
         return parent::check_file_access($qa, $options, $component, $filearea, $args, $forcedownload);
     }
 

@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -21,11 +22,10 @@
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'qtype_programmingtask';
 $plugin->release = '0.1.0';
-$plugin->version = 2019031200;
+$plugin->version = 2019031900;
 $plugin->requires = 2018120300;
 $plugin->maturity = MATURITY_ALPHA;

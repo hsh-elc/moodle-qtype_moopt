@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -21,10 +22,10 @@
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->libdir.'/questionlib.php');
+require_once($CFG->libdir . '/questionlib.php');
+require_once("$CFG->dirroot/question/type/programmingtask/locallib.php");
 
 /**
  * Class that represents a programmingtask question type.
@@ -38,5 +39,59 @@ class qtype_programmingtask extends question_type {
 
     // Override functions as necessary from the parent class located at
     // /question/type/questiontype.php.
+
+    public function get_question_options($question) {
+        global $DB;
+        parent::get_question_options($question);
+        $question->options = $DB->get_record('qtype_programmingtask_optns', array('questionid' => $question->id));
+
+        return true;
+    }
+
+    public function save_question_options($question) {
+        parent::save_question_options($question);
+
+        global $DB;
+
+        //Save additional options
+
+        $options = new stdClass();
+        $options->questionid = $question->id;
+        $options->internaldescription = $question->internaldescription['text'];
+
+        $record = $DB->get_record('qtype_programmingtask_optns', array('questionid' => $question->id), 'id');
+        if (!$record) {
+            $DB->insert_record('qtype_programmingtask_optns', $options);
+        } else {
+            $options->id = $record->id;
+            $DB->update_record('qtype_programmingtask_optns', $options);
+        }
+
+        //Save the files contained in the task file
+        //
+        //First remove all old files and db entries
+        $DB->delete_records('qtype_programmingtask_files', array('questionid' => $question->id));
+        $fs = get_file_storage();
+        $fs->delete_area_files($question->context->id, 'question', proforma_TASKZIP_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, 'question', proforma_ATTACHED_TASK_FILES_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, 'question', proforma_EMBEDDED_TASK_FILES_FILEAREA, $question->id);
+
+        save_task_and_according_files($question);
+    }
+
+    public function delete_question($questionid, $contextid) {
+        parent::delete_question($questionid, $contextid);
+
+        global $DB;
+
+        $DB->delete_records('qtype_programmingtask_optns', array('questionid' => $questionid));
+        $DB->delete_records('qtype_programmingtask_files', array('questionid' => $questionid));
+        $fs = get_file_storage();
+        $fs->delete_area_files($contextid, 'question', proforma_TASKZIP_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, 'question', proforma_ATTACHED_TASK_FILES_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, 'question', proforma_EMBEDDED_TASK_FILES_FILEAREA, $questionid);
+
+        parent::delete_question($questionid, $contextid);
+    }
 
 }

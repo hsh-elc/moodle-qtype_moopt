@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -21,7 +22,6 @@
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -43,7 +43,49 @@ class qtype_programmingtask_renderer extends qtype_renderer {
      * @return string HTML fragment.
      */
     public function formulation_and_controls(question_attempt $qa, question_display_options $options) {
-        return parent::formulation_and_controls($qa, $options);
+        global $DB;
+
+        $o = parent::formulation_and_controls($qa, $options);
+
+        $question = $qa->get_question();
+        $qubaid = $qa->get_usage_id();
+        $slot = $qa->get_slot();
+        $questionid = $question->id;
+
+        if (has_capability('mod/quiz:grade', $options->context)) {
+            $o .= $this->output->heading(get_string('internaldescription', 'proforma'), 3);
+            $o .= $this->output->box_start('generalbox boxaligncenter', 'internaldescription');
+            $record = $DB->get_record('qtype_programmingtask_optns', array('questionid' => $questionid), 'internaldescription');
+            $o .= $record->internaldescription;
+            $o .= $this->output->box_end();
+        }
+
+        $files = $DB->get_records('qtype_programmingtask_files', array('questionid' => $questionid));
+        $anythingtodisplay = false;
+        if (count($files) != 0) {
+            $downloadurls = '';
+            $downloadurls .= $this->output->heading(get_string('providedfiles', 'proforma'), 3);
+            $downloadurls .= $this->output->box_start('generalbox boxaligncenter', 'providedfiles');
+            $downloadurls .= '<ul>';
+            foreach ($files as $file) {
+                if ($file->visibletostudents == 0 && !has_capability('mod/quiz:grade', $options->context)) {
+                    continue;
+                }
+                $anythingtodisplay = true;
+                $url = moodle_url::make_pluginfile_url($question->contextid, 'question', $file->filearea, "$qubaid/$slot/$questionid", $file->filepath, $file->filename, in_array($file->usagebylms, array('download', 'edit')));
+                $linkdisplay = ($file->filearea == proforma_ATTACHED_TASK_FILES_FILEAREA ? $file->filepath : '') . $file->filename;
+                $downloadurls .= '<li><a href="' . $url . '">' . $linkdisplay . '</a></li>';
+            }
+            $downloadurls .= '</ul>';
+            $downloadurls .= $this->output->box_end();
+
+            if ($anythingtodisplay) {
+                $o .= $downloadurls;
+            }
+        }
+
+
+        return $o;
     }
 
     /**

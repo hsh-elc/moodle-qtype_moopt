@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -22,12 +23,13 @@
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 defined('MOODLE_INTERNAL') || die();
 
+$string['internaldescription'] = 'Internal description';
 $string['pluginname'] = 'Programmieraufgabe';
 $string['pluginname_help'] = 'Programmingtask questions allow the use of ProFormA tasks.';
 $string['pluginname_link'] = 'question/type/programmingtask';
 $string['pluginnameadding'] = 'Adding a ProFormA programming task';
 $string['pluginnameediting'] = 'Editing a ProFormA programming task';
 $string['pluginnamesummary'] = 'Questions of this type represent a ProFormA task.';
+$string['providedfiles'] = 'Provided files';
