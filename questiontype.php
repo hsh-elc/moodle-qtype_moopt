@@ -49,6 +49,8 @@ class qtype_programmingtask extends question_type {
     }
 
     public function save_question_options($question) {
+        parent::save_question_options($question);
+
         global $DB;
 
         //Save additional options
@@ -78,6 +80,8 @@ class qtype_programmingtask extends question_type {
     }
 
     public function delete_question($questionid, $contextid) {
+        parent::delete_question($questionid, $contextid);
+
         global $DB;
 
         $DB->delete_records('qtype_programmingtask_optns', array('questionid' => $questionid));
