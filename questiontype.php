@@ -37,38 +37,40 @@ require_once("$CFG->dirroot/question/type/programmingtask/locallib.php");
  */
 class qtype_programmingtask extends question_type {
 
-    // Override functions as necessary from the parent class located at
-    // /question/type/questiontype.php.
-
-    public function get_question_options($question) {
-        global $DB;
-        parent::get_question_options($question);
-        $question->options = $DB->get_record('qtype_programmingtask_optns', array('questionid' => $question->id));
-
-        return true;
+    /**
+     * If your question type has a table that extends the question table, and
+     * you want the base class to automatically save, backup and restore the extra fields,
+     * override this method to return an array wherer the first element is the table name,
+     * and the subsequent entries are the column names (apart from id and questionid).
+     *
+     * @return mixed array as above, or null to tell the base class to do nothing.
+     */
+    public function extra_question_fields() {
+        return array("qtype_programmingtask_optns", "internaldescription");
     }
 
+    /**
+     * Saves question-type specific options
+     *
+     * This is called by {@link save_question()} to save the question-type specific data
+     * @return object $result->error or $result->notice
+     * @param object $question  This holds the information from the editing form,
+     *      it is not a standard question object.
+     */
     public function save_question_options($question) {
+
+        if (!isset($question->internaldescription['text'])) {
+            $question->internaldescription = '';
+        } else {
+            $question->internaldescription = trim($question->internaldescription['text']);
+        }
+
         parent::save_question_options($question);
+
 
         global $DB;
 
-        //Save additional options
-
-        $options = new stdClass();
-        $options->questionid = $question->id;
-        $options->internaldescription = $question->internaldescription['text'];
-
-        $record = $DB->get_record('qtype_programmingtask_optns', array('questionid' => $question->id), 'id');
-        if (!$record) {
-            $DB->insert_record('qtype_programmingtask_optns', $options);
-        } else {
-            $options->id = $record->id;
-            $DB->update_record('qtype_programmingtask_optns', $options);
-        }
-
         //Save the files contained in the task file
-        //
         //First remove all old files and db entries
         $DB->delete_records('qtype_programmingtask_files', array('questionid' => $question->id));
         $fs = get_file_storage();
@@ -84,7 +86,6 @@ class qtype_programmingtask extends question_type {
 
         global $DB;
 
-        $DB->delete_records('qtype_programmingtask_optns', array('questionid' => $questionid));
         $DB->delete_records('qtype_programmingtask_files', array('questionid' => $questionid));
         $fs = get_file_storage();
         $fs->delete_area_files($contextid, 'question', proforma_TASKZIP_FILEAREA, $questionid);

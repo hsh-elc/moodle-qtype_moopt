@@ -55,8 +55,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         if (has_capability('mod/quiz:grade', $options->context)) {
             $o .= $this->output->heading(get_string('internaldescription', 'proforma'), 3);
             $o .= $this->output->box_start('generalbox boxaligncenter', 'internaldescription');
-            $record = $DB->get_record('qtype_programmingtask_optns', array('questionid' => $questionid), 'internaldescription');
-            $o .= $record->internaldescription;
+            $o .= $question->internaldescription;
             $o .= $this->output->box_end();
         }
 

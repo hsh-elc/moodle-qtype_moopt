@@ -34,10 +34,18 @@ defined('MOODLE_INTERNAL') || die();
  */
 class qtype_programmingtask_question extends question_graded_automatically_with_countback {
 
-    /**
-     * Returns data to be included in the form submission.
+    public $internaldescription;
+
+   /**
+     * What data may be included in the form submission when a student submits
+     * this question in its current state?
      *
-     * @return array|string.
+     * This information is used in calls to optional_param. The parameter name
+     * has {@link question_attempt::get_field_prefix()} automatically prepended.
+     *
+     * @return array|string variable name => PARAM_... constant, or, as a special case
+     *      that should only be used in unavoidable, the constant question_attempt::USE_RAW_DATA
+     *      meaning take all the raw submitted data belonging to this question.
      */
     public function get_expected_data() {
         return array();

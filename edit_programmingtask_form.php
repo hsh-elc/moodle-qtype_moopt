@@ -62,15 +62,14 @@ class qtype_programmingtask_edit_form extends question_edit_form {
 
         if (isset($question->id)) {
             $draftitemid = file_get_submitted_draft_itemid('proformataskfileupload');
-            file_prepare_draft_area($draftitemid, $this->context->id, 'qtype_programmingtask', proforma_TASKZIP_FILEAREA , $question->id, array('subdirs' => 0));
+            file_prepare_draft_area($draftitemid, $this->context->id, 'question', proforma_TASKZIP_FILEAREA, $question->id, array('subdirs' => 0));
             $question->proformataskfileupload = $draftitemid;
         }
 
-        if (empty($question->options)) {
-            return $question;
+        if (isset($question->internaldescription)) {
+            $question->internaldescription = array('text' => $question->internaldescription);
         }
 
-        $question->internaldescription = array('text' => $question->options->internaldescription);
         return $question;
     }
 
