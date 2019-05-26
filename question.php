@@ -50,7 +50,7 @@ class qtype_programmingtask_question extends question_graded_automatically_with_
      *      meaning take all the raw submitted data belonging to this question.
      */
     public function get_expected_data() {
-        return array();
+        return array('answer' => question_attempt::PARAM_FILES);
     }
 
     /**

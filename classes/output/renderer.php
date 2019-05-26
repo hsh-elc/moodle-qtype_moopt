@@ -52,18 +52,42 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         $slot = $qa->get_slot();
         $questionid = $question->id;
 
+        $submissionfilearea = $this->renderSubmissionFileArea($qa, $options);
+        $o .= html_writer::tag('div', $submissionfilearea, array('class' => 'submissionfilearea'));
+
         if (has_capability('mod/quiz:grade', $options->context)) {
-            $o .= $this->output->heading(get_string('internaldescription', 'proforma'), 3);
-            $o .= $this->output->box_start('generalbox boxaligncenter', 'internaldescription');
-            $o .= $question->internaldescription;
-            $o .= $this->output->box_end();
+            $internalDescription = $this->renderInternalDescription($question);
+            $o .= html_writer::tag('div', $internalDescription, array('class' => 'internaldescription'));
         }
+
+        $download_links = $this->renderDownloadLinks($qa, $options);
+        $o .= html_writer::tag('div', $download_links, array('class' => 'downloadlinks'));
+
+
+        return $o;
+    }
+
+    private function renderInternalDescription($question) {
+        $o = '';
+        $o .= $this->output->heading(get_string('internaldescription', 'qtype_programmingtask'), 3);
+        $o .= $question->internaldescription;
+        return $o;
+    }
+
+    private function renderDownloadLinks(question_attempt $qa, question_display_options $options) {
+        global $DB;
+
+        $question = $qa->get_question();
+        $qubaid = $qa->get_usage_id();
+        $slot = $qa->get_slot();
+        $questionid = $question->id;
+        $o = '';
 
         $files = $DB->get_records('qtype_programmingtask_files', array('questionid' => $questionid));
         $anythingtodisplay = false;
         if (count($files) != 0) {
             $downloadurls = '';
-            $downloadurls .= $this->output->heading(get_string('providedfiles', 'proforma'), 3);
+            $downloadurls .= $this->output->heading(get_string('providedfiles', 'qtype_programmingtask'), 3);
             $downloadurls .= $this->output->box_start('generalbox boxaligncenter', 'providedfiles');
             $downloadurls .= '<ul>';
             foreach ($files as $file) {
@@ -82,9 +106,27 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 $o .= $downloadurls;
             }
         }
-
-
         return $o;
+    }
+
+    private function renderSubmissionFileArea(question_attempt $qa, question_display_options $options) {
+        global $CFG;
+        require_once($CFG->dirroot . '/lib/form/filemanager.php');
+
+        $pickeroptions = new stdClass();
+        $pickeroptions->itemid = $qa->prepare_response_files_draft_itemid(
+                'answer', $options->context->id);
+        $pickeroptions->context = $options->context;
+
+        $fm = new form_filemanager($pickeroptions);
+        $filesrenderer = $this->page->get_renderer('core', 'files');
+
+        //This is moodles weird way to express which file manager is responsible for which response variable
+        $hidden = html_writer::empty_tag(
+                        'input', array('type' => 'hidden', 'name' => $qa->get_qt_field_name('answer'),
+                    'value' => $pickeroptions->itemid));
+
+        return $filesrenderer->render($fm) . $hidden;
     }
 
     /**

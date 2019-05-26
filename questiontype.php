@@ -37,6 +37,10 @@ require_once("$CFG->dirroot/question/type/programmingtask/locallib.php");
  */
 class qtype_programmingtask extends question_type {
 
+    public function response_file_areas() {
+        return array("answer");
+    }
+
     /**
      * If your question type has a table that extends the question table, and
      * you want the base class to automatically save, backup and restore the extra fields,
