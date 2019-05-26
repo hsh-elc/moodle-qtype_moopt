@@ -6,10 +6,12 @@
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
                 <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
                 <FIELD NAME="internaldescription" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The internal description of the assignment."/>
+                <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
                 <KEY NAME="questionid" TYPE="foreign-unique" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+                <KEY NAME="graderid" TYPE="foreign-unique" FIELDS="graderid" REFTABLE="qtype_programmingtask_gradrs" REFFIELDS="graderid"/>
             </KEYS>
         </TABLE>
 
@@ -32,6 +34,16 @@
             <INDEXES>
                 <INDEX NAME="fileid" UNIQUE="false" FIELDS="fileid"/>
             </INDEXES>
+        </TABLE>
+
+        <TABLE NAME="qtype_programmingtask_gradrs" COMMENT="Contains infos about the graders.">
+            <FIELDS>
+                <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="gradername" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="graderid"/>
+            </KEYS>
         </TABLE>
 
     </TABLES>

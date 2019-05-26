@@ -36,6 +36,8 @@ class qtype_programmingtask_question extends question_graded_automatically_with_
 
     public $internaldescription;
 
+    public $graderid;
+
    /**
      * What data may be included in the form submission when a student submits
      * this question in its current state?

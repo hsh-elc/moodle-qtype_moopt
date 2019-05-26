@@ -75,5 +75,22 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2019031700, 'qtype', 'programmingtask');
     }
 
+    if ($oldversion < 2019052601) {
+
+        $graderTable = new xmldb_table('qtype_programmingtask_gradrs');
+        $graderTable->addField(new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
+        $graderTable->addField(new xmldb_field('gradername', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
+        $graderTable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('graderid'), null, null));
+        $dbman->create_table($graderTable);
+
+        $table = new xmldb_table('qtype_programmingtask_optns');
+        $dbman->add_field($table, new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
+        $dbman->add_key($table, new xmldb_key('graderid', XMLDB_KEY_FOREIGN, array('graderid'), 'qtype_programmingtask_gradrs', 'graderid'));
+
+        // ProForma savepoint reached.
+        upgrade_plugin_savepoint(true, 2019052601, 'qtype', 'programmingtask');
+    }
+
+
     return true;
 }

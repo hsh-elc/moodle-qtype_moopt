@@ -22,6 +22,8 @@
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+use qtype_programmingtask\utility\grappa_communicator;
+
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -32,17 +34,20 @@ defined('MOODLE_INTERNAL') || die();
  */
 class qtype_programmingtask_edit_form extends question_edit_form {
 
+    private $grader_select;
+    private $grader_options;
+
     protected function definition() {
         global $COURSE, $PAGE;
 
         $mform = $this->_form;
 
-        $mform->addElement('header', 'taskfile', get_string('taskfile', 'proforma'));
+        $mform->addElement('header', 'taskfile', get_string('taskfile', 'qtype_programmingtask'));
 
-        $mform->addElement('filemanager', 'proformataskfileupload', get_string('proformataskfileupload', 'proforma'), null, array('subdirs' => 0, 'maxbytes' => $COURSE->maxbytes, 'maxfiles' => 1));
-        $mform->addHelpButton('proformataskfileupload', 'proformataskfileupload', 'proforma');
+        $mform->addElement('filemanager', 'proformataskfileupload', get_string('proformataskfileupload', 'qtype_programmingtask'), null, array('subdirs' => 0, 'maxbytes' => $COURSE->maxbytes, 'maxfiles' => 1));
+        $mform->addHelpButton('proformataskfileupload', 'proformataskfileupload', 'qtype_programmingtask');
 
-        $mform->addElement('button', 'loadproformataskfilebutton', get_string('loadproformataskfile', 'proforma'), array('id' => 'loadproformataskfilebutton'));
+        $mform->addElement('button', 'loadproformataskfilebutton', get_string('loadproformataskfile', 'qtype_programmingtask'), array('id' => 'loadproformataskfilebutton'));
 
         $mform->addElement('static', 'ajaxerrorlabel', '', '');
 
@@ -52,12 +57,32 @@ class qtype_programmingtask_edit_form extends question_edit_form {
     }
 
     protected function definition_inner($mform) {
-        $mform->addElement('editor', 'internaldescription', get_string('internaldescription', 'proforma'), array('rows' => 10), array('maxfiles' => 0,
+        global $DB;
+
+        $mform->addElement('editor', 'internaldescription', get_string('internaldescription', 'qtype_programmingtask'), array('rows' => 10), array('maxfiles' => 0,
             'noclean' => true, 'context' => $this->context, 'subdirs' => true));
         $mform->setType('internaldescription', PARAM_RAW); // no XSS prevention here, users must be trusted
+
+        $graders = grappa_communicator::getInstance()->getGraders();
+        $this->grader_options = array();
+        foreach ($graders['graders'] as $name => $id) {
+            $this->grader_options[$id] = $name;
+        }
+        $this->grader_select = $mform->addElement('select', 'graderid', get_string('grader', 'qtype_programmingtask'), $this->grader_options);
+
+        //Insert all new graders into the database
+        $records = array();
+        foreach ($graders['graders'] as $name => $id) {
+            if (!$DB->record_exists('qtype_programmingtask_gradrs', array("graderid" => $id))) {
+                array_push($records, array("graderid" => $id, "gradername" => $name));
+            }
+        }
+        $DB->insert_records('qtype_programmingtask_gradrs', $records);
     }
 
     protected function data_preprocessing($question) {
+        global $DB;
+
         $question = parent::data_preprocessing($question);
 
         if (isset($question->id)) {
@@ -68,6 +93,21 @@ class qtype_programmingtask_edit_form extends question_edit_form {
 
         if (isset($question->internaldescription)) {
             $question->internaldescription = array('text' => $question->internaldescription);
+        }
+
+        if (isset($question->graderid)) {
+            $is_current_grader_available = false;
+            foreach ($this->grader_options as $id => $name) {
+                if ($id === $question->graderid) {
+                    $is_current_grader_available = true;
+                    break;
+                }
+            }
+            if (!$is_current_grader_available) {
+                $gradername = $DB->get_field('qtype_programmingtask_gradrs', 'gradername', array("graderid" => $question->graderid));
+                $this->grader_select->addOption($gradername, $question->graderid);
+            }
+            $this->grader_select->setSelected($question->graderid);
         }
 
         return $question;

@@ -25,11 +25,16 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+$string['grader'] = 'Grader';
 $string['internaldescription'] = 'Internal description';
+$string['loadproformataskfile'] = 'Extract information';
 $string['pluginname'] = 'Programmieraufgabe';
 $string['pluginname_help'] = 'Programmingtask questions allow the use of ProFormA tasks.';
 $string['pluginname_link'] = 'question/type/programmingtask';
 $string['pluginnameadding'] = 'Adding a ProFormA programming task';
 $string['pluginnameediting'] = 'Editing a ProFormA programming task';
 $string['pluginnamesummary'] = 'Questions of this type represent a ProFormA task.';
+$string['proformataskfileupload'] = 'ProFormA task file';
+$string['proformataskfileupload_help'] = 'You can add a ProFormA task file (zip file) to this file picker. If you click the according button the necessary informations will be automatically extracted and inserted into the corresponding form elements on this page.';
 $string['providedfiles'] = 'Provided files';
+$string['taskfile'] = 'ProFormA task file';
