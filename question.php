@@ -35,10 +35,9 @@ defined('MOODLE_INTERNAL') || die();
 class qtype_programmingtask_question extends question_graded_automatically_with_countback {
 
     public $internaldescription;
-
     public $graderid;
 
-   /**
+    /**
      * What data may be included in the form submission when a student submits
      * this question in its current state?
      *
@@ -50,7 +49,7 @@ class qtype_programmingtask_question extends question_graded_automatically_with_
      *      meaning take all the raw submitted data belonging to this question.
      */
     public function get_expected_data() {
-        return array('answer' => question_attempt::PARAM_FILES);
+        return array('answerfiles' => question_attempt::PARAM_FILES);
     }
 
     /**
@@ -75,11 +74,8 @@ class qtype_programmingtask_question extends question_graded_automatically_with_
      */
     public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) {
         global $DB;
-
         $question = $qa->get_question();
         $questionid = $question->id;
-
-        $context = context_module::instance($question->contextid);
 
         $argscopy = $args;
         unset($argscopy[0]);
@@ -94,10 +90,13 @@ class qtype_programmingtask_question extends question_graded_automatically_with_
             //$records[0] doesn't work because $records is an associative array with the keys being the ids of the record
             $first_elem = reset($records);
             $onlyteacher = $first_elem->visibletostudents == 0 ? true : false;
+            $context = context_module::instance($question->contextid);
             if ($onlyteacher && !has_capability('mod/quiz:grade', $context)) {
                 return false;
             }
 
+            return true;
+        } else if ($component == 'question' && $filearea == 'response_answerfiles') {
             return true;
         }
 

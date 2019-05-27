@@ -52,7 +52,12 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         $slot = $qa->get_slot();
         $questionid = $question->id;
 
-        $submissionfilearea = $this->renderSubmissionFileArea($qa, $options);
+        if (empty($options->readonly)) {
+            $submissionfilearea = $this->renderSubmissionFileArea($qa, $options);
+        } else {
+            $submissionfilearea = $this->renderFilesReadOnly($qa, $options);
+        }
+        $o .= $this->output->heading(get_string('submissionfiles', 'qtype_programmingtask'), 3);
         $o .= html_writer::tag('div', $submissionfilearea, array('class' => 'submissionfilearea'));
 
         if (has_capability('mod/quiz:grade', $options->context)) {
@@ -109,13 +114,23 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         return $o;
     }
 
+    private function renderFilesReadOnly(question_attempt $qa, question_display_options $options) {
+        $files = $qa->get_last_qt_files('answerfiles', $options->context->id);
+        $output = array();
+
+        foreach ($files as $file) {
+            $output[] = html_writer::tag('p', html_writer::link($qa->get_response_file_url($file), $this->output->pix_icon(file_file_icon($file), get_mimetype_description($file), 'moodle', array('class' => 'icon')) . ' ' . s($file->get_filename())));
+        }
+        return implode($output);
+    }
+
     private function renderSubmissionFileArea(question_attempt $qa, question_display_options $options) {
         global $CFG;
         require_once($CFG->dirroot . '/lib/form/filemanager.php');
 
         $pickeroptions = new stdClass();
         $pickeroptions->itemid = $qa->prepare_response_files_draft_itemid(
-                'answer', $options->context->id);
+                'answerfiles', $options->context->id);
         $pickeroptions->context = $options->context;
 
         $fm = new form_filemanager($pickeroptions);
@@ -123,7 +138,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
 
         //This is moodles weird way to express which file manager is responsible for which response variable
         $hidden = html_writer::empty_tag(
-                        'input', array('type' => 'hidden', 'name' => $qa->get_qt_field_name('answer'),
+                        'input', array('type' => 'hidden', 'name' => $qa->get_qt_field_name('answerfiles'),
                     'value' => $pickeroptions->itemid));
 
         return $filesrenderer->render($fm) . $hidden;
