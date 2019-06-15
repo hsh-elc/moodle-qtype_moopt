@@ -12,6 +12,13 @@ defined('MOODLE_INTERNAL') || die();
 
 class grappa_communicator {
 
+    /**
+     *
+     * TODO: AUTHORIZATION
+     *
+     */
+
+
     private $grappa_uri;
 
     public function getGraders(): array {
