@@ -34,6 +34,7 @@ $string['pluginname_link'] = 'question/type/programmingtask';
 $string['pluginnameadding'] = 'Adding a ProFormA programming task';
 $string['pluginnameediting'] = 'Editing a ProFormA programming task';
 $string['pluginnamesummary'] = 'Questions of this type represent a ProFormA task.';
+$string['previousgradernotavailable'] = 'The previously selected grader is currently not available, it was manually added to the list of available graders. This might be an indicator for a problem with the grader.';
 $string['proformataskfileupload'] = 'ProFormA task file';
 $string['proformataskfileupload_help'] = 'You can add a ProFormA task file (zip file) to this file picker. If you click the according button the necessary informations will be automatically extracted and inserted into the corresponding form elements on this page.';
 $string['providedfiles'] = 'Provided files';

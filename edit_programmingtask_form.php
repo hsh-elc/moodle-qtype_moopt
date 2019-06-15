@@ -36,6 +36,7 @@ class qtype_programmingtask_edit_form extends question_edit_form {
 
     private $grader_select;
     private $grader_options;
+    private $grader_errorlabel;
 
     protected function definition() {
         global $COURSE, $PAGE;
@@ -49,7 +50,8 @@ class qtype_programmingtask_edit_form extends question_edit_form {
 
         $mform->addElement('button', 'loadproformataskfilebutton', get_string('loadproformataskfile', 'qtype_programmingtask'), array('id' => 'loadproformataskfilebutton'));
 
-        $mform->addElement('static', 'ajaxerrorlabel', '', '');
+        $label = $mform->addElement('static', 'ajaxerrorlabel', '', '');
+        $this->setClassAttributeOfLabel($label, 'errorlabel');
 
         parent::definition();
 
@@ -69,6 +71,9 @@ class qtype_programmingtask_edit_form extends question_edit_form {
             $this->grader_options[$id] = $name;
         }
         $this->grader_select = $mform->addElement('select', 'graderid', get_string('grader', 'qtype_programmingtask'), $this->grader_options);
+
+        $this->grader_errorlabel = $mform->addElement('static', 'gradernotavailableerrorlabel', '', '');
+        $this->setClassAttributeOfLabel($this->grader_errorlabel, 'errorlabel');
 
         //Insert all new graders into the database
         $records = array();
@@ -106,6 +111,7 @@ class qtype_programmingtask_edit_form extends question_edit_form {
             if (!$is_current_grader_available) {
                 $gradername = $DB->get_field('qtype_programmingtask_gradrs', 'gradername', array("graderid" => $question->graderid));
                 $this->grader_select->addOption($gradername, $question->graderid);
+                $this->grader_errorlabel->setText(get_string('previousgradernotavailable', 'qtype_programmingtask'));
             }
             $this->grader_select->setSelected($question->graderid);
         }
@@ -120,6 +126,17 @@ class qtype_programmingtask_edit_form extends question_edit_form {
      */
     public function qtype() {
         return 'programmingtask';
+    }
+
+    private function setClassAttributeOfLabel(MoodleQuickForm_static $label, $classes) {
+        $attribs = $label->getAttributes();
+        if (!isset($attribs['class'])) {
+            $attribs['class'] = $classes;
+        } else {
+            $attribs['class'] = $attribs['class'] . " " . $classes;
+        }
+
+        $label->setAttributes($attribs);
     }
 
 }
