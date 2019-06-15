@@ -62,6 +62,39 @@ class qtype_programmingtask_question extends question_graded_automatically_with_
     }
 
     /**
+     * Creat the appropriate behaviour for an attempt at this quetsion,
+     * given the desired (archetypal) behaviour.
+     *
+     * This default implementation will suit most normal graded questions.
+     *
+     * If your question is of a patricular type, then it may need to do something
+     * different. For example, if your question can only be graded manually, then
+     * it should probably return a manualgraded behaviour, irrespective of
+     * what is asked for.
+     *
+     * If your question wants to do somthing especially complicated is some situations,
+     * then you may wish to return a particular behaviour related to the
+     * one asked for. For example, you migth want to return a
+     * qbehaviour_interactive_adapted_for_myqtype.
+     *
+     * @param question_attempt $qa the attempt we are creating a behaviour for.
+     * @param string $preferredbehaviour the requested type of behaviour.
+     * @return question_behaviour the new behaviour object.
+     */
+    public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
+
+        $prefix_to_check = 'immediate';
+        if (substr($preferredbehaviour, 0, strlen($prefix_to_check)) === $prefix_to_check) {
+            $preferredbehaviour = 'immediateprogrammingtask';
+        } else {
+            // No need to check whether it starts with 'deferred' because this is also the default cause if it wouldn't start with 'deferred'
+            $preferredbehaviour = 'deferredprogrammingtask';
+        }
+
+        return parent::make_behaviour($qa, $preferredbehaviour);
+    }
+
+    /**
      * Checks whether the user is allowed to be served a particular file.
      *
      * @param question_attempt $qa The question attempt being displayed.
