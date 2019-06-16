@@ -50,7 +50,7 @@ class qtype_programmingtask extends question_type {
      * @return mixed array as above, or null to tell the base class to do nothing.
      */
     public function extra_question_fields() {
-        return array("qtype_programmingtask_optns", "internaldescription", "graderid");
+        return array("qtype_programmingtask_optns", "internaldescription", "graderid", "taskuuid");
     }
 
     /**

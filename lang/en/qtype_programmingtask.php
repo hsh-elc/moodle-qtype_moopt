@@ -40,3 +40,4 @@ $string['proformataskfileupload_help'] = 'You can add a ProFormA task file (zip 
 $string['providedfiles'] = 'Provided files';
 $string['submissionfiles'] = 'Submission files';
 $string['taskfile'] = 'ProFormA task file';
+$string['taskuuid'] = 'Task-UUID';

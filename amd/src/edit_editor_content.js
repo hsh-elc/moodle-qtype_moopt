@@ -14,6 +14,10 @@ define(['jquery'], function ($) {
             } else {
                 tinyMCE.get(common_id).setContent(contents);
             }
+        },
+
+        setContentsOfText: function (common_id, contents) {
+           $("[id^='" + common_id + "']").val(contents);
         }
 
     };

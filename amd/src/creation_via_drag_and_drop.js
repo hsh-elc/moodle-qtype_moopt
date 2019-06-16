@@ -29,6 +29,7 @@ define(['jquery', 'core/ajax',
                                 $("#id_name").val(result.title);
                                 editorEditor.setContents('id_questiontext', result.description);
                                 editorEditor.setContents('id_internaldescription', result.internaldescription);
+                                editorEditor.setContentsOfText('id_taskuuid', result.taskuuid);
                             },
                             fail: function (errorObject) {
                                 console.log(errorObject);

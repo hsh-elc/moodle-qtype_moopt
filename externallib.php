@@ -68,6 +68,13 @@ class qtype_programmingtask_external extends external_api {
             }
         }
 
+        //Currently only supports tns:task-type; neither tns:external-task-type nor tns:included-task-file-type
+        //TODO: Implement the other two
+        foreach ($doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, 'task') as $task) {
+            $returnVal['taskuuid'] = $task->getAttribute('uuid');
+            break;
+        }
+
         //Do a little bit of cleanup and remove everything from the file area we extracted
         remove_all_files_from_draft_area($draftid, $user_context, $filename);
 

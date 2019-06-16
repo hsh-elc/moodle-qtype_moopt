@@ -7,6 +7,7 @@
                 <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
                 <FIELD NAME="internaldescription" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The internal description of the assignment."/>
                 <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="taskuuid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

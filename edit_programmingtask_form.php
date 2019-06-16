@@ -75,6 +75,9 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         $this->grader_errorlabel = $mform->addElement('static', 'gradernotavailableerrorlabel', '', '');
         $this->setClassAttributeOfLabel($this->grader_errorlabel, 'errorlabel');
 
+        $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_programmingtask'), array("size" => '36'));
+        $mform->setType('taskuuid', PARAM_TEXT);
+
         //Insert all new graders into the database
         $records = array();
         foreach ($graders['graders'] as $name => $id) {

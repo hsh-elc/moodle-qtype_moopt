@@ -91,6 +91,14 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2019052601, 'qtype', 'programmingtask');
     }
 
+     if ($oldversion < 2019061601) {
+        $table = new xmldb_table('qtype_programmingtask_optns');
+        $dbman->add_field($table, new xmldb_field('taskuuid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL));
+
+        // ProForma savepoint reached.
+        upgrade_plugin_savepoint(true, 2019061601, 'qtype', 'programmingtask');
+    }
+
 
     return true;
 }
