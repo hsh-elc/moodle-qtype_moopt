@@ -142,4 +142,14 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         $label->setAttributes($attribs);
     }
 
+    public function validation($fromform, $files) {
+        $errors = parent::validation($fromform, $files);
+
+        if (strlen($fromform['taskuuid']) != 36) {
+            $errors['taskuuid'] = get_string('taskuuidhaswronglength', 'qtype_programmingtask');
+        }
+
+        return $errors;
+    }
+
 }

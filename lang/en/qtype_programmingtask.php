@@ -41,3 +41,4 @@ $string['providedfiles'] = 'Provided files';
 $string['submissionfiles'] = 'Submission files';
 $string['taskfile'] = 'ProFormA task file';
 $string['taskuuid'] = 'Task-UUID';
+$string['taskuuidhaswronglength'] = 'Wrong length - uuid has to have 36 characters (32 hex digits and 4 dashes)';
