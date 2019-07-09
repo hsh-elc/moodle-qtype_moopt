@@ -47,6 +47,7 @@ class qtype_programmingtask_edit_form extends question_edit_form {
 
         $mform->addElement('filemanager', 'proformataskfileupload', get_string('proformataskfileupload', 'qtype_programmingtask'), null, array('subdirs' => 0, 'maxbytes' => $COURSE->maxbytes, 'maxfiles' => 1));
         $mform->addHelpButton('proformataskfileupload', 'proformataskfileupload', 'qtype_programmingtask');
+        $mform->addRule('proformataskfileupload', get_string('proformataskfilerequired', 'qtype_programmingtask'), 'required');
 
         $mform->addElement('button', 'loadproformataskfilebutton', get_string('loadproformataskfile', 'qtype_programmingtask'), array('id' => 'loadproformataskfilebutton'));
 
@@ -77,6 +78,7 @@ class qtype_programmingtask_edit_form extends question_edit_form {
 
         $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_programmingtask'), array("size" => '36'));
         $mform->setType('taskuuid', PARAM_TEXT);
+        $mform->addRule('taskuuid', get_string('taskuuidrequired', 'qtype_programmingtask'), 'required');
 
         //Insert all new graders into the database
         $records = array();
