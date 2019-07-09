@@ -12,18 +12,43 @@ defined('MOODLE_INTERNAL') || die();
 
 class grappa_communicator {
 
-    /**
-     *
-     * TODO: AUTHORIZATION
-     *
-     */
-
-
-    private $grappa_uri;
+    private $grappa_url;
+    private $grappa_timeout;
 
     public function getGraders(): array {
-        $graders_json = file_get_contents("{$this->grappa_uri}/graders");
+        $url = "{$this->grappa_url}/graders";
+        list($graders_json, $http_status_code) = $this->getFromGrappa($url);
+
+        if ($http_status_code != 200) {
+            throw new \invalid_response_exception("Received HTTP status code $http_status_code when accessing URL $url");
+        }
+
         return json_decode($graders_json, true);
+    }
+
+    private function getFromGrappa($url, $params = array(), $options = array()) {
+        $curl = new \curl();
+        if (!isset($options['CURLOPT_TIMEOUT'])) {
+            $options['CURLOPT_TIMEOUT'] = $this->grappa_timeout;
+        }
+
+        /**
+         *
+         * TODO: AUTHENTICATION
+         *
+         */
+        
+        $response = $curl->get($url, $params, $options);
+
+        $info = $curl->get_info();
+        $errno = $curl->get_errno();
+        if ($errno != 0) {
+            //errno indicates errors on transport level therefore this is almost certainly an error we do not want
+            //http errors need to be handled by each calling function individually
+            throw new \invalid_response_exception("Error accessing $url;  CURL error code: $errno;  Error: {$curl->error}");
+        }
+
+        return array($response, $info['http_code']);
     }
 
     //#####################################
@@ -31,8 +56,8 @@ class grappa_communicator {
     //#####################################
 
     protected function __construct() {
-        //TODO: Read from DB
-        $this->grappa_uri = "http://localhost/dummyserver";
+        $this->grappa_url = get_config("qtype_programmingtask", "grappa_url");
+        $this->grappa_timeout = get_config("qtype_programmingtask", "grappa_timeout");
     }
 
     protected static $instance = null;
@@ -45,7 +70,7 @@ class grappa_communicator {
     }
 
     protected function __clone() {
-
+        
     }
 
 }
