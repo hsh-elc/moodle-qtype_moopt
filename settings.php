@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -22,10 +23,10 @@
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
-   // TODO: Define the plugin settings page.
-   // https://docs.moodle.org/dev/Admin_settings
+
+    $settings->add(new admin_setting_configtext("qtype_programmingtask/grappa_url", new lang_string('grappa_url', 'qtype_programmingtask'), "", '', PARAM_URL));
+    $settings->add(new admin_setting_configduration("qtype_programmingtask/grappa_timeout", new lang_string('timeout', 'qtype_programmingtask'), "", 10, 1));
 }
