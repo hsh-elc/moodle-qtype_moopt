@@ -20,7 +20,7 @@ class grappa_communicator {
         list($graders_json, $http_status_code) = $this->GETfromGrappa($url);
 
         if ($http_status_code != 200) {
-            throw new \invalid_response_exception("Received HTTP status code $http_status_code when accessing URL $url");
+            throw new \invalid_response_exception("Received HTTP status code $http_status_code when accessing URL GET $url");
         }
 
         return json_decode($graders_json, true);
