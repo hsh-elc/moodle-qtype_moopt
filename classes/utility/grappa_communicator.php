@@ -17,7 +17,7 @@ class grappa_communicator {
 
     public function getGraders(): array {
         $url = "{$this->grappa_url}/graders";
-        list($graders_json, $http_status_code) = $this->getFromGrappa($url);
+        list($graders_json, $http_status_code) = $this->GETfromGrappa($url);
 
         if ($http_status_code != 200) {
             throw new \invalid_response_exception("Received HTTP status code $http_status_code when accessing URL $url");
@@ -26,7 +26,7 @@ class grappa_communicator {
         return json_decode($graders_json, true);
     }
 
-    private function getFromGrappa($url, $params = array(), $options = array()) {
+    private function GETfromGrappa($url, $params = array(), $options = array()) {
         $curl = new \curl();
         if (!isset($options['CURLOPT_TIMEOUT'])) {
             $options['CURLOPT_TIMEOUT'] = $this->grappa_timeout;
@@ -37,7 +37,6 @@ class grappa_communicator {
          * TODO: AUTHENTICATION
          *
          */
-        
         $response = $curl->get($url, $params, $options);
 
         $info = $curl->get_info();
@@ -45,7 +44,7 @@ class grappa_communicator {
         if ($errno != 0) {
             //errno indicates errors on transport level therefore this is almost certainly an error we do not want
             //http errors need to be handled by each calling function individually
-            throw new \invalid_response_exception("Error accessing $url;  CURL error code: $errno;  Error: {$curl->error}");
+            throw new \invalid_response_exception("Error accessing GET $url;  CURL error code: $errno;  Error: {$curl->error}");
         }
 
         return array($response, $info['http_code']);
