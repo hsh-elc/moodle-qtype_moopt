@@ -26,6 +26,19 @@ class grappa_communicator {
         return json_decode($graders_json, true);
     }
 
+    public function isTaskCached($uuid): bool {
+        $url = "{$this->grappa_url}/tasks/$uuid";
+        list(, $http_status_code) = $this->HEADfromGrappa($url);
+
+        if ($http_status_code == 200) {
+            return true;
+        } else if ($http_status_code == 404) {
+            return false;
+        } else {
+            throw new \invalid_response_exception("Received HTTP status code $http_status_code when accessing URL HEAD $url");
+        }
+    }
+
     //#####################################
     //utility functions to access grappa from here on
     //#####################################
