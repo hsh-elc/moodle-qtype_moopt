@@ -26,6 +26,10 @@ class grappa_communicator {
         return json_decode($graders_json, true);
     }
 
+    //#####################################
+    //utility functions to access grappa from here on
+    //#####################################
+
     private function GETfromGrappa($url, $params = array(), $options = array()) {
         $curl = new \curl();
         if (!isset($options['CURLOPT_TIMEOUT'])) {
@@ -45,6 +49,30 @@ class grappa_communicator {
             //errno indicates errors on transport level therefore this is almost certainly an error we do not want
             //http errors need to be handled by each calling function individually
             throw new \invalid_response_exception("Error accessing GET $url;  CURL error code: $errno;  Error: {$curl->error}");
+        }
+
+        return array($response, $info['http_code']);
+    }
+
+    private function HEADfromGrappa($url, $options = array()) {
+        $curl = new \curl();
+        if (!isset($options['CURLOPT_TIMEOUT'])) {
+            $options['CURLOPT_TIMEOUT'] = $this->grappa_timeout;
+        }
+
+        /**
+         *
+         * TODO: AUTHENTICATION
+         *
+         */
+        $response = $curl->head($url, $options);
+
+        $info = $curl->get_info();
+        $errno = $curl->get_errno();
+        if ($errno != 0) {
+            //errno indicates errors on transport level therefore this is almost certainly an error we do not want
+            //http errors need to be handled by each calling function individually
+            throw new \invalid_response_exception("Error accessing HEAD $url;  CURL error code: $errno;  Error: {$curl->error}");
         }
 
         return array($response, $info['http_code']);
