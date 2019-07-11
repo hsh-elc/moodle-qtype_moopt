@@ -102,7 +102,7 @@ class grappa_communicator {
 
     protected static $instance = null;
 
-    public static function getInstance() {
+    public static function getInstance() : grappa_communicator {
         if (self::$instance === null) {
             self::$instance = new self;
         }
