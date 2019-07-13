@@ -91,6 +91,29 @@ class grappa_communicator {
         return array($response, $info['http_code']);
     }
 
+    private function POSTtoGrappa($url, $params = array(), $options = array()) {
+        $curl = new \curl();
+        if (!isset($options['CURLOPT_TIMEOUT'])) {
+            $options['CURLOPT_TIMEOUT'] = $this->grappa_timeout;
+        }
+        /**
+         *
+         * TODO: AUTHENTICATION
+         *
+         */
+        $curl->post($url, $params, $options);
+
+        $info = $curl->get_info();
+        $errno = $curl->get_errno();
+        if ($errno != 0) {
+            //errno indicates errors on transport level therefore this is almost certainly an error we do not want
+            //http errors need to be handled by each calling function individually
+            throw new \invalid_response_exception("Error accessing POST $url;  CURL error code: $errno;  Error: {$curl->error}");
+        }
+
+        return $info['http_code'];
+    }
+
     //#####################################
     //Singleton related code from here on
     //#####################################
@@ -102,7 +125,7 @@ class grappa_communicator {
 
     protected static $instance = null;
 
-    public static function getInstance() : grappa_communicator {
+    public static function getInstance(): grappa_communicator {
         if (self::$instance === null) {
             self::$instance = new self;
         }
