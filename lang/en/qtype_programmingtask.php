@@ -25,9 +25,14 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+$string['currentlybeeinggraded'] = 'This task is currently beeing graded by the grader..';
 $string['grader'] = 'Grader';
 $string['internaldescription'] = 'Internal description';
 $string['loadproformataskfile'] = 'Extract information';
+$string['needsgradingbyteacher'] = 'This task needs manual grading by a teacher.';
+$string['nofilessubmitted'] = 'You didn\'t submit any files as a solution to the task.';
+$string['noresponseyet'] = 'No responset yet';
+$string['nosummaryavailable'] = 'Currently there is no response summary available for this question type.';
 $string['pluginname'] = 'Programmieraufgabe';
 $string['pluginname_help'] = 'Programmingtask questions allow the use of ProFormA tasks.';
 $string['pluginname_link'] = 'question/type/programmingtask';
@@ -40,6 +45,7 @@ $string['proformataskfileupload'] = 'ProFormA task file';
 $string['proformataskfileupload_help'] = 'You can add a ProFormA task file (zip file) to this file picker. If you click the according button the necessary informations will be automatically extracted and inserted into the corresponding form elements on this page.';
 $string['providedfiles'] = 'Provided files';
 $string['submissionfiles'] = 'Submission files';
+$string['submittedfiles'] = 'Submitted files';
 $string['taskfile'] = 'ProFormA task file';
 $string['taskuuid'] = 'Task-UUID';
 $string['taskuuidhaswronglength'] = 'Wrong length - uuid has to have 36 characters (32 hex digits and 4 dashes)';

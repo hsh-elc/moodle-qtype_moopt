@@ -12,6 +12,7 @@ defined('MOODLE_INTERNAL') || die();
 define('proforma_TASKZIP_FILEAREA', 'taskfile');
 define('proforma_ATTACHED_TASK_FILES_FILEAREA', 'attachedtaskfiles');
 define('proforma_EMBEDDED_TASK_FILES_FILEAREA', 'embeddedtaskfiles');
+define('proforma_SUBMISSION_ZIP_FILEAREA', 'submissionzip');
 
 //ProFormA task xml namespaces
 define('proforma_TASK_XML_NAMESPACE', 'urn:proforma:v2.0');

@@ -16,6 +16,8 @@ class grappa_communicator {
 
     private $grappa_url;
     private $grappa_timeout;
+    private $lmsid;
+    private $lmspw;
 
     public function getGraders(): array {
         $url = "{$this->grappa_url}/graders";
@@ -38,6 +40,16 @@ class grappa_communicator {
             return false;
         } else {
             throw new grappa_exception("Received HTTP status code $http_status_code when accessing URL HEAD $url");
+        }
+    }
+
+    public function enqueueSubmission(string $graderid, bool $asynch, \stored_file $submissionfile) {
+        $url = "{$this->grappa_url}/{$this->lmsid}/gradeprocesses?graderid=$graderid&async=$asynch";
+        $params = array('submission' => $submissionfile);
+
+        $http_status_code = $this->POSTtoGrappa($url, $params);
+        if ($http_status_code != 201 /* = CREATED */) {
+            throw new grappa_exception("Received HTTP status code $http_status_code when accessing URL POST $url");
         }
     }
 
@@ -123,6 +135,11 @@ class grappa_communicator {
     protected function __construct() {
         $this->grappa_url = get_config("qtype_programmingtask", "grappa_url");
         $this->grappa_timeout = get_config("qtype_programmingtask", "grappa_timeout");
+        /**
+         * TODO: Put both into some kind of config var?
+         */
+        $this->lmsid = "moodle";
+        $this->lmspw = "foo";
     }
 
     protected static $instance = null;

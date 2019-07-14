@@ -29,13 +29,18 @@ defined('MOODLE_INTERNAL') || die();
 //
 // Make sure to implement all the abstract methods of the base class.
 
+use qtype_programmingtask\utility\grappa_communicator;
+use qtype_programmingtask\utility\proforma_xml\proforma_submission_xml_creator;
+use qtype_programmingtask\exceptions\grappa_exception;
+
 /**
  * Class that represents a programmingtask question.
  */
-class qtype_programmingtask_question extends question_graded_automatically_with_countback {
+class qtype_programmingtask_question extends question_graded_automatically {
 
     public $internaldescription;
     public $graderid;
+    public $taskuuid;
 
     /**
      * What data may be included in the form submission when a student submits
@@ -137,32 +142,144 @@ class qtype_programmingtask_question extends question_graded_automatically_with_
         return parent::check_file_access($qa, $options, $component, $filearea, $args, $forcedownload);
     }
 
-    public function compute_final_grade($responses, $totaltries): \numeric {
-        //TODO, auto implemented
-    }
-
+    /**
+     * In situations where is_gradable_response() returns false, this method
+     * should generate a description of what the problem is.
+     * @return string the message.
+     */
     public function get_validation_error(array $response): string {
-        //TODO, auto implemented
+        //Currently the only case where this might happen is that the students didn't submit any files
+        return get_string('nofilessubmitted', 'qtype_programmingtask');
     }
 
-    public function grade_response(array $response): array {
-        //TODO, auto implemented
-        return array(1, question_state::$gradedright);
+    /**
+     * This method isn't used for programming task questions, see grade_response_asynch instead.
+     * Explanation: grade_response is an overriden method from its parent class and is supposed to grade the given response
+     * synchronously. As we use asynchronous grading we need different parameters and have different return values. Using this method
+     * and just changing the params and return values would clearly violate the substitution principle.
+     */
+    public function grade_response(array $response) {
+        throw new coding_exception("This method isn't supported for programming tasks. See grade_response_asynch instead.");
     }
 
+    /**
+     * Sends the response to grappa for grading.
+     * 
+     * @param array $qa
+     * @return \question_state Either question_state::$finished if it was succesfully transmitted or
+     *          question_state::$needsgrading if there was an error and a teacher needs to either grade
+     *          the submission manually or trigger a regrade
+     */
+    public function grade_response_asynch(question_attempt $qa): question_state {
+        global $DB;
+        $grappa_communicator = grappa_communicator::getInstance();
+
+        //Get response files
+        $qubaid = $qa->get_usage_id();
+        $record = $DB->get_record('question_usages', array('id' => $qubaid), 'contextid');
+        $quba_context_id = $record->contextid;
+        $responsefiles = $qa->get_last_qt_files('answerfiles', $quba_context_id);
+
+        $files = array();   //array for all files that end up in the ZIP file
+        foreach ($responsefiles as $file) {
+            $files["submission/{$file->get_filename()}"] = $file;
+        }
+
+        try {
+            $includeTaskFile = !$grappa_communicator->isTaskCached($this->taskuuid);
+        } catch (invalid_response_exception $ex) {
+            //Not good but not severe either - just assume the task isn't cached and include it
+            $includeTaskFile = true;
+            error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+        }
+
+        //Get filename of task file if necessary but don't load it yet
+        $taskfilename = '';
+        if ($includeTaskFile) {
+            $taskfilename = $DB->get_record('qtype_programmingtask_files', array('questionid' => $this->id, 'filearea' => proforma_TASKZIP_FILEAREA), 'filename')->filename;
+        }
+
+        //Create the submission.xml file
+        $submission_xml_creator = new proforma_submission_xml_creator();
+        $submissionXML = $submission_xml_creator->createSubmissionXML($includeTaskFile, $includeTaskFile ? $taskfilename : $this->taskuuid, $files, 'zip', 'merged-test-feedback', 'info', 'debug');
+
+        //Load task file and add it to the files that go into the zip file
+        if ($includeTaskFile) {
+            $fs = get_file_storage();
+            $taskfile = $fs->get_file($this->contextid, 'question', proforma_TASKZIP_FILEAREA, $this->id, '/', $taskfilename);
+            $files["task/$taskfilename"] = $taskfile;
+        }
+
+        //Add the submission.xml file
+        $files['submission.xml'] = array($submissionXML);
+
+        //Create submission.zip file
+        $zipper = get_file_packer('application/zip');
+        $zip_file = $zipper->archive_to_storage($files, $this->contextid, 'question', proforma_SUBMISSION_ZIP_FILEAREA . "_{$qa->get_slot()}", $qubaid, '/', 'submission.zip');
+        if (!$zip_file) {
+            throw new invalid_state_exception('Couldn\'t create submission.zip file.');
+        }
+
+        $returnState = question_state::$finished;
+        try {
+            $grappa_communicator->enqueueSubmission('moodle', 'true', $zip_file);
+        } catch (invalid_response_exception $ex) {
+            error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+            $returnState = question_state::$needsgrading;
+        } finally {
+            $fs = get_file_storage();
+            $success = $fs->delete_area_files($this->contextid, 'question', proforma_SUBMISSION_ZIP_FILEAREA . "_{$qa->get_slot()}", $qubaid);
+            if (!$success) {
+                throw new invalid_state_exception("Couldn't delete submission.zip after sending it to grappa. QuestionID: {$this->id}, QubaID: $qubaid, Slot: {$qa->get_slot()}");
+            }
+        }
+
+        return $returnState;
+    }
+
+    /**
+     * Used by many of the behaviours, to work out whether the student's
+     * response to the question is complete. That is, whether the question attempt
+     * should move to the COMPLETE or INCOMPLETE state.
+     *
+     * @param array $response responses, as returned by
+     *      {@link question_attempt_step::get_qt_data()}.
+     * @return bool whether this response is a complete answer to this question.
+     */
     public function is_complete_response(array $response): bool {
-        return true;
-        //TODO, auto implemented
+        if (!isset($response['answerfiles']))
+            return false;
+
+        $question_file_saver = $response['answerfiles'];
+        return $question_file_saver != '';
     }
 
+    /**
+     * Use by many of the behaviours to determine whether the student's
+     * response has changed. This is normally used to determine that a new set
+     * of responses can safely be discarded.
+     *
+     * @param array $prevresponse the responses previously recorded for this question,
+     *      as returned by {@link question_attempt_step::get_qt_data()}
+     * @param array $newresponse the new responses, in the same format.
+     * @return bool whether the two sets of responses are the same - that is
+     *      whether the new set of responses can safely be discarded.
+     */
     public function is_same_response(array $prevresponse, array $newresponse): bool {
-        //TODO, auto implemented
-        return false;
+        if (!isset($prevresponse['answerfiles']))
+            return false;
+        $prevSummary = $prevresponse['answerfiles'];
+        $newSummary = (string) $newresponse['answerfiles'];
+        return $prevSummary == $newSummary;
     }
 
+    /**
+     * Produce a plain text summary of a response.
+     * @param array $response a response, as might be passed to {@link grade_response()}.
+     * @return string a plain text summary of that response, that could be used in reports.
+     */
     public function summarise_response(array $response): string {
-        //TODO, auto implemented
-        return "No response yet";
+        return get_string('nosummaryavailable', 'qtype_programmingtask');
     }
 
 }
