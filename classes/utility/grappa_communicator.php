@@ -8,6 +8,8 @@
 
 namespace qtype_programmingtask\utility;
 
+use qtype_programmingtask\exceptions\grappa_exception;
+
 defined('MOODLE_INTERNAL') || die();
 
 class grappa_communicator {
@@ -20,7 +22,7 @@ class grappa_communicator {
         list($graders_json, $http_status_code) = $this->GETfromGrappa($url);
 
         if ($http_status_code != 200) {
-            throw new \invalid_response_exception("Received HTTP status code $http_status_code when accessing URL GET $url");
+            throw new grappa_exception("Received HTTP status code $http_status_code when accessing URL GET $url");
         }
 
         return json_decode($graders_json, true);
@@ -35,7 +37,7 @@ class grappa_communicator {
         } else if ($http_status_code == 404) {
             return false;
         } else {
-            throw new \invalid_response_exception("Received HTTP status code $http_status_code when accessing URL HEAD $url");
+            throw new grappa_exception("Received HTTP status code $http_status_code when accessing URL HEAD $url");
         }
     }
 
