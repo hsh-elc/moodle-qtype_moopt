@@ -1,3 +1,7 @@
 .errorlabel{
     color: red;
 }
+
+.specificfeedback .gradingstatus{
+    font-weight: bold;
+}

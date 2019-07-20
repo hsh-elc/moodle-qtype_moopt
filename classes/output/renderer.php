@@ -154,9 +154,9 @@ class qtype_programmingtask_renderer extends qtype_renderer {
      */
     protected function specific_feedback(question_attempt $qa) {
         if ($qa->get_state() == question_state::$finished) {
-            return get_string('currentlybeeinggraded', 'qtype_programmingtask');
+            return html_writer::div(get_string('currentlybeeinggraded', 'qtype_programmingtask'), 'gradingstatus');
         } else if ($qa->get_state() == question_state::$needsgrading) {
-            return get_string('needsgradingbyteacher', 'qtype_programmingtask');
+            return html_writer::div(get_string('needsgradingbyteacher', 'qtype_programmingtask'), 'gradingstatus');
         }
         return '';
     }
