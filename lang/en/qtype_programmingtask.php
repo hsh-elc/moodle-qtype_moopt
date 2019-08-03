@@ -25,8 +25,9 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
-$string['currentlybeeinggraded'] = 'This task is currently beeing graded by the grader..';
+$string['currentlybeeinggraded'] = 'This task is currently beeing graded by the grader';
 $string['grader'] = 'Grader';
+$string['gradeprocessfinished'] = 'At least one grade process finished. Do you want to reload the page to display the results?';
 $string['internaldescription'] = 'Internal description';
 $string['loadproformataskfile'] = 'Extract information';
 $string['needsgradingbyteacher'] = 'This task needs manual grading by a teacher.';
@@ -44,6 +45,8 @@ $string['previousgradernotavailable'] = 'The previously selected grader is curre
 $string['proformataskfileupload'] = 'ProFormA task file';
 $string['proformataskfileupload_help'] = 'You can add a ProFormA task file (zip file) to this file picker. If you click the according button the necessary informations will be automatically extracted and inserted into the corresponding form elements on this page.';
 $string['providedfiles'] = 'Provided files';
+$string['reloadpage'] = 'Reload page?';
+$string['reload'] = 'Reload';
 $string['submissionfiles'] = 'Submission files';
 $string['submittedfiles'] = 'Submitted files';
 $string['taskfile'] = 'ProFormA task file';

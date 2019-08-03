@@ -26,6 +26,6 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'qtype_programmingtask';
 $plugin->release = '0.1.0';
-$plugin->version = 2019061601;
+$plugin->version = 2019080302;
 $plugin->requires = 2018120300;
 $plugin->maturity = MATURITY_ALPHA;

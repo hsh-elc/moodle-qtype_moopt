@@ -81,4 +81,19 @@ class qtype_programmingtask_external extends external_api {
         return $returnVal;
     }
 
+    public static function retrieve_grading_results_parameters() {
+        return new external_function_parameters(
+                ['qubaid' => new external_value(PARAM_INT, 'id of the question usage')]
+        );
+    }
+
+    public static function retrieve_grading_results_returns() {
+        return new external_value(PARAM_BOOL, "whether any grade process finished");
+    }
+
+    public static function retrieve_grading_results($qubaid) {
+        //TODO: Implement
+        return false;
+    }
+
 }

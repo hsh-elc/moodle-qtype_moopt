@@ -28,13 +28,22 @@ $functions = array(
         'capabilities' => 'moodle/question:add',
         'ajax' => true,
         'services' => array('programmingtaskwebservice')
+    ),
+    'qtype_programmingtask_retrieve_grading_results' => array(
+        'classname' => 'qtype_programmingtask_external',
+        'methodname' => 'retrieve_grading_results',
+        'classpath' => 'question/type/programmingtask/externallib.php',
+        'description' => 'Check if any grade process with the given qubaid finished, retrieves those results, inserts them into the database and returns whether any grade process finished.',
+        'type' => 'write',
+        'ajax' => true,
+        'services' => array('programmingtaskwebservice')
     )
 );
 
 $services = array(
     'programmingtaskwebservice' => array(
-        'functions' => array('qtype_programmingtask_extract_task_infos_from_draft_file'),
-        'requiredcapability' => 'moodle/question:add',
+        'functions' => array('qtype_programmingtask_extract_task_infos_from_draft_file', 'qtype_programmingtask_check_if_any_gradeprocess_finished'),
+        'requiredcapability' => '',
         'restrictedusers' => 0,
         'enabled' => 1
     )

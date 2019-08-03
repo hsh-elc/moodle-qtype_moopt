@@ -153,8 +153,12 @@ class qtype_programmingtask_renderer extends qtype_renderer {
      * @return string HTML fragment.
      */
     protected function specific_feedback(question_attempt $qa) {
+        global $PAGE;
         if ($qa->get_state() == question_state::$finished) {
-            return html_writer::div(get_string('currentlybeeinggraded', 'qtype_programmingtask'), 'gradingstatus');
+
+            $PAGE->requires->js_call_amd('qtype_programmingtask/pull_grading_status', 'init', [$qa->get_usage_id()]);
+            $loader = '<div class="loader"></div>';
+            return html_writer::div(get_string('currentlybeeinggraded', 'qtype_programmingtask') . $loader, 'gradingstatus');
         } else if ($qa->get_state() == question_state::$needsgrading) {
             return html_writer::div(get_string('needsgradingbyteacher', 'qtype_programmingtask'), 'gradingstatus');
         }
