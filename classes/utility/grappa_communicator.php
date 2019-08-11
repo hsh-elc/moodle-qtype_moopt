@@ -10,6 +10,8 @@ namespace qtype_programmingtask\utility;
 
 use qtype_programmingtask\exceptions\grappa_exception;
 
+require_once($CFG->libdir . '/filelib.php');
+
 defined('MOODLE_INTERNAL') || die();
 
 class grappa_communicator {
@@ -26,7 +28,6 @@ class grappa_communicator {
         if ($http_status_code != 200) {
             throw new grappa_exception("Received HTTP status code $http_status_code when accessing URL GET $url");
         }
-
         return json_decode($graders_json, true);
     }
 
@@ -47,8 +48,21 @@ class grappa_communicator {
         $url = "{$this->grappa_url}/{$this->lmsid}/gradeprocesses?graderid=$graderid&async=$asynch";
         $params = array('submission' => $submissionfile);
 
-        $http_status_code = $this->POSTtoGrappa($url, $params);
+        list($response_json, $http_status_code) = $this->POSTtoGrappa($url, $params);
         if ($http_status_code != 201 /* = CREATED */) {
+            throw new grappa_exception("Received HTTP status code $http_status_code when accessing URL POST $url");
+        }
+        return json_decode($response_json)->gradeProcessId;
+    }
+
+    public function getGradingResult(string $graderid, string $gradeprocessid) {
+        $url = "{$this->grappa_url}/$graderid/gradeprocesses/$gradeprocessid";
+        list($response, $http_status_code) = $this->GETfromGrappa($url);
+        if ($http_status_code == 202) {
+            return false;
+        } else if ($http_status_code == 200) {
+            return $response;
+        } else {
             throw new grappa_exception("Received HTTP status code $http_status_code when accessing URL POST $url");
         }
     }
@@ -62,7 +76,6 @@ class grappa_communicator {
         if (!isset($options['CURLOPT_TIMEOUT'])) {
             $options['CURLOPT_TIMEOUT'] = $this->grappa_timeout;
         }
-
         /**
          *
          * TODO: AUTHENTICATION
@@ -115,7 +128,7 @@ class grappa_communicator {
          * TODO: AUTHENTICATION
          *
          */
-        $curl->post($url, $params, $options);
+        $response = $curl->post($url, $params, $options);
 
         $info = $curl->get_info();
         $errno = $curl->get_errno();
@@ -125,7 +138,7 @@ class grappa_communicator {
             throw new \invalid_response_exception("Error accessing POST $url;  CURL error code: $errno;  Error: {$curl->error}");
         }
 
-        return $info['http_code'];
+        return array($response, $info['http_code']);
     }
 
     //#####################################

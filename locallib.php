@@ -13,9 +13,16 @@ define('proforma_TASKZIP_FILEAREA', 'taskfile');
 define('proforma_ATTACHED_TASK_FILES_FILEAREA', 'attachedtaskfiles');
 define('proforma_EMBEDDED_TASK_FILES_FILEAREA', 'embeddedtaskfiles');
 define('proforma_SUBMISSION_ZIP_FILEAREA', 'submissionzip');
+define('proforma_RESPONSE_FILE_AREA', 'responsefiles');
 
 //ProFormA task xml namespaces
 define('proforma_TASK_XML_NAMESPACE', 'urn:proforma:v2.0');
+
+define('proforma_CLIENT_POLL_INTERVALL', 5000);
+
+require_once($CFG->dirroot . '/question/engine/lib.php');
+require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
+require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
 
 /** Unzips the task zip file in the given draft area into the area
  *
@@ -253,4 +260,118 @@ function save_task_and_according_files($question) {
 
     //Do a little bit of cleanup and remove everything from the file area we extracted
     remove_all_files_from_draft_area($draftareaid, $user_context, $filename);
+}
+
+/**
+ * Checks if any of the grade processes belonging to the given $qubaid finished. If so retrieves the grading results and writes them to the system.
+ * @return bool whether any of grade process finished
+ * @param type $qubaid
+ */
+function retrieve_grading_results($qubaid) {
+    global $DB;
+    $grappa_communicator = \qtype_programmingtask\utility\grappa_communicator::getInstance();
+    $fs = get_file_storage();
+
+    $finishedGradingProcesses = [];
+    $records = $DB->get_records('qtype_programmingtask_grprcs', ['qubaid' => $qubaid]);
+    foreach ($records as $record) {
+
+        $quba = question_engine::load_questions_usage_by_activity($qubaid);
+        $slot = $DB->get_record('question_attempts', ['id' => $record->questionattemptdbid], 'slot')->slot;
+
+        try {
+            $response = $grappa_communicator->getGradingResult($record->graderid, $record->gradeprocessid);
+        } catch (invalid_response_exception $ex) {
+            //There was a network error
+            error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+
+            continue;
+        } catch (Exception $e){
+            error_log($e->getMessage());
+            continue;
+        }
+        if ($response) {
+
+            $quba_record = $DB->get_record('question_usages', ['id' => $qubaid]);
+            if (!$quba_record) {
+                //The quba got deleted for whatever reason - just ignore this entry.
+                //It can be safely deleted at the end of this function because the result has already been fetched
+                continue;
+            }
+
+            //Write response to file system
+            $file_record = array(
+                'component' => 'question',
+                'filearea' => proforma_RESPONSE_FILE_AREA,
+                'itemid' => $qubaid,
+                'contextid' => $quba_record->contextid,
+                'filepath' => "/{$record->questionattemptdbid}/",
+                'filename' => 'response.zip');
+
+            $file = $fs->get_file($file_record['contextid'], $file_record['component'], $file_record['filearea'],
+                    $file_record['itemid'], $file_record['filepath'], $file_record['filename']);
+            if ($file) {
+                //If this file already exists, another thread is probably working on this particular grade process
+                //continue and let that one handle everything
+
+                continue;
+            }
+
+            //We take care of this grade process therefore we will delete it afterwards
+            $finishedGradingProcesses[] = $record->id;
+
+            $file = $fs->create_file_from_string($file_record, $response);
+            $zipper = get_file_packer('application/zip');
+
+            //Remove old extracted files in case this is a regrade
+            $old_exracted_files = $fs->get_directory_files($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA, $qubaid, "/{$record->questionattemptdbid}/files/", true, true);
+            foreach ($old_exracted_files as $f) {
+                $f->delete();
+            }
+
+            //Apply the grade from the response
+            $result = $file->extract_to_storage($zipper, $quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA, $qubaid, "/{$record->questionattemptdbid}/files");
+            if ($result) {
+                $doc = new DOMDocument();
+                $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA, $qubaid, "/{$record->questionattemptdbid}/files/", 'response.xml');
+                if ($responseXmlFile) {
+                    $doc->loadXML($responseXmlFile->get_content());
+                    if ($doc) {
+                        $score = $doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, "score");
+                    }
+                } else {
+                    error_log("Response didn't contain a response.xml file");
+                }
+            }
+
+            //We don't need the file anymore
+            $file->delete();
+
+            if (!$result || !isset($score) || $score->length != 1) {
+                error_log("Received invalid response from grader");
+
+                //Change the state to the question needing manual grading because automatic grading failed
+                $quba->process_action($slot, ['-graderunavailable' => 1, 'gradeprocessdbid' => $record->id]);
+                question_engine::save_questions_usage_by_activity($quba);
+
+                continue;
+            }
+
+            //Apply the grading result
+            $quba->process_action($slot, ['-gradingresult' => 1, 'score' => $score[0]->nodeValue, 'gradeprocessdbid' => $record->id]);
+            question_engine::save_questions_usage_by_activity($quba);
+
+            //Update total mark
+            $attempt = quiz_attempt::create_from_usage_id($qubaid)->get_attempt();
+            $attempt->timemodified = time();
+            $attempt->sumgrades = $quba->get_total_mark();
+            $DB->update_record('quiz_attempts', $attempt);
+        }
+    }
+
+    foreach ($finishedGradingProcesses as $doneid) {
+        $DB->delete_records('qtype_programmingtask_grprcs', ['id' => $doneid]);
+    }
+
+    return !empty($finishedGradingProcesses);
 }

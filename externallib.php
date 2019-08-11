@@ -92,8 +92,37 @@ class qtype_programmingtask_external extends external_api {
     }
 
     public static function retrieve_grading_results($qubaid) {
-        //TODO: Implement
-        return false;
+        global $USER, $SESSION, $DB;
+
+        //Check if calling user is teacher
+        $quba_record = $DB->get_record('question_usages', ['id' => $qubaid]);
+        $context_record = $DB->get_record('context', ['id' => $quba_record->contextid]);
+        $context = context_module::instance($context_record->instanceid);
+        self::validate_context($context);
+        $isTeacher = has_capability('mod/quiz:grade', $context);;
+
+        $lastAccess = $SESSION->last_retrieve_grading_results ?? microtime(true);
+        $SESSION->last_retrieve_grading_results = microtime(true);
+        if (microtime(true) - $lastAccess < proforma_CLIENT_POLL_INTERVALL / 1000 /* to seconds */ * 0.9 /* grace interval */ && !$isTeacher) {
+            //Only allow a request every n seconds from the same user
+            return false;
+        }
+
+        //Do some param validation
+        $params = self::validate_parameters(self::retrieve_grading_results_parameters(), array('qubaid' => $qubaid));
+        $qubaid = $params['qubaid'];
+
+        //Check if the question usage given by the qubaid belongs to the requesting user
+        if (!$isTeacher) {
+            $record = $DB->get_record('quiz_attempts', ['uniqueid' => $qubaid], 'userid');
+            if (!$record)
+                return false;
+            $userid = $record->userid;
+            if ($userid != $USER->id)
+                return false;
+        }
+
+        return retrieve_grading_results($qubaid);
     }
 
 }

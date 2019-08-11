@@ -31,7 +31,6 @@ defined('MOODLE_INTERNAL') || die();
 
 use qtype_programmingtask\utility\grappa_communicator;
 use qtype_programmingtask\utility\proforma_xml\proforma_submission_xml_creator;
-use qtype_programmingtask\exceptions\grappa_exception;
 
 /**
  * Class that represents a programmingtask question.
@@ -222,7 +221,8 @@ class qtype_programmingtask_question extends question_graded_automatically {
 
         $returnState = question_state::$finished;
         try {
-            $grappa_communicator->enqueueSubmission('moodle', 'true', $zip_file);
+            $gradeProcessId = $grappa_communicator->enqueueSubmission($this->graderid, 'true', $zip_file);
+            $DB->insert_record('qtype_programmingtask_grprcs', ['qubaid' => $qa->get_usage_id(), 'questionattemptdbid' => $qa->get_database_id(), 'gradeprocessid' => $gradeProcessId, 'graderid' => $this->graderid]);
         } catch (invalid_response_exception $ex) {
             error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
             $returnState = question_state::$needsgrading;

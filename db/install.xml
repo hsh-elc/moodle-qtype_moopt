@@ -46,6 +46,20 @@
                 <KEY NAME="primary" TYPE="primary" FIELDS="graderid"/>
             </KEYS>
         </TABLE>
+        
+        <TABLE NAME="qtype_programmingtask_grprcs" COMMENT="Infos about currently active grading processes.">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="qubaid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Question usage id of the question"/>
+                <FIELD NAME="questionattemptdbid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="database id of the question attempt"/>
+                <FIELD NAME="gradeprocessid" TYPE="char" LENGTH="36" NOTNULL="true" COMMENT="id of the grade process"/>
+                <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" comment="the id of the grader that is grading the response"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="graderid" TYPE="foreign-unique" FIELDS="graderid" REFTABLE="qtype_programmingtask_gradrs" REFFIELDS="graderid"/>
+            </KEYS>
+        </TABLE>
 
     </TABLES>
 </XMLDB>

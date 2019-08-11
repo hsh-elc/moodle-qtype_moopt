@@ -19,7 +19,7 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
 
         $xml->startDocument('1.0', 'UTF-8');
             $xml->startElement('submission');
-              $xml->writeAttribute('xmlns', 'urn:proforma:v2.0');
+              $xml->writeAttribute('xmlns', proforma_TASK_XML_NAMESPACE);
               
                 if($includeTask){
                     $xml->startElement('included-task-file');

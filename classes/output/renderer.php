@@ -153,14 +153,36 @@ class qtype_programmingtask_renderer extends qtype_renderer {
      * @return string HTML fragment.
      */
     protected function specific_feedback(question_attempt $qa) {
-        global $PAGE;
-        if ($qa->get_state() == question_state::$finished) {
+        global $PAGE, $DB;
+        if ($qa->get_state()->is_finished()) {
+            if ($qa->get_state() == question_state::$finished) {
+                $PAGE->requires->js_call_amd('qtype_programmingtask/pull_grading_status', 'init', [$qa->get_usage_id(), proforma_CLIENT_POLL_INTERVALL]);
+                $loader = '<div class="loader"></div>';
+                return html_writer::div(get_string('currentlybeeinggraded', 'qtype_programmingtask') . $loader, 'gradingstatus');
+            } else if ($qa->get_state() == question_state::$needsgrading) {
+                return html_writer::div(get_string('needsgradingbyteacher', 'qtype_programmingtask'), 'gradingstatus');
+            } else if ($qa->get_state()->is_graded()) {
 
-            $PAGE->requires->js_call_amd('qtype_programmingtask/pull_grading_status', 'init', [$qa->get_usage_id()]);
-            $loader = '<div class="loader"></div>';
-            return html_writer::div(get_string('currentlybeeinggraded', 'qtype_programmingtask') . $loader, 'gradingstatus');
-        } else if ($qa->get_state() == question_state::$needsgrading) {
-            return html_writer::div(get_string('needsgradingbyteacher', 'qtype_programmingtask'), 'gradingstatus');
+                /**
+                 * Currently onyl works with merged feedback
+                 */
+                $quba_record = $DB->get_record('question_usages', ['id' => $qa->get_usage_id()]);
+
+                $fs = get_file_storage();
+                $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA, $qa->get_usage_id(), "/{$qa->get_database_id()}/files/", 'response.xml');
+                if ($responseXmlFile) {
+                    $html = '';
+                    $doc = new DOMDocument();
+                    $doc->loadXML($responseXmlFile->get_content());
+                    $html .= html_writer::div($doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, "student-feedback")[0]->nodeValue, 'studentfeedback');
+                    if (has_capability('mod/quiz:grade', $PAGE->context)) {
+                        $html .= '<hr/>';
+                        $html .= html_writer::div($doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, "teacher-feedback")[0]->nodeValue, 'teacherfeedback');
+                    }
+
+                    return $html;
+                }
+            }
         }
         return '';
     }

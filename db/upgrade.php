@@ -91,7 +91,7 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2019052601, 'qtype', 'programmingtask');
     }
 
-     if ($oldversion < 2019061601) {
+    if ($oldversion < 2019061601) {
         $table = new xmldb_table('qtype_programmingtask_optns');
         $dbman->add_field($table, new xmldb_field('taskuuid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL));
 
@@ -99,6 +99,20 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2019061601, 'qtype', 'programmingtask');
     }
 
+    if ($oldversion < 2019080301) {
+        $graderTable = new xmldb_table('qtype_programmingtask_grprcs');
+        $graderTable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, true));
+        $graderTable->addField(new xmldb_field('qubaid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
+        $graderTable->addField(new xmldb_field('questionattemptdbid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
+        $graderTable->addField(new xmldb_field('gradeprocessid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL));
+        $graderTable->addField(new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
+        $graderTable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id')));
+        $graderTable->addKey(new xmldb_key('graderid', XMLDB_KEY_FOREIGN, array('graderid'), 'qtype_programmingtask_gradrs', 'graderid'));
+        $dbman->create_table($graderTable);
+
+        // ProForma savepoint reached.
+        upgrade_plugin_savepoint(true, 2019080301, 'qtype', 'programmingtask');
+    }
 
     return true;
 }

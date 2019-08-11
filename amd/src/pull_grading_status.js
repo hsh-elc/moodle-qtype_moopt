@@ -9,7 +9,7 @@ define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/
                 methodname: 'qtype_programmingtask_retrieve_grading_results',
                 args: {qubaid: qubaid},
                 done: function (result) {
-                    if(result){
+                    if (result) {
                         showReloadModal();
                     }
                 },
@@ -20,11 +20,12 @@ define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/
     }
 
     function showReloadModal() {
-        if (isCurrentlyShowingModal)
+        if (isCurrentlyShowingModal) {
             return;
+        }
         isCurrentlyShowingModal = true;
 
-        let strings = [{
+        var strings = [{
                 key: 'reloadpage',
                 component: 'qtype_programmingtask'
             }, {
@@ -43,12 +44,12 @@ define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/
             }).done(function (modal) {
                 modal.setSaveButtonText(values[2]);
 
-                modal.getRoot().on(ModalEvents.save, function (e) {
+                modal.getRoot().on(ModalEvents.save, function () {
                     location.reload(true);
                     isCurrentlyShowingModal = false;
                 });
 
-                modal.getRoot().on(ModalEvents.hidden, function (e) {
+                modal.getRoot().on(ModalEvents.hidden, function () {
                     isCurrentlyShowingModal = false;
                 });
 
@@ -59,10 +60,10 @@ define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/
 
     return {
 
-        init: function (qubaid_param) {
+        init: function (qubaid_param, polling_interval) {
             qubaid = qubaid_param;
             if (typeof timer === 'undefined') {
-                timer = setInterval(checkGradingFinished, 5000);
+                timer = setInterval(checkGradingFinished, polling_interval);
             }
         }
     };
