@@ -127,7 +127,10 @@ class qtype_programmingtask_question extends question_graded_automatically {
             //$records[0] doesn't work because $records is an associative array with the keys being the ids of the record
             $first_elem = reset($records);
             $onlyteacher = $first_elem->visibletostudents == 0 ? true : false;
-            $context = context_module::instance($question->contextid);
+
+            $context_record = $DB->get_record('context', ['id' => $question->contextid]);
+            $context = context_course::instance($context_record->instanceid);
+
             if ($onlyteacher && !has_capability('mod/quiz:grade', $context)) {
                 return false;
             }
