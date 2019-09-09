@@ -274,6 +274,12 @@ function retrieve_grading_results($qubaid) {
 
     $finishedGradingProcesses = [];
     $records = $DB->get_records('qtype_programmingtask_grprcs', ['qubaid' => $qubaid]);
+
+    if (empty($records)) {
+        //Most likely the systems cron job retrieved the result a couple of seconds ago
+        return true;
+    }
+
     foreach ($records as $record) {
 
         $quba = question_engine::load_questions_usage_by_activity($qubaid);
