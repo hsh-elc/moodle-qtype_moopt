@@ -156,7 +156,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         global $PAGE, $DB;
         if ($qa->get_state()->is_finished()) {
             if ($qa->get_state() == question_state::$finished) {
-                $PAGE->requires->js_call_amd('qtype_programmingtask/pull_grading_status', 'init', [$qa->get_usage_id(), proforma_CLIENT_POLL_INTERVALL]);
+                $PAGE->requires->js_call_amd('qtype_programmingtask/pull_grading_status', 'init', [$qa->get_usage_id(), get_config("qtype_programmingtask", "grappa_client_polling_interval") * 1000 /* to milliseconds */]);
                 $loader = '<div class="loader"></div>';
                 return html_writer::div(get_string('currentlybeeinggraded', 'qtype_programmingtask') . $loader, 'gradingstatus');
             } else if ($qa->get_state() == question_state::$needsgrading) {

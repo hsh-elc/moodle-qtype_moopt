@@ -25,6 +25,7 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+$string['client_polling_interval'] = 'Client polling interval';
 $string['currentlybeeinggraded'] = 'This task is currently beeing graded by the grader';
 $string['grader'] = 'Grader';
 $string['gradeprocessfinished'] = 'At least one grade process finished. Do you want to reload the page to display the results?';

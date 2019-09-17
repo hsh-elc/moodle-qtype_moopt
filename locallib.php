@@ -18,8 +18,6 @@ define('proforma_RESPONSE_FILE_AREA', 'responsefiles');
 //ProFormA task xml namespaces
 define('proforma_TASK_XML_NAMESPACE', 'urn:proforma:v2.0');
 
-define('proforma_CLIENT_POLL_INTERVALL', 5000);
-
 require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
