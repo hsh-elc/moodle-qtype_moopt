@@ -25,9 +25,20 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+$ADMIN->add('qtypesettings', new admin_category('qtypeprogrammingtaskfolder', new lang_string('pluginname', 'qtype_programmingtask')));
+
+$settings = new admin_settingpage($section, get_string('commonsettings', 'qtype_programmingtask'), 'moodle/site:config');
+
 if ($ADMIN->fulltree) {
 
     $settings->add(new admin_setting_configtext("qtype_programmingtask/grappa_url", new lang_string('grappa_url', 'qtype_programmingtask'), "", '', PARAM_URL));
     $settings->add(new admin_setting_configduration("qtype_programmingtask/grappa_timeout", new lang_string('timeout', 'qtype_programmingtask'), "", 10, 1));
     $settings->add(new admin_setting_configduration("qtype_programmingtask/grappa_client_polling_interval", new lang_string('client_polling_interval', 'qtype_programmingtask'), "", 5, 1));
+
 }
+
+$ADMIN->add('qtypeprogrammingtaskfolder', $settings);
+// Tell core we already added the settings structure.
+$settings = null;
+
+$ADMIN->add('qtypeprogrammingtaskfolder', new admin_externalpage('qtypeprogrammingtaskgradersettings', get_string('gradersettings', 'qtype_programmingtask'), $CFG->wwwroot . '/question/type/programmingtask/gradersettings.php'));

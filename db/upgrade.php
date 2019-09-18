@@ -114,5 +114,14 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2019080301, 'qtype', 'programmingtask');
     }
 
+    if ($oldversion < 2019091800) {
+        $table = new xmldb_table('qtype_programmingtask_gradrs');
+        $dbman->add_field($table, new xmldb_field('lmsid', XMLDB_TYPE_CHAR, '64', null));
+        $dbman->add_field($table, new xmldb_field('lmspw', XMLDB_TYPE_CHAR, '64', null));
+
+        // ProForma savepoint reached.
+        upgrade_plugin_savepoint(true, 2019091800, 'qtype', 'programmingtask');
+    }
+
     return true;
 }

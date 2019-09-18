@@ -26,16 +26,21 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['client_polling_interval'] = 'Client polling interval';
+$string['commonsettings'] = 'Common settings';
 $string['currentlybeeinggraded'] = 'This task is currently beeing graded by the grader';
+$string['external_settings-graders'] = 'Programming task graders';
 $string['grader'] = 'Grader';
+$string['gradersettings'] = 'Grader settings';
 $string['gradeprocessfinished'] = 'At least one grade process finished. Do you want to reload the page to display the results?';
 $string['internaldescription'] = 'Internal description';
+$string['lmsid'] = 'LMS-ID';
 $string['loadproformataskfile'] = 'Extract information';
 $string['needsgradingbyteacher'] = 'This task needs manual grading by a teacher.';
 $string['nofilessubmitted'] = 'You didn\'t submit any files as a solution to the task.';
 $string['noresponseyet'] = 'No responset yet';
 $string['nosummaryavailable'] = 'No summary available.';
-$string['pluginname'] = 'Programmieraufgabe';
+$string['password'] = 'Password';
+$string['pluginname'] = 'Programming task';
 $string['pluginname_help'] = 'Programmingtask questions allow the use of ProFormA tasks.';
 $string['pluginname_link'] = 'question/type/programmingtask';
 $string['pluginnameadding'] = 'Adding a ProFormA programming task';

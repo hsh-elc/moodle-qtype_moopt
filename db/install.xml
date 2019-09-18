@@ -41,6 +41,8 @@
             <FIELDS>
                 <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="gradername" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="lmsid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="lmspw" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="graderid"/>

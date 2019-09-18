@@ -22,7 +22,8 @@
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-use qtype_programmingtask\utility\grappa_communicator;
+
+require_once('locallib.php');
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -66,7 +67,7 @@ class qtype_programmingtask_edit_form extends question_edit_form {
             'noclean' => true, 'context' => $this->context, 'subdirs' => true));
         $mform->setType('internaldescription', PARAM_RAW); // no XSS prevention here, users must be trusted
 
-        $graders = grappa_communicator::getInstance()->getGraders();
+        $graders = retrieve_graders_and_update_local_list();
         $this->grader_options = array();
         foreach ($graders['graders'] as $name => $id) {
             $this->grader_options[$id] = $name;
@@ -79,15 +80,6 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_programmingtask'), array("size" => '36'));
         $mform->setType('taskuuid', PARAM_TEXT);
         $mform->addRule('taskuuid', get_string('taskuuidrequired', 'qtype_programmingtask'), 'required');
-
-        //Insert all new graders into the database
-        $records = array();
-        foreach ($graders['graders'] as $name => $id) {
-            if (!$DB->record_exists('qtype_programmingtask_gradrs', array("graderid" => $id))) {
-                array_push($records, array("graderid" => $id, "gradername" => $name));
-            }
-        }
-        $DB->insert_records('qtype_programmingtask_gradrs', $records);
     }
 
     protected function data_preprocessing($question) {

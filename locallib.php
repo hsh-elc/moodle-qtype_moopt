@@ -22,6 +22,8 @@ require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
 
+use qtype_programmingtask\utility\grappa_communicator;
+
 /** Unzips the task zip file in the given draft area into the area
  *
  * @param type $draftareaid
@@ -290,7 +292,7 @@ function retrieve_grading_results($qubaid) {
             error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
 
             continue;
-        } catch (Exception $e){
+        } catch (Exception $e) {
             error_log($e->getMessage());
             continue;
         }
@@ -378,4 +380,18 @@ function retrieve_grading_results($qubaid) {
     }
 
     return !empty($finishedGradingProcesses);
+}
+
+function retrieve_graders_and_update_local_list() {
+    global $DB;
+
+    $graders = grappa_communicator::getInstance()->getGraders();
+    $records = array();
+    foreach ($graders['graders'] as $name => $id) {
+        if (!$DB->record_exists('qtype_programmingtask_gradrs', array("graderid" => $id))) {
+            array_push($records, array("graderid" => $id, "gradername" => $name));
+        }
+    }
+    $DB->insert_records('qtype_programmingtask_gradrs', $records);
+    return $graders;
 }
