@@ -24,6 +24,8 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+require_once(__DIR__ . '/../../locallib.php');
+
 /**
  * Generates the output for programmingtask questions.
  *
@@ -174,10 +176,12 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                     $html = '';
                     $doc = new DOMDocument();
                     $doc->loadXML($responseXmlFile->get_content());
-                    $html .= html_writer::div($doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, "student-feedback")[0]->nodeValue, 'studentfeedback');
+                    $namespace = detect_proforma_namespace($doc);
+
+                    $html .= html_writer::div($doc->getElementsByTagNameNS($namespace, "student-feedback")[0]->nodeValue, 'studentfeedback');
                     if (has_capability('mod/quiz:grade', $PAGE->context)) {
                         $html .= '<hr/>';
-                        $html .= html_writer::div($doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, "teacher-feedback")[0]->nodeValue, 'teacherfeedback');
+                        $html .= html_writer::div($doc->getElementsByTagNameNS($namespace, "teacher-feedback")[0]->nodeValue, 'teacherfeedback');
                     }
 
                     return $html;

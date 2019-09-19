@@ -22,7 +22,6 @@
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 require_once('locallib.php');
 
 defined('MOODLE_INTERNAL') || die();
@@ -54,6 +53,9 @@ class qtype_programmingtask_edit_form extends question_edit_form {
 
         $label = $mform->addElement('static', 'ajaxerrorlabel', '', '');
         $this->setClassAttributeOfLabel($label, 'errorlabel');
+
+        $label = $mform->addElement('static', 'ajaxwarninglabel', '', '');
+        $this->setClassAttributeOfLabel($label, 'warninglabel');
 
         parent::definition();
 

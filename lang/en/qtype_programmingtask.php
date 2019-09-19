@@ -33,6 +33,7 @@ $string['grader'] = 'Grader';
 $string['gradersettings'] = 'Grader settings';
 $string['gradeprocessfinished'] = 'At least one grade process finished. Do you want to reload the page to display the results?';
 $string['internaldescription'] = 'Internal description';
+$string['invalidproformanamespace'] = 'Could not detect ProFormA-version. Can\'t validate task.xml file or extract data from it. Supported versions: {$a}';
 $string['lmsid'] = 'LMS-ID';
 $string['loadproformataskfile'] = 'Extract information';
 $string['needsgradingbyteacher'] = 'This task needs manual grading by a teacher.';

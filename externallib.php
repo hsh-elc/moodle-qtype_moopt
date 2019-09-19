@@ -44,35 +44,47 @@ class qtype_programmingtask_external extends external_api {
         $filename = unzip_task_file_in_draft_area($draftid, $user_context);
 
         $doc = create_domdocument_from_task_xml($user_context, $draftid, $filename);
-
+        $namespace = detect_proforma_namespace($doc);
         $returnVal = array();
 
-        foreach ($doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, 'description') as $des) {
-            if ($des->parentNode->localName == 'task') {
-                $returnVal['description'] = $des->nodeValue;
+        if ($namespace == null) {
+
+            $returnVal['moodleValidationWarnings'] = get_string('invalidproformanamespace', 'qtype_programmingtask', implode(", ", proforma_TASK_XML_NAMESPACES));
+        } else {
+
+            $validationErrors = validate_proforma_file_against_schema($doc, $namespace);
+            if (!empty($validationErrors)) {
+                $returnVal['moodleValidationProformaNamespace'] = $namespace;
+                $returnVal['moodleValidationWarnings'] = $validationErrors;
+            }
+
+            foreach ($doc->getElementsByTagNameNS($namespace, 'description') as $des) {
+                if ($des->parentNode->localName == 'task') {
+                    $returnVal['description'] = $des->nodeValue;
+                    break;
+                }
+            }
+
+            foreach ($doc->getElementsByTagNameNS($namespace, 'title') as $des) {
+                if ($des->parentNode->localName == 'task') {
+                    $returnVal['title'] = $des->nodeValue;
+                    break;
+                }
+            }
+
+            foreach ($doc->getElementsByTagNameNS($namespace, 'internal-description') as $des) {
+                if ($des->parentNode->localName == 'task') {
+                    $returnVal['internaldescription'] = $des->nodeValue;
+                    break;
+                }
+            }
+
+            //Currently only supports tns:task-type; neither tns:external-task-type nor tns:included-task-file-type
+            //TODO: Implement the other two
+            foreach ($doc->getElementsByTagNameNS($namespace, 'task') as $task) {
+                $returnVal['taskuuid'] = $task->getAttribute('uuid');
                 break;
             }
-        }
-
-        foreach ($doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, 'title') as $des) {
-            if ($des->parentNode->localName == 'task') {
-                $returnVal['title'] = $des->nodeValue;
-                break;
-            }
-        }
-
-        foreach ($doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, 'internal-description') as $des) {
-            if ($des->parentNode->localName == 'task') {
-                $returnVal['internaldescription'] = $des->nodeValue;
-                break;
-            }
-        }
-
-        //Currently only supports tns:task-type; neither tns:external-task-type nor tns:included-task-file-type
-        //TODO: Implement the other two
-        foreach ($doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, 'task') as $task) {
-            $returnVal['taskuuid'] = $task->getAttribute('uuid');
-            break;
         }
 
         //Do a little bit of cleanup and remove everything from the file area we extracted
@@ -99,7 +111,7 @@ class qtype_programmingtask_external extends external_api {
         $context_record = $DB->get_record('context', ['id' => $quba_record->contextid]);
         $context = context_module::instance($context_record->instanceid);
         self::validate_context($context);
-        $isTeacher = has_capability('mod/quiz:grade', $context);;
+        $isTeacher = has_capability('mod/quiz:grade', $context);
 
         $lastAccess = $SESSION->last_retrieve_grading_results ?? microtime(true);
         $SESSION->last_retrieve_grading_results = microtime(true);

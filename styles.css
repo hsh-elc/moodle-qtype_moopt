@@ -2,6 +2,10 @@
     color: red;
 }
 
+.warninglabel{
+    color: orange;
+}
+
 .specificfeedback .gradingstatus{
     font-weight: bold;
     display: flex;

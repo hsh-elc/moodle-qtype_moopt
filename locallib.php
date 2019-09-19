@@ -16,7 +16,8 @@ define('proforma_SUBMISSION_ZIP_FILEAREA', 'submissionzip');
 define('proforma_RESPONSE_FILE_AREA', 'responsefiles');
 
 //ProFormA task xml namespaces
-define('proforma_TASK_XML_NAMESPACE', 'urn:proforma:v2.0');
+//** The first namespace is the default namespace! **
+define('proforma_TASK_XML_NAMESPACES', [/* default namespace: */ 'urn:proforma:v2.0.1', 'urn:proforma:v2.0']);
 
 require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
@@ -168,12 +169,13 @@ function save_task_and_according_files($question) {
     file_save_draft_area_files($draftareaid, $question->context->id, 'question', proforma_ATTACHED_TASK_FILES_FILEAREA, $question->id, array('subdirs' => true));
 
     $doc = create_domdocument_from_task_xml($user_context, $draftareaid, $filename);
+    $namespace = detect_proforma_namespace($doc);
 
     $files_for_db = array();
     $fs = get_file_storage();
     $embedded_elems = array("embedded-bin-file", "embedded-txt-file");
     $attached_elems = array("attached-bin-file", "attached-txt-file");
-    foreach ($doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, 'file') as $file) {
+    foreach ($doc->getElementsByTagNameNS($namespace, 'file') as $file) {
         foreach ($file->childNodes as $child) {
             $break = false;
             if (in_array($child->localName, $embedded_elems)) {
@@ -342,8 +344,9 @@ function retrieve_grading_results($qubaid) {
                 $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA, $qubaid, "/{$record->questionattemptdbid}/files/", 'response.xml');
                 if ($responseXmlFile) {
                     $doc->loadXML($responseXmlFile->get_content());
+                    $namespace = detect_proforma_namespace($doc);
                     if ($doc) {
-                        $score = $doc->getElementsByTagNameNS(proforma_TASK_XML_NAMESPACE, "score");
+                        $score = $doc->getElementsByTagNameNS($namespace, "score");
                     }
                 } else {
                     error_log("Response didn't contain a response.xml file");
@@ -394,4 +397,35 @@ function retrieve_graders_and_update_local_list() {
     }
     $DB->insert_records('qtype_programmingtask_gradrs', $records);
     return $graders;
+}
+
+function detect_proforma_namespace(DOMDocument $doc) {
+    foreach (proforma_TASK_XML_NAMESPACES as $namespace) {
+        if ($doc->getElementsByTagNameNS($namespace, "task")->length != 0 ||
+                $doc->getElementsByTagNameNS($namespace, "submission")->length != 0 ||
+                $doc->getElementsByTagNameNS($namespace, "response")->length != 0) {
+            return $namespace;
+        }
+    }
+    return null;
+}
+
+function validate_proforma_file_against_schema(DOMDocument $doc, $namespace): array {
+    $msgs = [];
+    $schema = file_get_contents(__DIR__ . "/res/proforma/xsd/$namespace.xsd");
+    if (!$schema) {
+        $msgs[] = "Invalid or unknown proforma namespace: $namespace<br/>Valid proforma namespaces are: " . implode(", ", proforma_TASK_XML_NAMESPACES);
+    }
+
+    libxml_use_internal_errors(true);
+    if (!$doc->schemaValidateSource($schema)) {
+        $errors = libxml_get_errors();
+        foreach ($errors as $error) {
+            $msgs[] = "{$error->message} (Code {$error->code}) on line {$error->line}";
+        }
+        libxml_clear_errors();
+    }
+    libxml_use_internal_errors(false);
+
+    return $msgs;
 }
