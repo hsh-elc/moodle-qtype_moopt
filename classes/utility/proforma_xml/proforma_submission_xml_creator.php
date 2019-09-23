@@ -12,6 +12,8 @@ defined('MOODLE_INTERNAL') || die();
 
 class proforma_submission_xml_creator extends proforma_xml_creator {
 
+    const MIME_TYPE_TEXT_PATTERN = "#text/.*#";
+
     public function createSubmissionXML(bool $includeTask, string $taskFilenameOrUUID, array $files, string $resultformat, string $resultstructure, $studentfeedbacklevel, $teacherfeedbacklevel): string {
         $this->initXMLWriterForDocument();
 
@@ -35,7 +37,11 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
                     foreach($files as $file){
                         $xml->startElement('file');
                             $xml->writeAttribute('mimetype', $file->get_mimetype());
-                            $xml->writeElement('attached-bin-file', $file->get_filename());
+                            if(preg_match($this::MIME_TYPE_TEXT_PATTERN, $file->get_mimetype())){
+                               $xml->writeElement('attached-txt-file', $file->get_filename());
+                            } else{
+                                $xml->writeElement('attached-bin-file', $file->get_filename());
+                            }
                         $xml->endElement();
                     }
                 $xml->endElement();
