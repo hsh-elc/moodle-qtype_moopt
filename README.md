@@ -1,8 +1,15 @@
 # Programmieraufgabe #
 
-TODO Describe the plugin shortly here.
 
-TODO Provide more detailed description here.
+The attempt overview for the teacher is partly wrong for programming tasks, because mod_quiz isn't intended to be used with asynchronously graded questions. This results in a mismatch between the actual question state and the question state that is display to the user. The main problem is that in moodle there is no such state as "the student has submitted the answer, the question is therefore answered and finished but not yet graded". Some existing states do almost match on this but not entirely. This results in a display problem that is explained in the following:
+* ![](doc/img/x.png) 
+See question 5: The submission has been sent to the grader for grading but there is no result yet
+* ![](doc/img/0x.png) 
+See question 4: Either there was a submission and it has been graded with 0.0 or there wasn't a submission in the first place
+* ![](doc/img/regrade.png)
+Regrading has two problems: 
+  1. The value in the column "Regrade" ("Done") is wrong. The submissions have been sent to the grader for regrading therefore the regrading process is finished from moodles point of view although in fact it is not.
+  2. moodle will always display "[old value]/0.0" for each questions score. This could either mean that the grade process hasn't finished yet or that it did finish and the question has been graded with 0.0. Once the grade process finishes the score will be updated correctly. If, however, the graded score is indeed 0.0 the teacher will never know if the grade process has already finished or not (at least from the overview). 
 
 ## License ##
 
