@@ -172,16 +172,12 @@ class qtype_programmingtask_question extends question_graded_automatically {
      *          question_state::$needsgrading if there was an error and a teacher needs to either grade
      *          the submission manually or trigger a regrade
      */
-    public function grade_response_asynch(question_attempt $qa): question_state {
+    public function grade_response_asynch(question_attempt $qa, array $responsefiles): question_state {
         global $DB;
         $grappa_communicator = grappa_communicator::getInstance();
 
         //Get response files
         $qubaid = $qa->get_usage_id();
-        $record = $DB->get_record('question_usages', array('id' => $qubaid), 'contextid');
-        $quba_context_id = $record->contextid;
-        $responsefiles = $qa->get_last_qt_files('answerfiles', $quba_context_id);
-
         $files = array();   //array for all files that end up in the ZIP file
         foreach ($responsefiles as $file) {
             $files["submission/{$file->get_filename()}"] = $file;
