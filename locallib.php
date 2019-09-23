@@ -15,6 +15,8 @@ define('proforma_EMBEDDED_TASK_FILES_FILEAREA', 'embeddedtaskfiles');
 define('proforma_SUBMISSION_ZIP_FILEAREA', 'submissionzip');
 define('proforma_RESPONSE_FILE_AREA', 'responsefiles');
 
+define('proforma_RETRIEVE_GRADING_RESULTS_LOCK_MAXLIFETIME', 10);
+
 //ProFormA task xml namespaces
 //** The first namespace is the default namespace! **
 define('proforma_TASK_XML_NAMESPACES', [/* default namespace: */ 'urn:proforma:v2.0.1', 'urn:proforma:v2.0']);
@@ -270,6 +272,34 @@ function save_task_and_according_files($question) {
  * @param type $qubaid
  */
 function retrieve_grading_results($qubaid) {
+
+    /**
+     * This function is called from both the webservice and the task api therefore it might happen that both calls happen at the same time
+     * and try to access the same qubaid which can lead to unwanted behaviour. Hence use the locking api.
+     */
+    $locktype = "qtype_programmingtask_retrieve_grading_results";
+    $ressource = "qubaid:$qubaid";
+    $lockfactory = \core\lock\lock_config::get_lock_factory($locktype);
+    $lock = $lockfactory->get_lock($ressource, 0, proforma_RETRIEVE_GRADING_RESULTS_LOCK_MAXLIFETIME);
+    if (!$lock) {
+        return false;
+    }
+
+    try {
+        $result = internal_retrieve_grading_results($qubaid);
+    } catch (Exception $ex) {
+        throw $ex;
+    } finally {
+        $lock->release();
+    }
+
+    return $result;
+}
+
+/**
+ * Do not call this function unless you know what you are doing. Use retrieve_grading_results instead
+ */
+function internal_retrieve_grading_results($qubaid) {
     global $DB;
     $grappa_communicator = \qtype_programmingtask\utility\grappa_communicator::getInstance();
     $fs = get_file_storage();
