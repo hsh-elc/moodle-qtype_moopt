@@ -26,6 +26,8 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../locallib.php');
 
+use qtype_programmingtask\utility\proforma_xml\separate_feedback_handler;
+
 /**
  * Generates the output for programmingtask questions.
  *
@@ -165,23 +167,57 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 return html_writer::div(get_string('needsgradingbyteacher', 'qtype_programmingtask'), 'gradingstatus');
             } else if ($qa->get_state()->is_graded()) {
 
-                /**
-                 * Currently onyl works with merged feedback
-                 */
                 $quba_record = $DB->get_record('question_usages', ['id' => $qa->get_usage_id()]);
+                $initial_slot = $DB->get_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id()], 'slot')->slot;
 
                 $fs = get_file_storage();
-                $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA, $qa->get_usage_id(), "/{$qa->get_database_id()}/files/", 'response.xml');
+                $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$qa->get_database_id()}", $qa->get_usage_id(), "/", 'response.xml');
                 if ($responseXmlFile) {
                     $html = '';
                     $doc = new DOMDocument();
                     $doc->loadXML($responseXmlFile->get_content());
                     $namespace = detect_proforma_namespace($doc);
 
-                    $html .= html_writer::div($doc->getElementsByTagNameNS($namespace, "student-feedback")[0]->nodeValue, 'studentfeedback');
-                    if (has_capability('mod/quiz:grade', $PAGE->context)) {
-                        $html .= '<hr/>';
-                        $html .= html_writer::div($doc->getElementsByTagNameNS($namespace, "teacher-feedback")[0]->nodeValue, 'teacherfeedback');
+                    $separate_test_feedback_list = $doc->getElementsByTagNameNS($namespace, "separate-test-feedback");
+
+                    if ($separate_test_feedback_list->length == 1) {
+                        //Separate test feedback
+                        $separate_test_feedback_elem = $separate_test_feedback_list[0];
+
+                        //Load task.xml to get grading hints and tests
+                        $fs = get_file_storage();
+                        $taskxmlfile = $fs->get_file($qa->get_question()->contextid, 'question', proforma_TASKXML_FILEAREA,
+                                $qa->get_question()->id, '/', 'task.xml');
+                        $taskdoc = new DOMDocument();
+                        $taskdoc->loadXML($taskxmlfile->get_content());
+                        $taskxmlnamespace = detect_proforma_namespace($taskdoc);
+                        $grading_hints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
+                        $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
+                        $feedbackfiles = $doc->getElementsByTagNameNS($namespace, "files")[0];
+
+                        $separate_feedback_helper = new separate_feedback_handler($grading_hints, $tests, $separate_test_feedback_elem, $feedbackfiles, $taskxmlnamespace, $namespace, $qa->get_max_mark());
+                        $separate_feedback_helper->processResult();
+
+                        $fileinfos = [
+                            'component' => 'question',
+                            'itemid' => $qa->get_usage_id(),
+                            'fileareasuffix' => "_{$qa->get_database_id()}",
+                            'contextid' => $quba_record->contextid,
+                            'filepath' => "/$initial_slot/{$qa->get_usage_id()}/"
+                        ];
+
+                        $separate_feedback_renderer_summarised = new qtype_programmingtask\output\separate_feedback_text_renderer($separate_feedback_helper->getSummarisedFeedback(), has_capability('mod/quiz:grade', $PAGE->context), $fileinfos);
+                        $html .= $separate_feedback_renderer_summarised->render();
+
+                        $separate_feedback_renderer_detailed = new qtype_programmingtask\output\separate_feedback_text_renderer($separate_feedback_helper->getDetailedFeedback(), has_capability('mod/quiz:grade', $PAGE->context), $fileinfos);
+                        $html .= $separate_feedback_renderer_detailed->render();
+                    } else {
+                        //Merged test feedback
+                        $html .= html_writer::div($doc->getElementsByTagNameNS($namespace, "student-feedback")[0]->nodeValue, 'studentfeedback');
+                        if (has_capability('mod/quiz:grade', $PAGE->context)) {
+                            $html .= '<hr/>';
+                            $html .= html_writer::div($doc->getElementsByTagNameNS($namespace, "teacher-feedback")[0]->nodeValue, 'teacherfeedback');
+                        }
                     }
 
                     return $html;

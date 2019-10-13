@@ -81,6 +81,7 @@ class qtype_programmingtask extends question_type {
         $fs->delete_area_files($question->context->id, 'question', proforma_TASKZIP_FILEAREA, $question->id);
         $fs->delete_area_files($question->context->id, 'question', proforma_ATTACHED_TASK_FILES_FILEAREA, $question->id);
         $fs->delete_area_files($question->context->id, 'question', proforma_EMBEDDED_TASK_FILES_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, 'question', proforma_TASKXML_FILEAREA, $question->id);
 
         save_task_and_according_files($question);
     }
@@ -95,6 +96,7 @@ class qtype_programmingtask extends question_type {
         $fs->delete_area_files($contextid, 'question', proforma_TASKZIP_FILEAREA, $questionid);
         $fs->delete_area_files($contextid, 'question', proforma_ATTACHED_TASK_FILES_FILEAREA, $questionid);
         $fs->delete_area_files($contextid, 'question', proforma_EMBEDDED_TASK_FILES_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, 'question', proforma_TASKXML_FILEAREA, $question->id);
 
         parent::delete_question($questionid, $contextid);
     }

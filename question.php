@@ -113,11 +113,10 @@ class qtype_programmingtask_question extends question_graded_automatically {
         global $DB;
         $question = $qa->get_question();
         $questionid = $question->id;
-
         $argscopy = $args;
         unset($argscopy[0]);
         $relativepath = implode('/', $argscopy);
-        if (in_array($filearea, array(proforma_TASKZIP_FILEAREA, proforma_ATTACHED_TASK_FILES_FILEAREA, proforma_EMBEDDED_TASK_FILES_FILEAREA))) {
+        if (in_array($filearea, array(proforma_TASKZIP_FILEAREA, proforma_ATTACHED_TASK_FILES_FILEAREA, proforma_EMBEDDED_TASK_FILES_FILEAREA, proforma_TASKXML_FILEAREA))) {
             //If it is one of those files we need to check permissions because students could just guess download urls and not all files should be downloadable by students
             //From the DBs point of view this combination of fields doesn't guarantee uniqueness; however, conceptually it does
             $records = $DB->get_records_sql('SELECT visibletostudents FROM {qtype_programmingtask_files} WHERE questionid = ? and ' . $DB->sql_concat('filepath', 'filename') . ' = ? and ' . $DB->sql_compare_text('filearea') . ' = ?', array($questionid, '/' . $relativepath, $filearea));
@@ -135,6 +134,8 @@ class qtype_programmingtask_question extends question_graded_automatically {
                 return false;
             }
 
+            return true;
+        } else if ((substr($filearea, 0, strlen(proforma_RESPONSE_FILE_AREA)) === proforma_RESPONSE_FILE_AREA) || (substr($filearea, 0, strlen(proforma_RESPONSE_FILE_AREA_EMBEDDED)) === proforma_RESPONSE_FILE_AREA_EMBEDDED)) {
             return true;
         } else if ($component == 'question' && $filearea == 'response_answerfiles') {
             return true;
@@ -222,6 +223,10 @@ class qtype_programmingtask_question extends question_graded_automatically {
         try {
             $gradeProcessId = $grappa_communicator->enqueueSubmission($this->graderid, 'true', $zip_file);
             $DB->insert_record('qtype_programmingtask_grprcs', ['qubaid' => $qa->get_usage_id(), 'questionattemptdbid' => $qa->get_database_id(), 'gradeprocessid' => $gradeProcessId, 'graderid' => $this->graderid]);
+            if (!$DB->record_exists('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id()])) {
+                //This will already exist when this is a regrade
+                $DB->insert_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id(), 'slot' => $qa->get_slot()]);
+            }
         } catch (invalid_response_exception $ex) {
             error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
             $returnState = question_state::$needsgrading;

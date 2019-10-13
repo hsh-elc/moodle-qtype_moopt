@@ -10,10 +10,12 @@ defined('MOODLE_INTERNAL') || die();
 
 // Name of file areas
 define('proforma_TASKZIP_FILEAREA', 'taskfile');
+define('proforma_TASKXML_FILEAREA', 'taskxmlfile');
 define('proforma_ATTACHED_TASK_FILES_FILEAREA', 'attachedtaskfiles');
 define('proforma_EMBEDDED_TASK_FILES_FILEAREA', 'embeddedtaskfiles');
 define('proforma_SUBMISSION_ZIP_FILEAREA', 'submissionzip');
 define('proforma_RESPONSE_FILE_AREA', 'responsefiles');
+define('proforma_RESPONSE_FILE_AREA_EMBEDDED', 'responsefilesembedded');
 
 define('proforma_RETRIEVE_GRADING_RESULTS_LOCK_MAXLIFETIME', 10);
 
@@ -26,6 +28,7 @@ require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
 
 use qtype_programmingtask\utility\grappa_communicator;
+use qtype_programmingtask\utility\proforma_xml\separate_feedback_handler;
 
 /** Unzips the task zip file in the given draft area into the area
  *
@@ -236,6 +239,29 @@ function save_task_and_according_files($question) {
         }
     }
 
+    //Now move the task xml file to the designated area
+    $file = $fs->get_file($question->context->id, 'question', proforma_ATTACHED_TASK_FILES_FILEAREA, $question->id, '/', 'task.xml');
+    $new_file_record = array(
+        'component' => 'question',
+        'filearea' => proforma_TASKXML_FILEAREA,
+        'itemid' => $question->id,
+        'contextid' => $question->context->id,
+        'filepath' => '/',
+        'filename' => 'task.xml');
+    $fs->create_file_from_storedfile($new_file_record, $file);
+    $file->delete();
+
+    $record = new stdClass();
+    $record->questionid = $question->id;
+    $record->fileid = 'taskxml';
+    $record->usedbygrader = 0;
+    $record->visibletostudents = 0;
+    $record->usagebylms = 'download';
+    $record->filepath = '/';
+    $record->filename = 'task.xml';
+    $record->filearea = proforma_TASKXML_FILEAREA;
+    $files_for_db[] = $record;
+
     //Now move the task zip file to the designated area
     $file = $fs->get_file($question->context->id, 'question', proforma_ATTACHED_TASK_FILES_FILEAREA, $question->id, '/', $filename);
     $new_file_record = array(
@@ -316,6 +342,7 @@ function internal_retrieve_grading_results($qubaid) {
 
         $quba = question_engine::load_questions_usage_by_activity($qubaid);
         $slot = $DB->get_record('question_attempts', ['id' => $record->questionattemptdbid], 'slot')->slot;
+        $initial_slot = $DB->get_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $record->questionattemptdbid], 'slot')->slot;
 
         try {
             $response = $grappa_communicator->getGradingResult($record->graderid, $record->gradeprocessid);
@@ -340,43 +367,96 @@ function internal_retrieve_grading_results($qubaid) {
             //Write response to file system
             $file_record = array(
                 'component' => 'question',
-                'filearea' => proforma_RESPONSE_FILE_AREA,
+                'filearea' => proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}",
                 'itemid' => $qubaid,
                 'contextid' => $quba_record->contextid,
-                'filepath' => "/{$record->questionattemptdbid}/",
+                'filepath' => "/",
                 'filename' => 'response.zip');
 
             $file = $fs->get_file($file_record['contextid'], $file_record['component'], $file_record['filearea'],
                     $file_record['itemid'], $file_record['filepath'], $file_record['filename']);
             if ($file) {
-                //If this file already exists, another thread is probably working on this particular grade process
-                //continue and let that one handle everything
-
-                continue;
+                //This might have been caused by an error in the last execution. Just delete it and try again
+                $file->delete();
             }
-
             //We take care of this grade process therefore we will delete it afterwards
             $finishedGradingProcesses[] = $record->id;
-
             $file = $fs->create_file_from_string($file_record, $response);
             $zipper = get_file_packer('application/zip');
-
             //Remove old extracted files in case this is a regrade
-            $old_exracted_files = $fs->get_directory_files($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA, $qubaid, "/{$record->questionattemptdbid}/files/", true, true);
+            $old_exracted_files = array_merge(
+                    $fs->get_directory_files($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/", true, true),
+                    $fs->get_directory_files($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA_EMBEDDED . "_{$record->questionattemptdbid}", $qubaid, "/", true, true)
+            );
             foreach ($old_exracted_files as $f) {
                 $f->delete();
             }
 
             //Apply the grade from the response
-            $result = $file->extract_to_storage($zipper, $quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA, $qubaid, "/{$record->questionattemptdbid}/files");
+            $errorOccured = false;
+            $result = $file->extract_to_storage($zipper, $quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/");
             if ($result) {
                 $doc = new DOMDocument();
-                $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA, $qubaid, "/{$record->questionattemptdbid}/files/", 'response.xml');
+                $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/", 'response.xml');
                 if ($responseXmlFile) {
                     $doc->loadXML($responseXmlFile->get_content());
                     $namespace = detect_proforma_namespace($doc);
                     if ($doc) {
-                        $score = $doc->getElementsByTagNameNS($namespace, "score");
+                        //Save embedded files to disk
+                        $files = $doc->getElementsByTagNameNS($namespace, "files")[0];
+                        foreach ($files->getElementsByTagNameNS($namespace, "file") as $responseFile) {
+                            $elem = null;
+                            if (($tmp = $responseFile->getElementsByTagNameNS($namespace, 'embedded-bin-file'))->length == 1) {
+                                $elem = $tmp[0];
+                                $content = base64_decode($elem->nodeValue);
+                            } else if (($tmp = $responseFile->getElementsByTagNameNS($namespace, 'embedded-txt-file'))->length == 1) {
+                                $elem = $tmp[0];
+                                $content = $elem->nodeValue;
+                            }
+
+                            if ($elem == null) {
+                                continue;
+                            }
+
+                            //Compensate the fact that the filename might contain a relative path
+                            $pathinfo = pathinfo('/' . $responseFile->getAttribute('id') . '/' . $elem->getAttribute('filename'));
+                            $fileinfo = array(
+                                'component' => 'question',
+                                'filearea' => proforma_RESPONSE_FILE_AREA_EMBEDDED . "_{$record->questionattemptdbid}",
+                                'itemid' => $qubaid,
+                                'contextid' => $quba_record->contextid,
+                                'filepath' => $pathinfo['dirname'] . '/',
+                                'filename' => $pathinfo['basename']);
+                            $fs->create_file_from_string($fileinfo, $content);
+                        }
+
+                        $mtf = $doc->getElementsByTagNameNS($namespace, 'merged-test-feedback');
+                        if ($mtf->length == 1) {
+                            //Merged test feedback
+
+                            $score = $mtf[0]->getElementsByTagNameNS($namespace, 'overall-result')[0]->getElementsByTagNameNS($namespace, 'score')[0]->nodeValue;
+                        } else {
+                            //Separate test feedback
+                            $question = $quba->get_question($slot);
+
+                            $separate_test_feedback = $doc->getElementsByTagNameNS($namespace, 'separate-test-feedback')[0];
+
+                            //Load task.xml to get grading hints and tests
+                            $fs = get_file_storage();
+                            $taskxmlfile = $fs->get_file($question->contextid, 'question', proforma_TASKXML_FILEAREA,
+                                    $question->id, '/', 'task.xml');
+                            $taskdoc = new DOMDocument();
+                            $taskdoc->loadXML($taskxmlfile->get_content());
+                            $taskxmlnamespace = detect_proforma_namespace($taskdoc);
+                            $grading_hints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
+                            $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
+                            $feedbackfiles = $doc->getElementsByTagNameNS($namespace, 'files')[0];
+
+                            $separate_feedback_helper = new separate_feedback_handler($grading_hints, $tests, $separate_test_feedback, $feedbackfiles, $taskxmlnamespace, $namespace, $quba->get_question_max_mark($slot));
+
+                            $separate_feedback_helper->processResult();
+                            $score = $separate_feedback_helper->getCalculatedScore();
+                        }
                     }
                 } else {
                     error_log("Response didn't contain a response.xml file");
@@ -386,7 +466,7 @@ function internal_retrieve_grading_results($qubaid) {
             //We don't need the file anymore
             $file->delete();
 
-            if (!$result || !isset($score) || $score->length != 1) {
+            if (!$result || !isset($score) || $errorOccured) {
                 error_log("Received invalid response from grader");
 
                 //Change the state to the question needing manual grading because automatic grading failed
@@ -397,7 +477,7 @@ function internal_retrieve_grading_results($qubaid) {
             }
 
             //Apply the grading result
-            $quba->process_action($slot, ['-gradingresult' => 1, 'score' => $score[0]->nodeValue, 'gradeprocessdbid' => $record->id]);
+            $quba->process_action($slot, ['-gradingresult' => 1, 'score' => $score, 'gradeprocessdbid' => $record->id]);
             question_engine::save_questions_usage_by_activity($quba);
 
             //Update total mark
