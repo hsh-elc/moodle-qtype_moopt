@@ -89,11 +89,11 @@ class separate_feedback_handler {
 
         //TODO: Handle case that root element doesn't have any child elements
 
-        $this->detailedFeedback = new separate_feedback_text_node('detailed_feedback', 'Detailed feedback');
+        $this->detailedFeedback = new separate_feedback_text_node('detailed_feedback', get_string('detailedfeedback', 'qtype_programmingtask'));
         $this->calculatedScore = $this->calculate_from_children($this->grading_hints_root, $this->detailedFeedback);
         $this->detailedFeedback->setScore($this->calculatedScore);
 
-        $this->summarisedFeedback = new separate_feedback_text_node('summarised_feedback', 'Summarized feedback');
+        $this->summarisedFeedback = new separate_feedback_text_node('summarised_feedback', get_string('summarizedfeedback', 'qtype_programmingtask'));
         $this->fillFeedbackNodeWithFeedbackList($this->summarisedFeedback, $this->separate_test_feedback->getElementsByTagNameNS($this->namespace_feedback, 'submission-feedback-list')[0]);
     }
 
@@ -216,7 +216,7 @@ class separate_feedback_handler {
         if ($elem->hasAttribute('weight')) {
             $weight = $elem->getAttribute('weight');
         }
-        $detailedFeedbackNode->setHeading('Combined result');
+        $detailedFeedbackNode->setHeading(get_string('combinedresult', 'qtype_programmingtask'));
         return $score * $weight;
     }
 
@@ -233,7 +233,7 @@ class separate_feedback_handler {
         if ($elem->hasAttribute('weight')) {
             $weight = $elem->getAttribute('weight');
         }
-        $detailedFeedbackNode->setHeading('Test ');
+        $detailedFeedbackNode->setHeading(get_string('test', 'qtype_programmingtask') . ' ');
         $this->fillFeedbackNodeWithTestInfos($elem, $detailedFeedbackNode, $test_result);
         if ($scale_score_to_lms) {
             return $score * $weight * $this->score_compensation_factor;
