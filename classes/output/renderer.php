@@ -207,10 +207,10 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                         ];
 
                         $separate_feedback_renderer_summarised = new qtype_programmingtask\output\separate_feedback_text_renderer($separate_feedback_helper->getSummarisedFeedback(), has_capability('mod/quiz:grade', $PAGE->context), $fileinfos);
-                        $html .= $separate_feedback_renderer_summarised->render();
+                        $html .= '<p>' . $separate_feedback_renderer_summarised->render() . '</p>';
 
                         $separate_feedback_renderer_detailed = new qtype_programmingtask\output\separate_feedback_text_renderer($separate_feedback_helper->getDetailedFeedback(), has_capability('mod/quiz:grade', $PAGE->context), $fileinfos);
-                        $html .= $separate_feedback_renderer_detailed->render();
+                        $html .= '<p>' . $separate_feedback_renderer_detailed->render() . '</p>';
                     } else {
                         //Merged test feedback
                         $html .= html_writer::div($doc->getElementsByTagNameNS($namespace, "student-feedback")[0]->nodeValue, 'studentfeedback');
