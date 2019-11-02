@@ -61,10 +61,10 @@ class separate_feedback_text_renderer {
         $heading = $node->getHeading();
         if ($node->getAccumulatorFunction() != null) {
             $heading .= " , " . get_string('score', 'qtype_programmingtask') . " = $score";
-        } else {
-            if ($node->getTitle() != null) {
-                $heading .= " '{$node->getTitle()}', " . get_string('score', 'qtype_programmingtask') . " = $score";
-            }
+        } else if ($node->getTitle() != null) {
+            $heading .= " '{$node->getTitle()}', " . get_string('score', 'qtype_programmingtask') . " = $score";
+        } else if ($node->getScore() != null) {
+            $heading .= " , " . get_string('score', 'qtype_programmingtask') . " = $score";
         }
         if ($node->isNullified()) {
             $heading .= ' (' . get_string('hasbeennullified', 'qtype_programmingtask') . ')';
@@ -73,8 +73,18 @@ class separate_feedback_text_renderer {
     }
 
     private function formatContent(separate_feedback_text_node $node) {
+
+        $content = '';
+        if ($node->getDescription() != null || ($node->getInternalDescription() != null && $this->displayTeacherContent)) {
+            if ($node->getDescription() != null) {
+                $content .= "<div><h4>" . get_string('testdescription', 'qtype_programmingtask') . "</h4><i><p>{$node->getDescription()}</p></i></div>";
+            }
+            if ($this->displayTeacherContent && $node->getInternalDescription() != null) {
+                $content .= "<div><h4>" . get_string('internaldescription', 'qtype_programmingtask') . "</h4><i><p>{$node->getInternalDescription()}</p></i></div>";
+            }
+        }
+
         if (!empty($node->getChildren())) {
-            $content = '';
             $content .= '<div align="right" style="margin-bottom: 10px">';
             $subScores = [];
             foreach ($node->getChildren() as $child) {
@@ -106,15 +116,6 @@ class separate_feedback_text_renderer {
 
             return $content;
         } else {
-            $content = '';
-            if ($node->getDescription() != null || ($node->getInternalDescription() != null && $this->displayTeacherContent)) {
-                if ($node->getDescription() != null) {
-                    $content .= "<div><h4>" . get_string('testdescription', 'qtype_programmingtask') . "</h4><i><p>{$node->getDescription()}</p></i></div>";
-                }
-                if ($this->displayTeacherContent && $node->getInternalDescription() != null) {
-                    $content .= "<div><h4>" . get_string('internaldescription', 'qtype_programmingtask') . "</h4><i><p>{$node->getInternalDescription()}</p></i></div>";
-                }
-            }
             if (!empty($node->getStudentFeedback())) {
                 $content .= '<div><h4>' . get_string('feedback', 'qtype_programmingtask') . '</h4>';
                 foreach ($node->getStudentFeedback() as $studFeed) {

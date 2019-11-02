@@ -79,9 +79,11 @@ class separate_feedback_handler {
             $this->files[$file->getAttribute('id')] = $file;
         }
 
-        $this->max_score_grading_hints = $this->calculate_max_score($this->grading_hints_root);
-        if (abs($this->max_score_grading_hints - $this->max_score_lms) > 1e-5) {
-            $this->score_compensation_factor = $this->max_score_lms / $this->max_score_grading_hints;
+        if ($this->has_children($this->grading_hints_root)) {
+            $this->max_score_grading_hints = $this->calculate_max_score($this->grading_hints_root);
+            if (abs($this->max_score_grading_hints - $this->max_score_lms) > 1e-5) {
+                $this->score_compensation_factor = $this->max_score_lms / $this->max_score_grading_hints;
+            }
         }
     }
 
@@ -90,7 +92,12 @@ class separate_feedback_handler {
         //TODO: Handle case that root element doesn't have any child elements
 
         $this->detailedFeedback = new separate_feedback_text_node('detailed_feedback', get_string('detailedfeedback', 'qtype_programmingtask'));
-        $this->calculatedScore = $this->calculate_from_children($this->grading_hints_root, $this->detailedFeedback);
+        if ($this->has_children($this->grading_hints_root)) {
+            $this->calculatedScore = $this->calculate_from_children($this->grading_hints_root, $this->detailedFeedback);
+        } else {
+            $this->calculatedScore = $this->calculate_without_children($this->grading_hints_root, $this->detailedFeedback);
+        }
+
         $this->detailedFeedback->setScore($this->calculatedScore);
 
         $this->summarisedFeedback = new separate_feedback_text_node('summarised_feedback', get_string('summarizedfeedback', 'qtype_programmingtask'));
@@ -107,6 +114,81 @@ class separate_feedback_handler {
 
     public function getSummarisedFeedback(): separate_feedback_text_node {
         return $this->summarisedFeedback;
+    }
+
+    private function has_children(\DOMElement $elem) {
+        return $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'test-ref')->length + $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'combine-ref')->length != 0;
+    }
+
+    private function calculate_without_children(\DOMElement $elem, separate_feedback_text_node $detailedFeedback) {
+
+
+        if (($list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'description'))->length == 1) {
+            $detailedFeedback->setDescription($list[0]->nodeValue);
+        }
+        if (($list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'internal-description'))->length == 1) {
+            $detailedFeedback->setInternalDescription($list[0]->nodeValue);
+        }
+
+        $function = "min";
+        if ($elem->hasAttribute('function')) {
+            $function = $elem->getAttribute('function');
+        }
+        switch ($function) {
+            case 'min':
+                $initialValue = $totalScore = PHP_INT_MAX;
+                $merge_func = 'min';
+                break;
+            case 'max':
+                $initialValue = $totalScore = 0;
+                $merge_func = 'max';
+                break;
+            case 'sum':
+                $initialValue = $totalScore = 0;
+                $merge_func = function($a, $b) {
+                    return $a + $b;
+                };
+                break;
+        }
+        $detailedFeedback->setAccumulatorFunction($function);
+
+        foreach ($this->test_results as $key => $value) {
+
+            $det_feed = new separate_feedback_text_node($key);
+            $detailedFeedback->addChild($det_feed);
+
+
+            if (is_array($value)) {
+                $det_feed->setAccumulatorFunction($function);
+                $det_feed->setHeading(get_string('subtests', 'qtype_programmingtask'));
+                $subscore = $initialValue;
+
+                foreach ($value as $subkey => $subvalue) {
+
+                    $subfeed = new separate_feedback_text_node($subkey);
+                    $det_feed->addChild($subfeed);
+
+                    $subfeed->setHeading(get_string('testresult', 'qtype_programmingtask'));
+                    $innerscore = $subvalue->getElementsByTagNameNS($this->namespace_feedback, 'result')[0]
+                                    ->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
+                    $this->fillFeedbackNodeWithFeedbackList($subfeed, $subvalue->getElementsByTagNameNS($this->namespace_feedback, 'feedback-list')[0]);
+                    $subfeed->setScore($innerscore);
+                    $subscore = $merge_func($subscore, $innerscore);
+                }
+
+                $det_feed->setScore($subscore);
+                $totalScore = $merge_func($totalScore, $subscore);
+            } else {
+                $det_feed->setHeading(get_string('testresult', 'qtype_programmingtask'));
+                $score = $value->getElementsByTagNameNS($this->namespace_feedback, 'result')[0]
+                                ->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
+                $this->fillFeedbackNodeWithFeedbackList($det_feed, $value->getElementsByTagNameNS($this->namespace_feedback, 'feedback-list')[0]);
+                $det_feed->setScore($score);
+                $totalScore = $merge_func($totalScore, $score);
+            }
+        }
+
+        return $totalScore;
     }
 
     private function calculate_from_children(\DOMElement $elem, separate_feedback_text_node $detailedFeedback, $scale_score_to_lms = true) {
