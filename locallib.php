@@ -452,7 +452,12 @@ function internal_retrieve_grading_results($qubaid) {
                             $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
                             $feedbackfiles = $doc->getElementsByTagNameNS($namespace, 'files')[0];
 
-                            $separate_feedback_helper = new separate_feedback_handler($grading_hints, $tests, $separate_test_feedback, $feedbackfiles, $taskxmlnamespace, $namespace, $quba->get_question_max_mark($slot));
+                            $xpathTask = new DOMXPath($taskdoc);
+                            $xpathTask->registerNamespace('p', $taskxmlnamespace);
+                            $xpathResponse = new DOMXPath($doc);
+                            $xpathResponse->registerNamespace('p', $namespace);
+
+                            $separate_feedback_helper = new separate_feedback_handler($grading_hints, $tests, $separate_test_feedback, $feedbackfiles, $taskxmlnamespace, $namespace, $quba->get_question_max_mark($slot), $xpathTask, $xpathResponse);
 
                             $separate_feedback_helper->processResult();
                             $score = $separate_feedback_helper->getCalculatedScore();

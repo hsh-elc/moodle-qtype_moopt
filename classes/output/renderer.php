@@ -195,7 +195,12 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                         $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
                         $feedbackfiles = $doc->getElementsByTagNameNS($namespace, "files")[0];
 
-                        $separate_feedback_helper = new separate_feedback_handler($grading_hints, $tests, $separate_test_feedback_elem, $feedbackfiles, $taskxmlnamespace, $namespace, $qa->get_max_mark());
+                        $xpathTask = new DOMXPath($taskdoc);
+                        $xpathTask->registerNamespace('p', $taskxmlnamespace);
+                        $xpathResponse = new DOMXPath($doc);
+                        $xpathResponse->registerNamespace('p', $namespace);
+
+                        $separate_feedback_helper = new separate_feedback_handler($grading_hints, $tests, $separate_test_feedback_elem, $feedbackfiles, $taskxmlnamespace, $namespace, $qa->get_max_mark(), $xpathTask, $xpathResponse);
                         $separate_feedback_helper->processResult();
 
                         $fileinfos = [

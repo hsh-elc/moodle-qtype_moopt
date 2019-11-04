@@ -29,8 +29,10 @@ class separate_feedback_handler {
     private $summarisedFeedback;
     private $files;
     private $feedback_files;
+    private $xpathTask;
+    private $xpathResponse;
 
-    public function __construct(\DOMElement $grading_hints, \DOMElement $tests, \DOMElement $separate_test_feedback, \DOMElement $feedback_files, $namespace_gradinghints, $namespace_feedback, $max_score_lms) {
+    public function __construct(\DOMElement $grading_hints, \DOMElement $tests, \DOMElement $separate_test_feedback, \DOMElement $feedback_files, $namespace_gradinghints, $namespace_feedback, $max_score_lms, $xpathTask, $xpathResponse) {
         $this->grading_hints = $grading_hints;
         $this->tests_element = $tests;
         $this->separate_test_feedback = $separate_test_feedback;
@@ -38,6 +40,8 @@ class separate_feedback_handler {
         $this->namespace_feedback = $namespace_feedback;
         $this->max_score_lms = $max_score_lms;
         $this->feedback_files = $feedback_files;
+        $this->xpathTask = $xpathTask;
+        $this->xpathResponse = $xpathResponse;
         $this->score_compensation_factor = 1;
 
         $this->grading_hints_combines = [];
@@ -89,10 +93,9 @@ class separate_feedback_handler {
 
     public function processResult() {
 
-        //TODO: Handle case that root element doesn't have any child elements
-
         $this->detailedFeedback = new separate_feedback_text_node('detailed_feedback', get_string('detailedfeedback', 'qtype_programmingtask'));
         if ($this->has_children($this->grading_hints_root)) {
+            $this->fill_feedback_with_combine_node_infos($this->grading_hints_root, $this->detailedFeedback);
             $this->calculatedScore = $this->calculate_from_children($this->grading_hints_root, $this->detailedFeedback);
         } else {
             $this->calculatedScore = $this->calculate_without_children($this->grading_hints_root, $this->detailedFeedback);
@@ -140,11 +143,11 @@ class separate_feedback_handler {
                 $merge_func = 'min';
                 break;
             case 'max':
-                $initialValue = $totalScore = 0;
+                $initialValue = $totalScore = 0.0;
                 $merge_func = 'max';
                 break;
             case 'sum':
-                $initialValue = $totalScore = 0;
+                $initialValue = $totalScore = 0.0;
                 $merge_func = function($a, $b) {
                     return $a + $b;
                 };
@@ -157,18 +160,27 @@ class separate_feedback_handler {
             $det_feed = new separate_feedback_text_node($key);
             $detailedFeedback->addChild($det_feed);
 
+            //Get infos from tests
+            $det_feed->setTitle($this->tests[$key]->getElementsByTagNameNS($this->namespace_gradinghints, 'title')[0]->nodeValue);
+            if (($list = $this->tests[$key]->getElementsByTagNameNS($this->namespace_gradinghints, 'description'))->length == 1) {
+                $det_feed->setDescription($list[0]->nodeValue);
+            }
+            if (($list = $this->tests[$key]->getElementsByTagNameNS($this->namespace_gradinghints, 'internal-description'))->length == 1) {
+                $det_feed->setInternalDescription($list[0]->nodeValue);
+            }
 
             if (is_array($value)) {
                 $det_feed->setAccumulatorFunction($function);
-                $det_feed->setHeading(get_string('subtests', 'qtype_programmingtask'));
+                $det_feed->setHeading(get_string('testgroup', 'qtype_programmingtask'));
                 $subscore = $initialValue;
 
+                $counter = 0;
                 foreach ($value as $subkey => $subvalue) {
 
                     $subfeed = new separate_feedback_text_node($subkey);
                     $det_feed->addChild($subfeed);
 
-                    $subfeed->setHeading(get_string('testresult', 'qtype_programmingtask'));
+                    $subfeed->setHeading(get_string('subtest', 'qtype_programmingtask') . ' #' . $counter++);
                     $innerscore = $subvalue->getElementsByTagNameNS($this->namespace_feedback, 'result')[0]
                                     ->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
                     $this->fillFeedbackNodeWithFeedbackList($subfeed, $subvalue->getElementsByTagNameNS($this->namespace_feedback, 'feedback-list')[0]);
@@ -179,7 +191,8 @@ class separate_feedback_handler {
                 $det_feed->setScore($subscore);
                 $totalScore = $merge_func($totalScore, $subscore);
             } else {
-                $det_feed->setHeading(get_string('testresult', 'qtype_programmingtask'));
+                $det_feed->setHeading(get_string('test', 'qtype_programmingtask'));
+
                 $score = $value->getElementsByTagNameNS($this->namespace_feedback, 'result')[0]
                                 ->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
                 $this->fillFeedbackNodeWithFeedbackList($det_feed, $value->getElementsByTagNameNS($this->namespace_feedback, 'feedback-list')[0]);
@@ -232,8 +245,11 @@ class separate_feedback_handler {
             $det_feed = new separate_feedback_text_node($detailedFeedback->getId() . '_' . $counter++);
             $detailedFeedback->addChild($det_feed);
 
+            $det_feed->setHeading(get_string('combinedresult', 'qtype_programmingtask'));
+            $this->fill_feedback_with_combine_node_infos($this->grading_hints_combines[$combineref->getAttribute('ref')], $det_feed);
+
             $score = $this->get_weighted_score_combineref($combineref, $det_feed, $scale_score_to_lms);
-            //Execute function and only later set score to 0 because the above function also fills the feedback elements
+            //Execute function and only later set score to 0 because the above function also processes the child elements
             if ($this->should_be_nullified_elem($combineref)) {
                 $score = 0;
                 $det_feed->setNullified(true);
@@ -298,8 +314,19 @@ class separate_feedback_handler {
         if ($elem->hasAttribute('weight')) {
             $weight = $elem->getAttribute('weight');
         }
-        $detailedFeedbackNode->setHeading(get_string('combinedresult', 'qtype_programmingtask'));
         return $score * $weight;
+    }
+
+    private function fill_feedback_with_combine_node_infos(\DOMElement $elem, separate_feedback_text_node $detailedFeedbackNode) {
+        if (($list = $this->xpathTask->query('./p:title', $elem))->length == 1) {
+            $detailedFeedbackNode->setTitle($list[0]->nodeValue);
+        }
+        if (($list = $this->xpathTask->query('./p:description', $elem))->length == 1) {
+            $detailedFeedbackNode->setDescription($list[0]->nodeValue);
+        }
+        if (($list = $this->xpathTask->query('./p:internal-description', $elem))->length == 1) {
+            $detailedFeedbackNode->setInternalDescription($list[0]->nodeValue);
+        }
     }
 
     private function get_weighted_score_testref(\DOMElement $elem, separate_feedback_text_node $detailedFeedbackNode, $scale_score_to_lms = true) {

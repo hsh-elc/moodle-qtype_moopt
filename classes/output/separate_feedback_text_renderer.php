@@ -59,12 +59,11 @@ class separate_feedback_text_renderer {
     private function formatHeading(separate_feedback_text_node $node) {
         $score = round($node->getScore(), 2);
         $heading = $node->getHeading();
-        if ($node->getAccumulatorFunction() != null) {
-            $heading .= " , " . get_string('score', 'qtype_programmingtask') . " = $score";
-        } else if ($node->getTitle() != null) {
-            $heading .= " '{$node->getTitle()}', " . get_string('score', 'qtype_programmingtask') . " = $score";
-        } else if ($node->getScore() != null) {
-            $heading .= " , " . get_string('score', 'qtype_programmingtask') . " = $score";
+        if ($node->getTitle() != null) {
+            $heading .= " '{$node->getTitle()}'";
+        }
+        if (!is_null($node->getScore())) {
+            $heading .= ", " . get_string('score', 'qtype_programmingtask') . " = $score";
         }
         if ($node->isNullified()) {
             $heading .= ' (' . get_string('hasbeennullified', 'qtype_programmingtask') . ')';
