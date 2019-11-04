@@ -21,11 +21,13 @@ class separate_feedback_text_renderer {
     private $displayTeacherContent;
     private $embeddedfileinfos;
     private $fileinfos;
+    private $showStudentsScoreCalculationScheme;
 
-    public function __construct($root_node, $displayTeacherContent, $fileinfos) {
+    public function __construct($root_node, $displayTeacherContent, $fileinfos, $showStudentsScoreCalculationScheme) {
         $this->root_node = $root_node;
         $this->displayTeacherContent = $displayTeacherContent;
         $this->fileinfos = $fileinfos;
+        $this->showStudentsScoreCalculationScheme = $showStudentsScoreCalculationScheme;
     }
 
     public function render() {
@@ -84,28 +86,31 @@ class separate_feedback_text_renderer {
         }
 
         if (!empty($node->getChildren())) {
-            $content .= '<div align="right" style="margin-bottom: 10px">';
-            $subScores = [];
-            foreach ($node->getChildren() as $child) {
-                $subScores[] = round($child->getScore(), 2);
+            if ($this->displayTeacherContent || $this->showStudentsScoreCalculationScheme) {
+                $content .= '<div align="right" style="margin-bottom: 10px">';
+                $subScores = [];
+                foreach ($node->getChildren() as $child) {
+                    $subScores[] = round($child->getScore(), 2);
+                }
+                $scoreCalc = '<small>' . get_string('scorecalculationscheme', 'qtype_programmingtask') . ': ' . round($node->getScore(), 2) . ' = ';
+                switch ($node->getAccumulatorFunction()) {
+                    case 'min':
+                        $scoreCalc .= get_string('minimum', 'qtype_programmingtask') . ' {';
+                        $scoreCalc .= implode(', ', $subScores);
+                        $scoreCalc .= '}';
+                        break;
+                    case 'max':
+                        $scoreCalc .= get_string('maximum', 'qtype_programmingtask') . ' {';
+                        $scoreCalc .= implode(', ', $subScores);
+                        $scoreCalc .= '}';
+                        break;
+                    case 'sum':
+                        $scoreCalc .= implode(' + ', $subScores);
+                        break;
+                }
+                $content .= "<i>$scoreCalc</i></small></div>";
             }
-            $scoreCalc = '<small>' . get_string('scorecalculationscheme', 'qtype_programmingtask') . ': ' . round($node->getScore(), 2) . ' = ';
-            switch ($node->getAccumulatorFunction()) {
-                case 'min':
-                    $scoreCalc .= get_string('minimum', 'qtype_programmingtask') . ' {';
-                    $scoreCalc .= implode(', ', $subScores);
-                    $scoreCalc .= '}';
-                    break;
-                case 'max':
-                    $scoreCalc .= get_string('maximum', 'qtype_programmingtask') . ' {';
-                    $scoreCalc .= implode(', ', $subScores);
-                    $scoreCalc .= '}';
-                    break;
-                case 'sum':
-                    $scoreCalc .= implode(' + ', $subScores);
-                    break;
-            }
-            $content .= "<i>$scoreCalc</i></small></div>";
+
 
             $content .= '<div>';
             foreach ($node->getChildren() as $child) {

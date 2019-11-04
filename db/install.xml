@@ -8,6 +8,7 @@
                 <FIELD NAME="internaldescription" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The internal description of the assignment."/>
                 <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="taskuuid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="showstudscorecalcscheme" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

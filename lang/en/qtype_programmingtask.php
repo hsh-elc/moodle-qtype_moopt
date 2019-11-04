@@ -30,6 +30,7 @@ $string['combinedresult'] = 'Combined result';
 $string['commonsettings'] = 'Common settings';
 $string['currentlybeeinggraded'] = 'This task is currently beeing graded by the grader';
 $string['detailedfeedback'] = 'Detailed feedback';
+$string['showstudscorecalcscheme'] = 'Show students score calculation scheme';
 $string['external_settings-graders'] = 'Programming task graders';
 $string['feedback'] = 'Feedback';
 $string['files'] = 'Files';

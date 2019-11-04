@@ -136,5 +136,13 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2019101301, 'qtype', 'programmingtask');
     }
 
+    if ($oldversion < 2019110400) {
+        $table = new xmldb_table('qtype_programmingtask_optns');
+        $dbman->add_field($table, new xmldb_field('showstudscorecalcscheme', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, false, 0));
+
+        // ProForma savepoint reached.
+        upgrade_plugin_savepoint(true, 2019110400, 'qtype', 'programmingtask');
+    }
+
     return true;
 }

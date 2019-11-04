@@ -211,10 +211,10 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                             'filepath' => "/$initial_slot/{$qa->get_usage_id()}/"
                         ];
 
-                        $separate_feedback_renderer_summarised = new qtype_programmingtask\output\separate_feedback_text_renderer($separate_feedback_helper->getSummarisedFeedback(), has_capability('mod/quiz:grade', $PAGE->context), $fileinfos);
+                        $separate_feedback_renderer_summarised = new qtype_programmingtask\output\separate_feedback_text_renderer($separate_feedback_helper->getSummarisedFeedback(), has_capability('mod/quiz:grade', $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
                         $html .= '<p>' . $separate_feedback_renderer_summarised->render() . '</p>';
 
-                        $separate_feedback_renderer_detailed = new qtype_programmingtask\output\separate_feedback_text_renderer($separate_feedback_helper->getDetailedFeedback(), has_capability('mod/quiz:grade', $PAGE->context), $fileinfos);
+                        $separate_feedback_renderer_detailed = new qtype_programmingtask\output\separate_feedback_text_renderer($separate_feedback_helper->getDetailedFeedback(), has_capability('mod/quiz:grade', $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
                         $html .= '<p>' . $separate_feedback_renderer_detailed->render() . '</p>';
                     } else {
                         //Merged test feedback

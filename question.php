@@ -40,6 +40,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
     public $internaldescription;
     public $graderid;
     public $taskuuid;
+    public $showstudscorecalcscheme;
 
     /**
      * What data may be included in the form submission when a student submits

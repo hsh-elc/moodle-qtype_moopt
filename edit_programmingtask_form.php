@@ -82,6 +82,8 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_programmingtask'), array("size" => '36'));
         $mform->setType('taskuuid', PARAM_TEXT);
         $mform->addRule('taskuuid', get_string('taskuuidrequired', 'qtype_programmingtask'), 'required');
+
+        $mform->addElement('advcheckbox', 'showstudscorecalcscheme', get_string('showstudscorecalcscheme', 'qtype_programmingtask'), ' ');
     }
 
     protected function data_preprocessing($question) {
