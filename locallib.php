@@ -544,3 +544,88 @@ function validate_proforma_file_against_schema(DOMDocument $doc, $namespace): ar
 
     return $msgs;
 }
+
+/**
+ *  Checks whether supplied zip file is valid.
+ * @global type $USER
+ * @param type $draftareaid
+ * @return string null if there are no errors. The error message otherwise
+ */
+function check_if_task_file_is_valid($draftareaid) {
+    global $USER;
+
+    $user_context = context_user::instance($USER->id);
+
+    $fs = get_file_storage();
+
+    //Check if there is only the file we want
+    $area = file_get_draft_area_info($draftareaid, "/");
+    if ($area['filecount'] == 0) {
+        return 'You need to supply a valid ProFormA task file.';
+    } elseif ($area['filecount'] > 1 || $area['foldercount'] != 0) {
+        return 'Only one file is allowed to be in this draft area: A ProFormA-Task as either ZIP or XML file.';
+    }
+
+    //Get name of the file
+    $files = $fs->get_area_files($user_context->id, 'user', 'draft', $draftareaid);
+    //get_area_files returns an associative array where the keys are some kind of hash value
+    $keys = array_keys($files);
+    //index 1 because index 0 is the current directory it seems
+    $filename = $files[$keys[1]]->get_filename();
+
+    $file = $fs->get_file($user_context->id, 'user', 'draft', $draftareaid, "/", $filename);
+
+    //Check file type (it's really only checking the file extension but that is good enough here)
+    $fileinfo = pathinfo($filename);
+    $filetype = '';
+    if (array_key_exists('extension', $fileinfo)) {
+        $filetype = strtolower($fileinfo['extension']);
+    }
+    if ($filetype != 'zip') {
+        return 'Supplied file must be a zip file.';
+    }
+
+    //Unzip file - basically copied from draftfiles_ajax.php
+    $zipper = get_file_packer('application/zip');
+
+    // Find unused name for directory to extract the archive.
+    $temppath = $fs->get_unused_dirname($user_context->id, 'user', 'draft', $draftareaid, "/" . pathinfo($filename, PATHINFO_FILENAME) . '/');
+
+    // Extract archive and move all files from $temppath to $filepath
+    if ($file->extract_to_storage($zipper, $user_context->id, 'user', 'draft', $draftareaid, $temppath, $USER->id)) {
+        $extractedfiles = $fs->get_directory_files($user_context->id, 'user', 'draft', $draftareaid, $temppath, true);
+        $taskFileContents = null;
+        foreach ($extractedfiles as $exfile) {
+            if ($exfile->get_filename() == 'task.xml') {
+                $taskFileContents = $exfile->get_content();
+                break;
+            }
+        }
+
+        foreach ($extractedfiles as $exfile) {
+            $exfile->delete();
+        }
+        $fs->get_file($user_context->id, 'user', 'draft', $draftareaid, "/" . pathinfo($filename, PATHINFO_FILENAME) . '/', '.')->delete();
+
+        if ($taskFileContents == null) {
+            return "Supplied zip file doesn't contain a task.xml file";
+        }
+
+        //TODO: Uncomment this to enable validation of task.xml file itself. Currently commented out because most task files don't validate against the schema.
+        /*
+          $doc = new DOMDocument();
+          $doc->loadXML($taskFileContents);
+          $namespace = detect_proforma_namespace($doc);
+          if (!empty(($errors = validate_proforma_file_against_schema($doc, $namespace)))) {
+          $ret = "<p>Detected ProFormA-version $namespace. Found the following problems during validation of task.xml file:</p><ul>";
+          foreach ($errors as $er) {
+          $ret .= '<li>' . $er . '</li>';
+          }
+          $ret .= '</ul>';
+          return $ret;
+          }
+         */
+    }
+
+    return null;
+}

@@ -147,6 +147,11 @@ class qtype_programmingtask_edit_form extends question_edit_form {
             $errors['taskuuid'] = get_string('taskuuidhaswronglength', 'qtype_programmingtask');
         }
 
+        if (!is_null(($err = check_if_task_file_is_valid($fromform['proformataskfileupload'])))) {
+            $errors['proformataskfileupload'] = $err;
+        }
+
+
         return $errors;
     }
 
