@@ -43,6 +43,10 @@ class qtype_programmingtask_external extends external_api {
 
         $filename = unzip_task_file_in_draft_area($draftid, $user_context);
 
+        if ($filename == null) {
+            return ['error' => 'Error extracting zip file'];
+        }
+
         $doc = create_domdocument_from_task_xml($user_context, $draftid, $filename);
         $namespace = detect_proforma_namespace($doc);
         $returnVal = array();

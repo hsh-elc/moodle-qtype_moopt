@@ -25,12 +25,19 @@ define(['jquery', 'core/ajax',
                             methodname: 'qtype_programmingtask_extract_task_infos_from_draft_file',
                             args: {itemid: itemId},
                             done: function (result) {
+
+                                if (typeof result.error !== 'undefined') {
+                                    $("#id_error_ajaxerrorlabel").parent().children().first().
+                                            html('<div>' + result.error + '</div>');
+                                    return;
+                                }
+
                                 $("#id_error_ajaxerrorlabel").parent().children().first().html('');
                                 $("#id_name").val(result.title);
                                 editorEditor.setContents('id_questiontext', result.description);
                                 editorEditor.setContents('id_internaldescription', result.internaldescription);
                                 editorEditor.setContentsOfText('id_taskuuid', result.taskuuid);
-                                let warnings = '';
+                                var warnings = '';
                                 if (typeof result.moodleValidationWarnings !== 'undefined') {
                                     if (typeof result.moodleValidationProformaNamespace !== 'undefined') {
                                         warnings = '<p>Detected ProFormA-version ' + result.moodleValidationProformaNamespace + '. Found the following problems during validation but still continued:</p><ul>';
@@ -39,7 +46,7 @@ define(['jquery', 'core/ajax',
                                         });
                                         warnings += '</ul>';
                                     } else {
-                                        warnings = '<p>' + result.moodleValidationWarnings + '</p>'
+                                        warnings = '<p>' + result.moodleValidationWarnings + '</p>';
                                     }
 
                                 }

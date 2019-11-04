@@ -98,6 +98,8 @@ function unzip_task_file_in_draft_area($draftareaid, $user_context) {
                 $donotremovedirs[] = $realpath;
             }
         }
+    } else{
+        return null;
     }
     // Remove remaining temporary directories.
     foreach (array_diff($doremovedirs, $donotremovedirs) as $filepath) {
@@ -625,6 +627,8 @@ function check_if_task_file_is_valid($draftareaid) {
           return $ret;
           }
          */
+    } else {
+        return 'Supplied zip file is not a valid zip file';
     }
 
     return null;
