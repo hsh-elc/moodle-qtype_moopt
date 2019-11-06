@@ -36,9 +36,12 @@ class separate_feedback_text_renderer {
 
     private function renderInternal(separate_feedback_text_node $node) {
         $accordionId = "accordion_{$node->getId()}";
+
+        $additionalHeaderClasses = $node->hasInternalError() ? ', internalerror' : '';
+
         $text = "<div id='$accordionId'>";
         $text .= "<div class='card'>
-                    <div class='card-header' id='{$node->getId()}'>
+                    <div class='card-header, {$additionalHeaderClasses}' id='{$node->getId()}'>
                       <h5 class='mb-0'>
                         <button type='button' class='btn btn-link' data-toggle='collapse' data-target='#collapse_{$node->getId()}' aria-expanded='true' aria-controls='collapse_{$node->getId()}'>
                             {$this->formatHeading($node)}

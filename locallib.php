@@ -98,7 +98,7 @@ function unzip_task_file_in_draft_area($draftareaid, $user_context) {
                 $donotremovedirs[] = $realpath;
             }
         }
-    } else{
+    } else {
         return null;
     }
     // Remove remaining temporary directories.
@@ -395,15 +395,30 @@ function internal_retrieve_grading_results($qubaid) {
             }
 
             //Apply the grade from the response
-            $errorOccured = false;
+            $internalError = false;
             $result = $file->extract_to_storage($zipper, $quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/");
             if ($result) {
                 $doc = new DOMDocument();
                 $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/", 'response.xml');
                 if ($responseXmlFile) {
-                    $doc->loadXML($responseXmlFile->get_content());
-                    $namespace = detect_proforma_namespace($doc);
+
+                    set_error_handler(function($number, $error) {
+                        if (preg_match('/^DOMDocument::loadXML\(\): (.+)$/', $error, $m) === 1) {
+                            throw new Exception($m[1]);
+                        }
+                    });
+
+                    try {
+                        $doc->loadXML($responseXmlFile->get_content());
+                    } catch (Exception $ex) {
+                        $doc = false;
+                    } finally {
+                        restore_error_handler();
+                    }
+
                     if ($doc) {
+                        $namespace = detect_proforma_namespace($doc);
+
                         //Save embedded files to disk
                         $files = $doc->getElementsByTagNameNS($namespace, "files")[0];
                         foreach ($files->getElementsByTagNameNS($namespace, "file") as $responseFile) {
@@ -462,7 +477,11 @@ function internal_retrieve_grading_results($qubaid) {
                             $separate_feedback_helper = new separate_feedback_handler($grading_hints, $tests, $separate_test_feedback, $feedbackfiles, $taskxmlnamespace, $namespace, $quba->get_question_max_mark($slot), $xpathTask, $xpathResponse);
 
                             $separate_feedback_helper->processResult();
-                            $score = $separate_feedback_helper->getCalculatedScore();
+                            if (!$separate_feedback_helper->getDetailedFeedback()->hasInternalError()) {
+                                $score = $separate_feedback_helper->getCalculatedScore();
+                            } else {
+                                $internalError = true;
+                            }
                         }
                     }
                 } else {
@@ -473,8 +492,10 @@ function internal_retrieve_grading_results($qubaid) {
             //We don't need the file anymore
             $file->delete();
 
-            if (!$result || !isset($score) || $errorOccured) {
-                error_log("Received invalid response from grader");
+            if (!$result || !isset($score) || $internalError) {
+                if (!$internalError) {
+                    error_log("Received invalid response from grader");
+                }
 
                 //Change the state to the question needing manual grading because automatic grading failed
                 $quba->process_action($slot, ['-graderunavailable' => 1, 'gradeprocessdbid' => $record->id]);

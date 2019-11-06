@@ -181,23 +181,33 @@ class separate_feedback_handler {
                     $det_feed->addChild($subfeed);
 
                     $subfeed->setHeading(get_string('subtest', 'qtype_programmingtask') . ' #' . $counter++);
-                    $innerscore = $subvalue->getElementsByTagNameNS($this->namespace_feedback, 'result')[0]
-                                    ->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
+                    $result = $subvalue->getElementsByTagNameNS($this->namespace_feedback, 'result')[0];
+                    $innerscore = $result->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
                     $this->fillFeedbackNodeWithFeedbackList($subfeed, $subvalue->getElementsByTagNameNS($this->namespace_feedback, 'feedback-list')[0]);
                     $subfeed->setScore($innerscore);
                     $subscore = $merge_func($subscore, $innerscore);
+
+                    if ($result->hasAttribute('is-internal-error') && $result->getAttribute('is-internal-error') == "true") {
+                        $subfeed->setHasInternalError(true);
+                        $det_feed->setHasInternalError(true);
+                        $detailedFeedback->setHasInternalError(true);
+                    }
                 }
 
                 $det_feed->setScore($subscore);
                 $totalScore = $merge_func($totalScore, $subscore);
             } else {
                 $det_feed->setHeading(get_string('test', 'qtype_programmingtask'));
-
-                $score = $value->getElementsByTagNameNS($this->namespace_feedback, 'result')[0]
-                                ->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
+                $result = $value->getElementsByTagNameNS($this->namespace_feedback, 'result')[0];
+                $score = $result->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
                 $this->fillFeedbackNodeWithFeedbackList($det_feed, $value->getElementsByTagNameNS($this->namespace_feedback, 'feedback-list')[0]);
                 $det_feed->setScore($score);
                 $totalScore = $merge_func($totalScore, $score);
+
+                if ($result->hasAttribute('is-internal-error') && $result->getAttribute('is-internal-error') == "true") {
+                    $det_feed->setHasInternalError(true);
+                    $detailedFeedback->setHasInternalError(true);
+                }
             }
         }
 
@@ -227,6 +237,7 @@ class separate_feedback_handler {
         }
         $detailedFeedback->setAccumulatorFunction($function);
         $counter = 0;
+        $internalErrorInChildren = false;
         foreach ($elem->getElementsByTagNameNS($this->namespace_gradinghints, 'test-ref') as $testref) {
             $det_feed = new separate_feedback_text_node($detailedFeedback->getId() . '_' . $counter++);
             $detailedFeedback->addChild($det_feed);
@@ -240,6 +251,10 @@ class separate_feedback_handler {
             $det_feed->setScore($score);
 
             $value = $merge_func($value, $score);
+
+            if ($det_feed->hasInternalError()) {
+                $internalErrorInChildren = true;
+            }
         }
         foreach ($elem->getElementsByTagNameNS($this->namespace_gradinghints, 'combine-ref') as $combineref) {
             $det_feed = new separate_feedback_text_node($detailedFeedback->getId() . '_' . $counter++);
@@ -257,7 +272,16 @@ class separate_feedback_handler {
             $det_feed->setScore($score);
 
             $value = $merge_func($value, $score);
+
+            if ($det_feed->hasInternalError()) {
+                $internalErrorInChildren = true;
+            }
         }
+
+        if ($internalErrorInChildren) {
+            $detailedFeedback->setHasInternalError(true);
+        }
+
         return $value;
     }
 
@@ -336,14 +360,19 @@ class separate_feedback_handler {
         } else {
             $test_result = $this->test_results[$refid];
         }
-        $score = $test_result->getElementsByTagNameNS($this->namespace_feedback, 'result')[0]
-                        ->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
+        $result = $test_result->getElementsByTagNameNS($this->namespace_feedback, 'result')[0];
+        $score = $result->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
         $weight = 1;
         if ($elem->hasAttribute('weight')) {
             $weight = $elem->getAttribute('weight');
         }
         $detailedFeedbackNode->setHeading(get_string('test', 'qtype_programmingtask') . ' ');
         $this->fillFeedbackNodeWithTestInfos($elem, $detailedFeedbackNode, $test_result);
+
+        if ($result->hasAttribute('is-internal-error')) {
+            $detailedFeedbackNode->setHasInternalError($result->getAttribute('is-internal-error') == "true");
+        }
+
         if ($scale_score_to_lms) {
             return $score * $weight * $this->score_compensation_factor;
         } else {

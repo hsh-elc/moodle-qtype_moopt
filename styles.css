@@ -6,6 +6,10 @@
     color: orange;
 }
 
+.internalerror{
+    background-color: #ffabab;
+}
+
 .specificfeedback .gradingstatus{
     font-weight: bold;
     display: flex;

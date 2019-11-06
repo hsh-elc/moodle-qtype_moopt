@@ -26,6 +26,7 @@ class separate_feedback_text_node {
     private $description;
     private $studentFeedback;
     private $teacherFeedback;
+    private $hasinternalerror;
 
     public function __construct($id, $heading = null, $content = null) {
         $this->id = $id;
@@ -125,6 +126,14 @@ class separate_feedback_text_node {
             return;
         }
         $this->teacherFeedback[] = $feedback;
+    }
+
+    public function hasInternalError() {
+        return $this->hasinternalerror;
+    }
+
+    public function setHasInternalError($err) {
+        $this->hasinternalerror = $err;
     }
 
 }
