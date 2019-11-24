@@ -132,7 +132,7 @@ class separate_feedback_text_renderer {
 
             $content .= '<div>';
             foreach ($node->getChildren() as $child) {
-                $content .= $this->renderInternal($child);
+                $content .= '<p>' . $this->renderInternal($child) . '</p>';
             }
             $content .= '</div>';
 
