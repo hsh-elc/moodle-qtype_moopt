@@ -84,7 +84,8 @@ class separate_feedback_handler {
         }
 
         if ($this->has_children($this->grading_hints_root)) {
-            $this->max_score_grading_hints = $this->calculate_max_score($this->grading_hints_root);
+            $grading_hints_helper = new grading_hints_helper($this->grading_hints, $this->namespace_gradinghints);
+            $this->max_score_grading_hints = $grading_hints_helper->calculate_max_score();
             if (abs($this->max_score_grading_hints - $this->max_score_lms) > 1e-5) {
                 $this->score_compensation_factor = $this->max_score_lms / $this->max_score_grading_hints;
             }
@@ -282,51 +283,6 @@ class separate_feedback_handler {
             $detailedFeedback->setHasInternalError(true);
         }
 
-        return $value;
-    }
-
-    private function calculate_max_score(\DOMElement $elem) {
-        $function = "min";
-        if ($elem->hasAttribute('function')) {
-            $function = $elem->getAttribute('function');
-        }
-        switch ($function) {
-            case 'min':
-                $value = PHP_INT_MAX;
-                $merge_func = 'min';
-                break;
-            case 'max':
-                $value = 0;
-                $merge_func = 'max';
-                break;
-            case 'sum':
-                $value = 0;
-                $merge_func = function($a, $b) {
-                    return $a + $b;
-                };
-                break;
-        }
-        foreach ($elem->getElementsByTagNameNS($this->namespace_gradinghints, 'test-ref') as $testref) {
-
-            $weight = 1;
-            if ($testref->hasAttribute('weight')) {
-                $weight = $testref->getAttribute('weight');
-            }
-
-            $value = $merge_func($value, $weight);
-        }
-        foreach ($elem->getElementsByTagNameNS($this->namespace_gradinghints, 'combine-ref') as $combineref) {
-
-            $refid = $combineref->getAttribute('ref');
-            $combine = $this->grading_hints_combines[$refid];
-            $maxScore = $this->calculate_max_score($combine);
-            $weight = 1;
-            if ($combineref->hasAttribute('weight')) {
-                $weight = $combineref->getAttribute('weight');
-            }
-
-            $value = $merge_func($value, $maxScore * $weight);
-        }
         return $value;
     }
 

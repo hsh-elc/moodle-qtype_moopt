@@ -22,6 +22,8 @@ define('proforma_RETRIEVE_GRADING_RESULTS_LOCK_MAXLIFETIME', 10);
 //ProFormA task xml namespaces
 //** The first namespace is the default namespace! **
 define('proforma_TASK_XML_NAMESPACES', [/* default namespace: */ 'urn:proforma:v2.0.1', 'urn:proforma:v2.0']);
+define('proforma_MERGED_FEEDBACK_TYPE', 'merged-test-feedback');
+define('proforma_SEPARATE_FEEDBACK_TYPE', 'separate-test-feedback');
 
 require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');

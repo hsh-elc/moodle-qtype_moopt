@@ -177,6 +177,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
     public function grade_response_asynch(question_attempt $qa, array $responsefiles): question_state {
         global $DB;
         $grappa_communicator = grappa_communicator::getInstance();
+        $fs = get_file_storage();
 
         //Get response files
         $qubaid = $qa->get_usage_id();
@@ -199,13 +200,19 @@ class qtype_programmingtask_question extends question_graded_automatically {
             $taskfilename = $DB->get_record('qtype_programmingtask_files', array('questionid' => $this->id, 'filearea' => proforma_TASKZIP_FILEAREA), 'filename')->filename;
         }
 
+        //Load task.xml file because we need the grading_hints if feedback-mode is merged-test-feedback
+        $taskxmlfile = $fs->get_file($this->contextid, 'question', proforma_TASKXML_FILEAREA, $this->id, '/', 'task.xml');
+        $taskdoc = new DOMDocument();
+        $taskdoc->loadXML($taskxmlfile->get_content());
+        $taskxmlnamespace = detect_proforma_namespace($taskdoc);
+        $grading_hints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
+
         //Create the submission.xml file
         $submission_xml_creator = new proforma_submission_xml_creator();
-        $submissionXML = $submission_xml_creator->createSubmissionXML($includeTaskFile, $includeTaskFile ? $taskfilename : $this->taskuuid, $files, 'zip', 'merged-test-feedback', 'info', 'debug');
+        $submissionXML = $submission_xml_creator->createSubmissionXML($includeTaskFile, $includeTaskFile ? $taskfilename : $this->taskuuid, $files, 'zip', proforma_MERGED_FEEDBACK_TYPE, 'info', 'debug',$grading_hints, $taskxmlnamespace, $qa->get_max_mark());
 
         //Load task file and add it to the files that go into the zip file
         if ($includeTaskFile) {
-            $fs = get_file_storage();
             $taskfile = $fs->get_file($this->contextid, 'question', proforma_TASKZIP_FILEAREA, $this->id, '/', $taskfilename);
             $files["task/$taskfilename"] = $taskfile;
         }
