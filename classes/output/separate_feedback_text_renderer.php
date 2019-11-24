@@ -63,7 +63,15 @@ class separate_feedback_text_renderer {
 
     private function formatHeading(separate_feedback_text_node $node) {
         $score = round($node->getScore(), 2);
-        $heading = $node->getHeading();
+
+
+        $heading = '';
+
+        if ($node->hasInternalError()) {
+            $heading .= '<span style="font-family: FontAwesome; font-size: 1.5em;margin-right:20px;">&#xf00d;</span>';
+        }
+
+        $heading .= $node->getHeading();
         if ($node->getTitle() != null) {
             $heading .= " '{$node->getTitle()}'";
         }
