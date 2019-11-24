@@ -43,7 +43,7 @@ class separate_feedback_text_renderer {
         $text .= "<div class='card'>
                     <div class='card-header, {$additionalHeaderClasses}' id='{$node->getId()}'>
                       <h5 class='mb-0'>
-                        <button type='button' class='btn btn-link' data-toggle='collapse' data-target='#collapse_{$node->getId()}' aria-expanded='true' aria-controls='collapse_{$node->getId()}'>
+                        <button type='button' class='btn btn-link' data-toggle='collapse' data-target='#collapse_{$node->getId()}' aria-expanded='true' aria-controls='collapse_{$node->getId()}' style='width: 100%;'>
                             {$this->formatHeading($node)}
                         </button>
                       </h5>
@@ -62,25 +62,32 @@ class separate_feedback_text_renderer {
     }
 
     private function formatHeading(separate_feedback_text_node $node) {
-        $score = round($node->getScore(), 2);
-
-
-        $heading = '';
+        $heading = '<div style="text-align:left;width:70%;display:inline-block;">';
 
         if ($node->hasInternalError()) {
-            $heading .= '<span style="font-family: FontAwesome; font-size: 1.5em;margin-right:20px;">&#xf00d;</span>';
+            $heading .= '<div style="font-family: FontAwesome; font-size: 1.5em;margin-right:20px;display:inline-block;">&#xf00d;</div>';
         }
 
-        $heading .= $node->getHeading();
+        $heading .= '<div style="vertical-align: text-bottom;display:inline-block;">' . $node->getHeading();
         if ($node->getTitle() != null) {
             $heading .= " '{$node->getTitle()}'";
         }
+        $heading .= '</div>';
+        $heading .= '</div><div style="text-align:right;vertical-align: text-bottom; width:30%;display:inline-block;">';
         if (!is_null($node->getScore())) {
-            $heading .= ", " . get_string('score', 'qtype_programmingtask') . " = $score";
+            $score = round($node->getScore(), 2);
+            $maxScore = round($node->getMaxScore(), 2);
+
+            if (!is_null($node->getMaxScore())) {
+                $heading .= "$score / $maxScore";
+            } else {
+                $heading .= "Score: $score";
+            }
         }
         if ($node->isNullified()) {
             $heading .= ' (' . get_string('hasbeennullified', 'qtype_programmingtask') . ')';
         }
+        $heading .= '</div>';
         return $heading;
     }
 

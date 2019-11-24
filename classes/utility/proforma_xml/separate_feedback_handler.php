@@ -97,7 +97,8 @@ class separate_feedback_handler {
         $this->detailedFeedback = new separate_feedback_text_node('detailed_feedback', get_string('detailedfeedback', 'qtype_programmingtask'));
         if ($this->has_children($this->grading_hints_root)) {
             $this->fill_feedback_with_combine_node_infos($this->grading_hints_root, $this->detailedFeedback);
-            $this->calculatedScore = $this->calculate_from_children($this->grading_hints_root, $this->detailedFeedback);
+            list($this->calculatedScore, $maxScore) = $this->calculate_from_children($this->grading_hints_root, $this->detailedFeedback);
+            $this->detailedFeedback->setMaxScore($maxScore);
         } else {
             $this->calculatedScore = $this->calculate_without_children($this->grading_hints_root, $this->detailedFeedback);
         }
@@ -222,15 +223,15 @@ class separate_feedback_handler {
         }
         switch ($function) {
             case 'min':
-                $value = PHP_INT_MAX;
+                $value = $maxValue = PHP_INT_MAX;
                 $merge_func = 'min';
                 break;
             case 'max':
-                $value = 0;
+                $value = $maxValue = 0;
                 $merge_func = 'max';
                 break;
             case 'sum':
-                $value = 0;
+                $value = $maxValue = 0;
                 $merge_func = function($a, $b) {
                     return $a + $b;
                 };
@@ -243,15 +244,17 @@ class separate_feedback_handler {
             $det_feed = new separate_feedback_text_node($detailedFeedback->getId() . '_' . $counter++);
             $detailedFeedback->addChild($det_feed);
 
-            $score = $this->get_weighted_score_testref($testref, $det_feed, $scale_score_to_lms);
+            list($score, $maxScore) = $this->get_weighted_score_testref($testref, $det_feed, $scale_score_to_lms);
             //Execute function and only later set score to 0 because the above function also fills the feedback elements
             if ($this->should_be_nullified_elem($testref)) {
                 $score = 0;
                 $det_feed->setNullified(true);
             }
             $det_feed->setScore($score);
+            $det_feed->setMaxScore($maxScore);
 
             $value = $merge_func($value, $score);
+            $maxValue = $merge_func($maxValue, $maxScore);
 
             if ($det_feed->hasInternalError()) {
                 $internalErrorInChildren = true;
@@ -264,15 +267,17 @@ class separate_feedback_handler {
             $det_feed->setHeading(get_string('combinedresult', 'qtype_programmingtask'));
             $this->fill_feedback_with_combine_node_infos($this->grading_hints_combines[$combineref->getAttribute('ref')], $det_feed);
 
-            $score = $this->get_weighted_score_combineref($combineref, $det_feed, $scale_score_to_lms);
+            list($score, $maxScore) = $this->get_weighted_score_combineref($combineref, $det_feed, $scale_score_to_lms);
             //Execute function and only later set score to 0 because the above function also processes the child elements
             if ($this->should_be_nullified_elem($combineref)) {
                 $score = 0;
                 $det_feed->setNullified(true);
             }
             $det_feed->setScore($score);
+            $det_feed->setMaxScore($maxScore);
 
             $value = $merge_func($value, $score);
+             $maxValue = $merge_func($maxValue, $maxScore);
 
             if ($det_feed->hasInternalError()) {
                 $internalErrorInChildren = true;
@@ -283,18 +288,18 @@ class separate_feedback_handler {
             $detailedFeedback->setHasInternalError(true);
         }
 
-        return $value;
+        return [$value, $maxValue];
     }
 
     private function get_weighted_score_combineref(\DOMElement $elem, separate_feedback_text_node $detailedFeedbackNode, $scale_score_to_lms = true) {
         $refid = $elem->getAttribute('ref');
         $combine = $this->grading_hints_combines[$refid];
-        $score = $this->calculate_from_children($combine, $detailedFeedbackNode, $scale_score_to_lms);
+        list($score, $maxScore) = $this->calculate_from_children($combine, $detailedFeedbackNode, $scale_score_to_lms);
         $weight = 1;
         if ($elem->hasAttribute('weight')) {
             $weight = $elem->getAttribute('weight');
         }
-        return $score * $weight;
+        return [$score * $weight, $maxScore * $weight];
     }
 
     private function fill_feedback_with_combine_node_infos(\DOMElement $elem, separate_feedback_text_node $detailedFeedbackNode) {
@@ -330,9 +335,9 @@ class separate_feedback_handler {
         }
 
         if ($scale_score_to_lms) {
-            return $score * $weight * $this->score_compensation_factor;
+            return [$score * $weight * $this->score_compensation_factor, $weight * $this->score_compensation_factor];
         } else {
-            return $score * $weight;
+            return [$score * $weight, $weight];
         }
     }
 

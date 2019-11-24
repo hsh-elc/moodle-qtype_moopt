@@ -27,6 +27,7 @@ class separate_feedback_text_node {
     private $studentFeedback;
     private $teacherFeedback;
     private $hasinternalerror;
+    private $maxScore;
 
     public function __construct($id, $heading = null, $content = null) {
         $this->id = $id;
@@ -134,6 +135,14 @@ class separate_feedback_text_node {
 
     public function setHasInternalError($err) {
         $this->hasinternalerror = $err;
+    }
+
+    public function setMaxScore($score) {
+        $this->maxScore = $score;
+    }
+
+    public function getMaxScore() {
+        return $this->maxScore;
     }
 
 }
