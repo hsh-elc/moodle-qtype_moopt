@@ -250,6 +250,12 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                     } catch (\qtype_programmingtask\exceptions\grappa_exception $ex) {
                         //We did get a xml-valid response but something was still wrong. Display that message
                         return html_writer::div($ex->getMessage(), 'gradingstatus');
+                    } catch (\exception $ex) {
+                        //Catch anything weird that might happend during processing of the response
+                        return html_writer::div($ex->getMessage(), 'gradingstatus') . html_writer::div($ex->getTraceAsString(), 'gradingstatus');
+                    } catch (\Error $er) {
+                        //Catch anything weird that might happend during processing of the response
+                        return html_writer::div('Error code: ' . $er->getCode() . ". Message: " . $er->getMessage(), 'gradingstatus') . html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
                     }
 
                     return $html;

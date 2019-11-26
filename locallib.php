@@ -493,10 +493,16 @@ function internal_retrieve_grading_results($qubaid) {
             } catch (\qtype_programmingtask\exceptions\grappa_exception $ex) {
                 //Something with the response we got was wrong - log it and set that the question needs manual grading
                 $internalError = true;
-                 error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+                error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+            } catch (\Exception $ex) {
+                //Catch anything weird that might happend during processing of the response
+                $internalError = true;
+                error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+            } catch (\Error $er) {
+                //Catch anything weird that might happend during processing of the response
+                $internalError = true;
+                error_log('Error while processing response from grader. Error code: ' . $er->getCode() . '. Message: ' . $er->getMessage() . ')');
             }
-
-
 
             //We don't need the file anymore
             $file->delete();
