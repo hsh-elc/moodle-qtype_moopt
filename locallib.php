@@ -360,136 +360,143 @@ function internal_retrieve_grading_results($qubaid) {
             continue;
         }
         if ($response) {
-
-            $quba_record = $DB->get_record('question_usages', ['id' => $qubaid]);
-            if (!$quba_record) {
-                //The quba got deleted for whatever reason - just ignore this entry.
-                //It can be safely deleted at the end of this function because the result has already been fetched
-                continue;
-            }
-
-            //Write response to file system
-            $file_record = array(
-                'component' => 'question',
-                'filearea' => proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}",
-                'itemid' => $qubaid,
-                'contextid' => $quba_record->contextid,
-                'filepath' => "/",
-                'filename' => 'response.zip');
-
-            $file = $fs->get_file($file_record['contextid'], $file_record['component'], $file_record['filearea'],
-                    $file_record['itemid'], $file_record['filepath'], $file_record['filename']);
-            if ($file) {
-                //This might have been caused by an error in the last execution. Just delete it and try again
-                $file->delete();
-            }
-            //We take care of this grade process therefore we will delete it afterwards
-            $finishedGradingProcesses[] = $record->id;
-            $file = $fs->create_file_from_string($file_record, $response);
-            $zipper = get_file_packer('application/zip');
-            //Remove old extracted files in case this is a regrade
-            $old_exracted_files = array_merge(
-                    $fs->get_directory_files($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/", true, true),
-                    $fs->get_directory_files($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA_EMBEDDED . "_{$record->questionattemptdbid}", $qubaid, "/", true, true)
-            );
-            foreach ($old_exracted_files as $f) {
-                $f->delete();
-            }
-
-            //Apply the grade from the response
             $internalError = false;
-            $result = $file->extract_to_storage($zipper, $quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/");
-            if ($result) {
-                $doc = new DOMDocument();
-                $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/", 'response.xml');
-                if ($responseXmlFile) {
-
-                    set_error_handler(function($number, $error) {
-                        if (preg_match('/^DOMDocument::loadXML\(\): (.+)$/', $error, $m) === 1) {
-                            throw new Exception($m[1]);
-                        }
-                    });
-
-                    try {
-                        $doc->loadXML($responseXmlFile->get_content());
-                    } catch (Exception $ex) {
-                        $doc = false;
-                    } finally {
-                        restore_error_handler();
-                    }
-
-                    if ($doc) {
-                        $namespace = detect_proforma_namespace($doc);
-
-                        //Save embedded files to disk
-                        $files = $doc->getElementsByTagNameNS($namespace, "files")[0];
-                        foreach ($files->getElementsByTagNameNS($namespace, "file") as $responseFile) {
-                            $elem = null;
-                            if (($tmp = $responseFile->getElementsByTagNameNS($namespace, 'embedded-bin-file'))->length == 1) {
-                                $elem = $tmp[0];
-                                $content = base64_decode($elem->nodeValue);
-                            } else if (($tmp = $responseFile->getElementsByTagNameNS($namespace, 'embedded-txt-file'))->length == 1) {
-                                $elem = $tmp[0];
-                                $content = $elem->nodeValue;
-                            }
-
-                            if ($elem == null) {
-                                continue;
-                            }
-
-                            //Compensate the fact that the filename might contain a relative path
-                            $pathinfo = pathinfo('/' . $responseFile->getAttribute('id') . '/' . $elem->getAttribute('filename'));
-                            $fileinfo = array(
-                                'component' => 'question',
-                                'filearea' => proforma_RESPONSE_FILE_AREA_EMBEDDED . "_{$record->questionattemptdbid}",
-                                'itemid' => $qubaid,
-                                'contextid' => $quba_record->contextid,
-                                'filepath' => $pathinfo['dirname'] . '/',
-                                'filename' => $pathinfo['basename']);
-                            $fs->create_file_from_string($fileinfo, $content);
-                        }
-
-                        $mtf = $doc->getElementsByTagNameNS($namespace, 'merged-test-feedback');
-                        if ($mtf->length == 1) {
-                            //Merged test feedback
-
-                            $score = $mtf[0]->getElementsByTagNameNS($namespace, 'overall-result')[0]->getElementsByTagNameNS($namespace, 'score')[0]->nodeValue;
-                        } else {
-                            //Separate test feedback
-                            $question = $quba->get_question($slot);
-
-                            $separate_test_feedback = $doc->getElementsByTagNameNS($namespace, 'separate-test-feedback')[0];
-
-                            //Load task.xml to get grading hints and tests
-                            $fs = get_file_storage();
-                            $taskxmlfile = $fs->get_file($question->contextid, 'question', proforma_TASKXML_FILEAREA,
-                                    $question->id, '/', 'task.xml');
-                            $taskdoc = new DOMDocument();
-                            $taskdoc->loadXML($taskxmlfile->get_content());
-                            $taskxmlnamespace = detect_proforma_namespace($taskdoc);
-                            $grading_hints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
-                            $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
-                            $feedbackfiles = $doc->getElementsByTagNameNS($namespace, 'files')[0];
-
-                            $xpathTask = new DOMXPath($taskdoc);
-                            $xpathTask->registerNamespace('p', $taskxmlnamespace);
-                            $xpathResponse = new DOMXPath($doc);
-                            $xpathResponse->registerNamespace('p', $namespace);
-
-                            $separate_feedback_helper = new separate_feedback_handler($grading_hints, $tests, $separate_test_feedback, $feedbackfiles, $taskxmlnamespace, $namespace, $quba->get_question_max_mark($slot), $xpathTask, $xpathResponse);
-
-                            $separate_feedback_helper->processResult();
-                            if (!$separate_feedback_helper->getDetailedFeedback()->hasInternalError()) {
-                                $score = $separate_feedback_helper->getCalculatedScore();
-                            } else {
-                                $internalError = true;
-                            }
-                        }
-                    }
-                } else {
-                    error_log("Response didn't contain a response.xml file");
+            try {
+                $quba_record = $DB->get_record('question_usages', ['id' => $qubaid]);
+                if (!$quba_record) {
+                    //The quba got deleted for whatever reason - just ignore this entry.
+                    //It can be safely deleted at the end of this function because the result has already been fetched
+                    continue;
                 }
+
+                //Write response to file system
+                $file_record = array(
+                    'component' => 'question',
+                    'filearea' => proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}",
+                    'itemid' => $qubaid,
+                    'contextid' => $quba_record->contextid,
+                    'filepath' => "/",
+                    'filename' => 'response.zip');
+
+                $file = $fs->get_file($file_record['contextid'], $file_record['component'], $file_record['filearea'],
+                        $file_record['itemid'], $file_record['filepath'], $file_record['filename']);
+                if ($file) {
+                    //This might have been caused by an error in the last execution. Just delete it and try again
+                    $file->delete();
+                }
+                //We take care of this grade process therefore we will delete it afterwards
+                $finishedGradingProcesses[] = $record->id;
+                $file = $fs->create_file_from_string($file_record, $response);
+                $zipper = get_file_packer('application/zip');
+                //Remove old extracted files in case this is a regrade
+                $old_exracted_files = array_merge(
+                        $fs->get_directory_files($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/", true, true),
+                        $fs->get_directory_files($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA_EMBEDDED . "_{$record->questionattemptdbid}", $qubaid, "/", true, true)
+                );
+                foreach ($old_exracted_files as $f) {
+                    $f->delete();
+                }
+
+                //Apply the grade from the response
+                $result = $file->extract_to_storage($zipper, $quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/");
+                if ($result) {
+                    $doc = new DOMDocument();
+                    $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/", 'response.xml');
+                    if ($responseXmlFile) {
+
+                        set_error_handler(function($number, $error) {
+                            if (preg_match('/^DOMDocument::loadXML\(\): (.+)$/', $error, $m) === 1) {
+                                throw new Exception($m[1]);
+                            }
+                        });
+
+                        try {
+                            $doc->loadXML($responseXmlFile->get_content());
+                        } catch (Exception $ex) {
+                            $doc = false;
+                        } finally {
+                            restore_error_handler();
+                        }
+
+                        if ($doc) {
+                            $namespace = detect_proforma_namespace($doc);
+
+                            //Save embedded files to disk
+                            $files = $doc->getElementsByTagNameNS($namespace, "files")[0];
+                            foreach ($files->getElementsByTagNameNS($namespace, "file") as $responseFile) {
+                                $elem = null;
+                                if (($tmp = $responseFile->getElementsByTagNameNS($namespace, 'embedded-bin-file'))->length == 1) {
+                                    $elem = $tmp[0];
+                                    $content = base64_decode($elem->nodeValue);
+                                } else if (($tmp = $responseFile->getElementsByTagNameNS($namespace, 'embedded-txt-file'))->length == 1) {
+                                    $elem = $tmp[0];
+                                    $content = $elem->nodeValue;
+                                }
+
+                                if ($elem == null) {
+                                    continue;
+                                }
+
+                                //Compensate the fact that the filename might contain a relative path
+                                $pathinfo = pathinfo('/' . $responseFile->getAttribute('id') . '/' . $elem->getAttribute('filename'));
+                                $fileinfo = array(
+                                    'component' => 'question',
+                                    'filearea' => proforma_RESPONSE_FILE_AREA_EMBEDDED . "_{$record->questionattemptdbid}",
+                                    'itemid' => $qubaid,
+                                    'contextid' => $quba_record->contextid,
+                                    'filepath' => $pathinfo['dirname'] . '/',
+                                    'filename' => $pathinfo['basename']);
+                                $fs->create_file_from_string($fileinfo, $content);
+                            }
+
+                            $mtf = $doc->getElementsByTagNameNS($namespace, 'merged-test-feedback');
+                            if ($mtf->length == 1) {
+                                //Merged test feedback
+
+                                $score = $mtf[0]->getElementsByTagNameNS($namespace, 'overall-result')[0]->getElementsByTagNameNS($namespace, 'score')[0]->nodeValue;
+                            } else {
+                                //Separate test feedback
+                                $question = $quba->get_question($slot);
+
+                                $separate_test_feedback = $doc->getElementsByTagNameNS($namespace, 'separate-test-feedback')[0];
+
+                                //Load task.xml to get grading hints and tests
+                                $fs = get_file_storage();
+                                $taskxmlfile = $fs->get_file($question->contextid, 'question', proforma_TASKXML_FILEAREA,
+                                        $question->id, '/', 'task.xml');
+                                $taskdoc = new DOMDocument();
+                                $taskdoc->loadXML($taskxmlfile->get_content());
+                                $taskxmlnamespace = detect_proforma_namespace($taskdoc);
+                                $grading_hints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
+                                $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
+                                $feedbackfiles = $doc->getElementsByTagNameNS($namespace, 'files')[0];
+
+                                $xpathTask = new DOMXPath($taskdoc);
+                                $xpathTask->registerNamespace('p', $taskxmlnamespace);
+                                $xpathResponse = new DOMXPath($doc);
+                                $xpathResponse->registerNamespace('p', $namespace);
+
+                                $separate_feedback_helper = new separate_feedback_handler($grading_hints, $tests, $separate_test_feedback, $feedbackfiles, $taskxmlnamespace, $namespace, $quba->get_question_max_mark($slot), $xpathTask, $xpathResponse);
+
+                                $separate_feedback_helper->processResult();
+                                if (!$separate_feedback_helper->getDetailedFeedback()->hasInternalError()) {
+                                    $score = $separate_feedback_helper->getCalculatedScore();
+                                } else {
+                                    $internalError = true;
+                                }
+                            }
+                        }
+                    } else {
+                        error_log("Response didn't contain a response.xml file");
+                    }
+                }
+            } catch (\qtype_programmingtask\exceptions\grappa_exception $ex) {
+                //Something with the response we got was wrong - log it and set that the question needs manual grading
+                $internalError = true;
+                 error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
             }
+
+
 
             //We don't need the file anymore
             $file->delete();

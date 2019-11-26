@@ -8,6 +8,8 @@
 
 namespace qtype_programmingtask\utility\proforma_xml;
 
+use qtype_programmingtask\exceptions\grappa_exception;
+
 defined('MOODLE_INTERNAL') || die();
 
 class separate_feedback_handler {
@@ -172,32 +174,9 @@ class separate_feedback_handler {
             }
 
             if (is_array($value)) {
-                $det_feed->setAccumulatorFunction($function);
-                $det_feed->setHeading(get_string('testgroup', 'qtype_programmingtask'));
-                $subscore = $initialValue;
-
-                $counter = 0;
-                foreach ($value as $subkey => $subvalue) {
-
-                    $subfeed = new separate_feedback_text_node($subkey);
-                    $det_feed->addChild($subfeed);
-
-                    $subfeed->setHeading(get_string('subtest', 'qtype_programmingtask') . ' #' . $counter++);
-                    $result = $subvalue->getElementsByTagNameNS($this->namespace_feedback, 'result')[0];
-                    $innerscore = $result->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
-                    $this->fillFeedbackNodeWithFeedbackList($subfeed, $subvalue->getElementsByTagNameNS($this->namespace_feedback, 'feedback-list')[0]);
-                    $subfeed->setScore($innerscore);
-                    $subscore = $merge_func($subscore, $innerscore);
-
-                    if ($result->hasAttribute('is-internal-error') && $result->getAttribute('is-internal-error') == "true") {
-                        $subfeed->setHasInternalError(true);
-                        $det_feed->setHasInternalError(true);
-                        $detailedFeedback->setHasInternalError(true);
-                    }
-                }
-
-                $det_feed->setScore($subscore);
-                $totalScore = $merge_func($totalScore, $subscore);
+                //According to the specification there musst not be a subresult that is not specified in the grading hints. If we are here  we don't have any grading hints at all
+                //hence there musst not be any subresult.
+                throw new grappa_exception("Grader returned subresult(s) for test result with id '$key' but there were no subresults specified in the grading hints. According to the specification this is invalid behaviour. In fact there are no grading hints in the task at all.");
             } else {
                 $det_feed->setHeading(get_string('test', 'qtype_programmingtask'));
                 $result = $value->getElementsByTagNameNS($this->namespace_feedback, 'result')[0];
@@ -277,7 +256,7 @@ class separate_feedback_handler {
             $det_feed->setMaxScore($maxScore);
 
             $value = $merge_func($value, $score);
-             $maxValue = $merge_func($maxValue, $maxScore);
+            $maxValue = $merge_func($maxValue, $maxScore);
 
             if ($det_feed->hasInternalError()) {
                 $internalErrorInChildren = true;
@@ -320,6 +299,9 @@ class separate_feedback_handler {
             $test_result = $this->test_results[$refid][$elem->getAttribute('sub-ref')];
         } else {
             $test_result = $this->test_results[$refid];
+            if (is_array($test_result)) {
+                throw new grappa_exception("Grader returned subresult(s) for test result with id '$refid' but there were no subresults specified in the grading hints. According to the specification this is invalid behaviour");
+            }
         }
         $result = $test_result->getElementsByTagNameNS($this->namespace_feedback, 'result')[0];
         $score = $result->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
