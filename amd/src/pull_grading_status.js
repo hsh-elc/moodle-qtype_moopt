@@ -61,6 +61,9 @@ define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/
     return {
 
         init: function (qubaid_param, polling_interval) {
+            //Don't show the retry button yet
+            $( "input[name='redoslot2']" ).remove();
+
             qubaid = qubaid_param;
             if (typeof timer === 'undefined') {
                 timer = setInterval(checkGradingFinished, polling_interval);

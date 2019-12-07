@@ -61,6 +61,7 @@ $string['previousgradernotavailable'] = 'The previously selected grader is curre
 $string['proformataskfileupload'] = 'ProFormA task file';
 $string['proformataskfileupload_help'] = 'You can add a ProFormA task file (zip file) to this file picker. If you click the according button the necessary informations will be automatically extracted and inserted into the corresponding form elements on this page.';
 $string['providedfiles'] = 'Provided files';
+$string['redobuttontext'] = 'Retry programming task';
 $string['reloadpage'] = 'Reload page?';
 $string['reload'] = 'Reload';
 $string['retrievegradingresults'] = 'Retrieve grading results';
