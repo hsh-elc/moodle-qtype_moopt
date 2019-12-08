@@ -381,7 +381,7 @@ function internal_retrieve_grading_results($qubaid) {
                 $file = $fs->get_file($file_record['contextid'], $file_record['component'], $file_record['filearea'],
                         $file_record['itemid'], $file_record['filepath'], $file_record['filename']);
                 if ($file) {
-                    //This might have been caused by an error in the last execution. Just delete it and try again
+                    //Delete old result
                     $file->delete();
                 }
                 //We take care of this grade process therefore we will delete it afterwards
@@ -399,6 +399,8 @@ function internal_retrieve_grading_results($qubaid) {
 
                 //Apply the grade from the response
                 $result = $file->extract_to_storage($zipper, $quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/");
+                //Recreate file because extract_to_storage seems to delete the zip file for whatever reason
+                $file = $fs->create_file_from_string($file_record, $response);
                 if ($result) {
                     $doc = new DOMDocument();
                     $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/", 'response.xml');
@@ -503,9 +505,6 @@ function internal_retrieve_grading_results($qubaid) {
                 $internalError = true;
                 error_log('Error while processing response from grader. Error code: ' . $er->getCode() . '. Message: ' . $er->getMessage() . ')');
             }
-
-            //We don't need the file anymore
-            $file->delete();
 
             if (!$result || !isset($score) || $internalError) {
                 if (!$internalError) {

@@ -174,9 +174,11 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 $initial_slot = $DB->get_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id()], 'slot')->slot;
 
                 $fs = get_file_storage();
+
+                $html = '';
+
                 $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$qa->get_database_id()}", $qa->get_usage_id(), "/", 'response.xml');
                 if ($responseXmlFile) {
-                    $html = '';
                     $doc = new DOMDocument();
 
                     set_error_handler(function($number, $error) {
@@ -247,23 +249,35 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                                 }
                             }
                         } else {
-                            return html_writer::div('The response contains an invalid response.xml file', 'gradingstatus');
+                            $html = html_writer::div('The response contains an invalid response.xml file', 'gradingstatus');
                         }
                     } catch (\qtype_programmingtask\exceptions\grappa_exception $ex) {
                         //We did get a xml-valid response but something was still wrong. Display that message
-                        return html_writer::div($ex->getMessage(), 'gradingstatus');
+                        $html = html_writer::div($ex->getMessage(), 'gradingstatus');
                     } catch (\exception $ex) {
                         //Catch anything weird that might happend during processing of the response
-                        return html_writer::div($ex->getMessage(), 'gradingstatus') . html_writer::div($ex->getTraceAsString(), 'gradingstatus');
+                        $html = html_writer::div($ex->getMessage(), 'gradingstatus') . html_writer::div($ex->getTraceAsString(), 'gradingstatus');
                     } catch (\Error $er) {
                         //Catch anything weird that might happend during processing of the response
-                        return html_writer::div('Error code: ' . $er->getCode() . ". Message: " . $er->getMessage(), 'gradingstatus') . html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
+                        $html = html_writer::div('Error code: ' . $er->getCode() . ". Message: " . $er->getMessage(), 'gradingstatus') . html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
                     }
-
-                    return $html;
                 } else {
-                    return html_writer::div('Response didn\'t contain response.xml file', 'gradingstatus');
+                    $html = html_writer::div('Response didn\'t contain response.xml file', 'gradingstatus');
                 }
+                //If teacher, display response.zip for download
+                if (has_capability('mod/quiz:grade', $PAGE->context)) {
+                    $slot = $qa->get_slot();
+                    $responsefileinfos = array(
+                        'component' => 'question',
+                        'filearea' => proforma_RESPONSE_FILE_AREA . "_{$qa->get_database_id()}",
+                        'itemid' => "{$qa->get_usage_id()}/$slot/{$qa->get_usage_id()}",
+                        'contextid' => $quba_record->contextid,
+                        'filepath' => "/",
+                        'filename' => 'response.zip');
+                    $url = moodle_url::make_pluginfile_url($responsefileinfos['contextid'], $responsefileinfos['component'], $responsefileinfos['filearea'], $responsefileinfos['itemid'], $responsefileinfos['filepath'], $responsefileinfos['filename'], true);
+                    $html .= "<a href='$url' style='display:block;text-align:right;'> <span style='font-family: FontAwesome; display:inline-block;margin-right: 5px'>&#xf019;</span> Download complete 'response.zip' file</a>";
+                }
+                return $html;
             }
         }
         return '';
