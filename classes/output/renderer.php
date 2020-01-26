@@ -57,14 +57,14 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         $questionid = $question->id;
 
         if (empty($options->readonly)) {
-            $submissionfilearea = $this->renderSubmissionFileArea($qa, $options);
+            $submissionarea = $this->renderSubmissionArea($qa, $options);
         } else {
-            $submissionfilearea = $this->renderFilesReadOnly($qa, $options);
+            $submissionarea = $this->renderFilesReadOnly($qa, $options);
         }
-        $o .= $this->output->heading(get_string('submissionfiles', 'qtype_programmingtask'), 3);
-        $o .= html_writer::tag('div', $submissionfilearea, array('class' => 'submissionfilearea'));
+        $o .= $this->output->heading(get_string('submission', 'qtype_programmingtask'), 3);
+        $o .= html_writer::tag('div', $submissionarea, array('class' => 'submissionfilearea'));
 
-        if (has_capability('mod/quiz:grade', $options->context)) {
+        if (has_capability('mod/quiz:grade', $options->context) && $question->internaldescription != '') {
             $internalDescription = $this->renderInternalDescription($question);
             $o .= html_writer::tag('div', $internalDescription, array('class' => 'internaldescription'));
         }
@@ -97,7 +97,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         if (count($files) != 0) {
             $downloadurls = '';
             $downloadurls .= $this->output->heading(get_string('providedfiles', 'qtype_programmingtask'), 3);
-            $downloadurls .= $this->output->box_start('generalbox boxaligncenter', 'providedfiles');
+            $downloadurls .= html_writer::start_div('providedfiles');
             $downloadurls .= '<ul>';
             foreach ($files as $file) {
                 if ($file->visibletostudents == 0 && !has_capability('mod/quiz:grade', $options->context)) {
@@ -109,7 +109,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 $downloadurls .= '<li><a href="' . $url . '">' . $linkdisplay . '</a></li>';
             }
             $downloadurls .= '</ul>';
-            $downloadurls .= $this->output->box_end();
+            $downloadurls .= html_writer::end_div('providedfiles');
 
             if ($anythingtodisplay) {
                 $o .= $downloadurls;
@@ -119,33 +119,158 @@ class qtype_programmingtask_renderer extends qtype_renderer {
     }
 
     private function renderFilesReadOnly(question_attempt $qa, question_display_options $options) {
-        $files = $qa->get_last_qt_files('answerfiles', $options->context->id);
-        $output = array();
+        global $DB;
 
-        foreach ($files as $file) {
-            $output[] = html_writer::tag('p', html_writer::link($qa->get_response_file_url($file), $this->output->pix_icon(file_file_icon($file), get_mimetype_description($file), 'moodle', array('class' => 'icon')) . ' ' . s($file->get_filename())));
+        $rendered = '';
+
+        if ($qa->get_question()->enablefilesubmissions) {
+
+            $files = $qa->get_last_qt_files('answerfiles', $options->context->id);
+            if (!empty($files)) {
+                $output = array();
+
+                foreach ($files as $file) {
+                    $output[] = html_writer::tag('p', html_writer::link($qa->get_response_file_url($file), $this->output->pix_icon(file_file_icon($file), get_mimetype_description($file), 'moodle', array('class' => 'icon')) . ' ' . s($file->get_filename())));
+                }
+                $rendered .= $this->output->heading(get_string('files', 'qtype_programmingtask'), 4);
+                $rendered .= html_writer::div(implode($output), 'readonlysubmittedfiles');
+            }
         }
-        return implode($output);
+
+        if ($qa->get_question()->enablefreetextsubmissions) {
+            $renderedfreetext = '';
+            for ($i = 0; $i < $qa->get_question()->ftsmaxnumfields; $i++) {
+                $text = $qa->get_last_qt_var("answertext$i");
+                if ($text) {
+                    list($filename, ) = $this->get_filename($qa->get_question()->id, $i, $qa->get_last_qt_var("answerfilename$i"), $qa->get_question()->ftsautogeneratefilenames);
+                    $renderedfreetext .= html_writer::start_div('answertextreadonly');
+                    $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ':');
+                    $renderedfreetext .= html_writer::start_div('answertextcode');
+                    $renderedfreetext .= html_writer::tag('pre', html_writer::tag('code', $text));
+                    $renderedfreetext .= html_writer::end_div();
+                    $renderedfreetext .= html_writer::end_div();
+                }
+            }
+
+            if ($renderedfreetext != '') {
+                $rendered .= $this->output->heading(get_string('freetextsubmissions', 'qtype_programmingtask'), 4);
+                $rendered .= html_writer::div($renderedfreetext, 'readonlysubmittedfreetext');
+            }
+        }
+
+        return $rendered;
     }
 
-    private function renderSubmissionFileArea(question_attempt $qa, question_display_options $options) {
-        global $CFG;
+    private function renderSubmissionArea(question_attempt $qa, question_display_options $options) {
+        global $CFG, $DB, $PAGE;
         require_once($CFG->dirroot . '/lib/form/filemanager.php');
+        require_once($CFG->dirroot . '/repository/lib.php');
 
-        $pickeroptions = new stdClass();
-        $pickeroptions->itemid = $qa->prepare_response_files_draft_itemid(
-                'answerfiles', $options->context->id);
-        $pickeroptions->context = $options->context;
+        $questionoptions = $DB->get_record('qtype_programmingtask_optns', ['questionid' => $qa->get_question()->id]);
 
-        $fm = new form_filemanager($pickeroptions);
-        $filesrenderer = $this->page->get_renderer('core', 'files');
+        $renderedArea = '';
 
-        //This is moodles weird way to express which file manager is responsible for which response variable
-        $hidden = html_writer::empty_tag(
-                        'input', array('type' => 'hidden', 'name' => $qa->get_qt_field_name('answerfiles'),
-                    'value' => $pickeroptions->itemid));
+        if ($questionoptions->enablefilesubmissions) {
+            $pickeroptions = new stdClass();
+            $pickeroptions->itemid = $qa->prepare_response_files_draft_itemid(
+                    'answerfiles', $options->context->id);
+            $pickeroptions->context = $options->context;
 
-        return $filesrenderer->render($fm) . $hidden;
+            $fm = new form_filemanager($pickeroptions);
+            $filesrenderer = $this->page->get_renderer('core', 'files');
+
+            //This is moodles weird way to express which file manager is responsible for which response variable
+            $hidden = html_writer::empty_tag(
+                            'input', array('type' => 'hidden', 'name' => $qa->get_qt_field_name('answerfiles'),
+                        'value' => $pickeroptions->itemid));
+
+            $renderedArea .= $filesrenderer->render($fm) . $hidden;
+        }
+        if ($questionoptions->enablefreetextsubmissions) {
+
+            if ($renderedArea != '') {
+                $renderedArea .= html_writer::tag('hr', '');
+            }
+
+            $autogeneratefilenames = $questionoptions->ftsautogeneratefilenames;
+            $maxIndexOfFieldWithContent = 0;
+
+            for ($i = 0; $i < $questionoptions->ftsmaxnumfields; $i++) {
+                $answertextname = "answertext$i";
+                $answertextinputname = $qa->get_qt_field_name($answertextname);
+                $answertextid = $answertextinputname . '_id';
+
+                //$editor = editors_get_preferred_editor();
+                $answertextresponse = $qa->get_last_step_with_qt_var($answertextname)->get_qt_var($answertextname) ?? '';
+                //$editor->set_text($answertextresponse);
+                //$editor->use_editor($answertextid, ['context' => $options->context, 'autosave' => false]);
+
+                $filenamename = "answerfilename$i";
+                $filenameinputname = $qa->get_qt_field_name($filenamename);
+                $filenameid = $filenameinputname . '_id';
+
+                list($filenameresponse, $disablefilenameinput) = $this->get_filename($qa->get_question()->id, $i, $qa->get_last_step_with_qt_var($filenamename)->get_qt_var($filenamename), $autogeneratefilenames);
+
+                $output = '';
+                $output .= html_writer::start_tag('div', array('class' => "qtype_programmingtask_answertext", 'id' => "qtype_programmingtask_answertext_$i", 'style' => 'display:none;'));
+                $output .= html_writer::start_div('answertextfilename');
+                $output .= html_writer::label(get_string('filename', 'qtype_programmingtask') . ":", $filenameid);
+                $inputoptions = ['id' => $filenameid, 'name' => $filenameinputname, 'style' => 'width: 100%;padding-left: 10px;', 'value' => $filenameresponse];
+                if ($disablefilenameinput) {
+                    $inputoptions['disabled'] = true;
+                }
+                $output .= html_writer::tag('input', '', $inputoptions);
+                $output .= html_writer::end_div();
+                $output .= html_writer::tag('div', html_writer::tag('textarea', $answertextresponse, array('id' => $answertextid, 'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;', 'rows' => 15)));
+                $output .= html_writer::end_tag('div');
+
+                $renderedArea .= $output;
+
+                if ($answertextresponse != '') {
+                    $maxIndexOfFieldWithContent = $i + 1;
+                }
+            }
+            $renderedArea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
+            $renderedArea .= html_writer::tag('button', get_string('addanswertext', 'qtype_programmingtask'), ['id' => 'addAnswertextButton']);
+            $renderedArea .= html_writer::tag('button', get_string('removelastanswertext', 'qtype_programmingtask'), ['id' => 'removeLastAnswertextButton', 'style' => 'margin-left: 10px']);
+            $renderedArea .= html_writer::end_div();
+
+            $PAGE->requires->js_call_amd('qtype_programmingtask/manage_answer_texts', 'init', [$questionoptions->ftsmaxnumfields, max($maxIndexOfFieldWithContent, $questionoptions->ftsnuminitialfields)]);
+        }
+
+        if ($renderedArea == '') {
+            $noSubmissionPossible = get_string('nosubmissionpossible', 'qtype_programmingtask');
+            $renderedArea = "<div>$noSubmissionPossible</div>";
+        }
+
+        return $renderedArea;
+    }
+
+    private function get_filename($questionid, $index, $usersuppliedname, $autogeneratefilenames) {
+        global $DB;
+
+        $customOptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $questionid, 'inputindex' => $index]);
+        $filenameresponse = $usersuppliedname ?? '';         //Init with previous value
+        if ($filenameresponse == '') {
+            $temp = $index + 1;
+            $filenameresponse = "File$temp.txt";
+        }
+        $disablefilenameinput = false;
+        if ($customOptions) {
+            if ($customOptions->presetfilename) {
+                $filenameresponse = $customOptions->filename;
+                $disablefilenameinput = true;
+            }
+            //else use already set previous value
+        } else {
+            if ($autogeneratefilenames) {
+                $temp = $index + 1;
+                $filenameresponse = "File$temp.txt";
+                $disablefilenameinput = true;
+            }
+            //else use already set previous value
+        }
+        return [$filenameresponse, $disablefilenameinput];
     }
 
     /**

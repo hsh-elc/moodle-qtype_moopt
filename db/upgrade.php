@@ -144,5 +144,36 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2019110400, 'qtype', 'programmingtask');
     }
 
+    if ($oldversion < 2020012300) {
+
+        $table = new xmldb_table('qtype_programmingtask_optns');
+        $dbman->add_field($table, new xmldb_field('enablefilesubmissions', XMLDB_TYPE_INTEGER, '1', null, null, false, 0));
+        $dbman->add_field($table, new xmldb_field('enablefreetextsubmissions', XMLDB_TYPE_INTEGER, '1', null, null, false, 0));
+        $dbman->add_field($table, new xmldb_field('ftsnuminitialfields', XMLDB_TYPE_INTEGER, '8', null, null, false, 0));
+        $dbman->add_field($table, new xmldb_field('ftsmaxnumfields', XMLDB_TYPE_INTEGER, '8', null, null, false, 0));
+        $dbman->add_field($table, new xmldb_field('ftsautogeneratefilenames', XMLDB_TYPE_INTEGER, '1', null, null, false, 1));
+
+
+        // ProForma savepoint reached.
+        upgrade_plugin_savepoint(true, 2020012300, 'qtype', 'programmingtask');
+    }
+
+    if ($oldversion < 2020012500) {
+
+        $ftstable = new xmldb_table('qtype_programmingtask_fts');
+        $ftstable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, true));
+        $ftstable->addField(new xmldb_field('questionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
+        $ftstable->addField(new xmldb_field('inputindex', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
+        $ftstable->addField(new xmldb_field('presetfilename', XMLDB_TYPE_INTEGER, '1', null, null, false, 1));
+        $ftstable->addField(new xmldb_field('filename', XMLDB_TYPE_CHAR, '256'));
+
+        $ftstable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id')));
+        $ftstable->addKey(new xmldb_key('questionid', XMLDB_KEY_FOREIGN, array('questionid'), 'question', 'id'));
+        $dbman->create_table($ftstable);
+
+        // ProForma savepoint reached.
+        upgrade_plugin_savepoint(true, 2020012500, 'qtype', 'programmingtask');
+    }
+
     return true;
 }

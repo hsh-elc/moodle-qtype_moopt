@@ -47,13 +47,14 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
         }
 
         $xml->startElement('files');
-        foreach ($files as $file) {
+        foreach ($files as $filename => $file) {
+            $isStoredFile = $file instanceof stored_file;
             $xml->startElement('file');
-            $xml->writeAttribute('mimetype', $file->get_mimetype());
-            if (preg_match($this::MIME_TYPE_TEXT_PATTERN, $file->get_mimetype())) {
-                $xml->writeElement('attached-txt-file', $file->get_filename());
+            $xml->writeAttribute('mimetype', $isStoredFile ? $file->get_mimetype() : 'text/*');
+            if (!$isStoredFile || preg_match($this::MIME_TYPE_TEXT_PATTERN, $file->get_mimetype())) {
+                $xml->writeElement('attached-txt-file', $filename);
             } else {
-                $xml->writeElement('attached-bin-file', $file->get_filename());
+                $xml->writeElement('attached-bin-file', $filename);
             }
             $xml->endElement();
         }

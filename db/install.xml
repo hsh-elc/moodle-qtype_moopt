@@ -9,6 +9,11 @@
                 <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="taskuuid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="showstudscorecalcscheme" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="enablefilesubmissions" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" DEFAULT="0"/>
+                <FIELD NAME="enablefreetextsubmissions" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" DEFAULT="0"/>
+                <FIELD NAME="ftsnuminitialfields" TYPE="int" LENGTH="8" NOTNULL="false" SEQUENCE="false" DEFAULT="0"/>
+                <FIELD NAME="ftsmaxnumfields" TYPE="int" LENGTH="8" NOTNULL="false" SEQUENCE="false" DEFAULT="0"/>
+                <FIELD NAME="ftsautogeneratefilenames" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" DEFAULT="1"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -76,6 +81,20 @@
             <INDEXES>
                 <INDEX NAME="questionattemptdbid" UNIQUE="true" FIELDS="questionattemptdbid"/>
             </INDEXES>
+        </TABLE>
+
+        <TABLE NAME="qtype_programmingtask_fts" COMMENT="This table keeps information about custom options for free text input fields.">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
+                <FIELD NAME="inputindex" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="presetfilename" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" DEFAULT="1"/>
+                <FIELD NAME="filename" TYPE="char" LENGTH="256" SEQUENCE="false" DEFAULT=""/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="questionid" TYPE="foreign-unique" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+            </KEYS>
         </TABLE>
 
     </TABLES>

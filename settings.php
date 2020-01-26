@@ -34,6 +34,7 @@ if ($ADMIN->fulltree) {
     $settings->add(new admin_setting_configtext("qtype_programmingtask/grappa_url", new lang_string('grappa_url', 'qtype_programmingtask'), "", '', PARAM_URL));
     $settings->add(new admin_setting_configduration("qtype_programmingtask/grappa_timeout", new lang_string('timeout', 'qtype_programmingtask'), "", 10, 1));
     $settings->add(new admin_setting_configduration("qtype_programmingtask/grappa_client_polling_interval", new lang_string('client_polling_interval', 'qtype_programmingtask'), "", 5, 1));
+    $settings->add(new admin_setting_configtext("qtype_programmingtask/max_number_free_text_inputs", new lang_string('ftsmaxnumfields', 'qtype_programmingtask'), "", 10, PARAM_INT));
 
 }
 

@@ -50,7 +50,8 @@ class qtype_programmingtask extends question_type {
      * @return mixed array as above, or null to tell the base class to do nothing.
      */
     public function extra_question_fields() {
-        return array("qtype_programmingtask_optns", "internaldescription", "graderid", "taskuuid", 'showstudscorecalcscheme');
+        return array("qtype_programmingtask_optns", "internaldescription", "graderid", "taskuuid", 'showstudscorecalcscheme',
+            'enablefilesubmissions', 'enablefreetextsubmissions', 'ftsnuminitialfields', 'ftsmaxnumfields', 'ftsautogeneratefilenames');
     }
 
     /**
@@ -71,7 +72,6 @@ class qtype_programmingtask extends question_type {
 
         parent::save_question_options($question);
 
-
         global $DB;
 
         //Save the files contained in the task file
@@ -82,8 +82,23 @@ class qtype_programmingtask extends question_type {
         $fs->delete_area_files($question->context->id, 'question', proforma_ATTACHED_TASK_FILES_FILEAREA, $question->id);
         $fs->delete_area_files($question->context->id, 'question', proforma_EMBEDDED_TASK_FILES_FILEAREA, $question->id);
         $fs->delete_area_files($question->context->id, 'question', proforma_TASKXML_FILEAREA, $question->id);
-
         save_task_and_according_files($question);
+
+        //Store custom settings for free text input fields
+        $DB->delete_records('qtype_programmingtask_fts', array('questionid' => $question->id));
+        if ($question->{'enablecustomsettingsforfreetextinputfields'}) {
+            $maxfts = $question->ftsmaxnumfields;
+            for ($i = 0; $i < $maxfts; $i++) {
+                if ($question->{"enablecustomsettingsforfreetextinputfield$i"}) {
+                    $data = new stdClass();
+                    $data->questionid = $question->id;
+                    $data->inputindex = $i;
+                    $data->presetfilename = $question->{"namesettingsforfreetextinput$i"} == 0;
+                    $data->filename = $data->presetfilename ? $question->{"freetextinputfieldname$i"} : null;
+                    $DB->insert_record('qtype_programmingtask_fts', $data);
+                }
+            }
+        }
     }
 
     public function delete_question($questionid, $contextid) {

@@ -668,3 +668,12 @@ function check_if_task_file_is_valid($draftareaid) {
 
     return null;
 }
+
+//Copied from zip_archive::mangle_pathname
+function mangle_pathname($filename) {
+    $filename = trim($filename, '/');
+    $filename = str_replace('\\', '/', $filename);   // no MS \ separators
+    $filename = preg_replace('/\.\.+/', '', $filename); // prevent /.../
+    $filename = ltrim($filename, '/');                  // no leading slash
+    return $filename;
+}

@@ -41,6 +41,11 @@ class qtype_programmingtask_question extends question_graded_automatically {
     public $graderid;
     public $taskuuid;
     public $showstudscorecalcscheme;
+    public $enablefilesubmissions;
+    public $enablefreetextsubmissions;
+    public $ftsnuminitialfields;
+    public $ftsmaxnumfields;
+    public $ftsautogeneratefilenames;
 
     /**
      * What data may be included in the form submission when a student submits
@@ -54,7 +59,12 @@ class qtype_programmingtask_question extends question_graded_automatically {
      *      meaning take all the raw submitted data belonging to this question.
      */
     public function get_expected_data() {
-        return array('answerfiles' => question_attempt::PARAM_FILES);
+        $expected = ['answerfiles' => question_attempt::PARAM_FILES];
+        for ($i = 0; $i < get_config("qtype_programmingtask", "max_number_free_text_inputs"); $i++) {
+            $expected["answertext$i"] = PARAM_RAW;
+            $expected["answerfilename$i"] = PARAM_FILE;
+        }
+        return $expected;
     }
 
     /**
@@ -174,7 +184,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
      *          question_state::$needsgrading if there was an error and a teacher needs to either grade
      *          the submission manually or trigger a regrade
      */
-    public function grade_response_asynch(question_attempt $qa, array $responsefiles): question_state {
+    public function grade_response_asynch(question_attempt $qa, array $responsefiles, array $freetextanswers): question_state {
         global $DB;
         $grappa_communicator = grappa_communicator::getInstance();
         $fs = get_file_storage();
@@ -183,7 +193,11 @@ class qtype_programmingtask_question extends question_graded_automatically {
         $qubaid = $qa->get_usage_id();
         $files = array();   //array for all files that end up in the ZIP file
         foreach ($responsefiles as $file) {
-            $files["submission/{$file->get_filename()}"] = $file;
+            $files["submission/files/{$file->get_filename()}"] = $file;
+        }
+        foreach ($freetextanswers as $filename => $filecontent) {
+            $mangledName = mangle_pathname($filename);
+            $files["submission/freetext/$mangledName"] = [$filecontent];            //Syntax to use a string as file contents
         }
 
         try {
@@ -209,7 +223,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
 
         //Create the submission.xml file
         $submission_xml_creator = new proforma_submission_xml_creator();
-        $submissionXML = $submission_xml_creator->createSubmissionXML($includeTaskFile, $includeTaskFile ? $taskfilename : $this->taskuuid, $files, 'zip', proforma_MERGED_FEEDBACK_TYPE, 'info', 'debug',$grading_hints, $taskxmlnamespace, $qa->get_max_mark());
+        $submissionXML = $submission_xml_creator->createSubmissionXML($includeTaskFile, $includeTaskFile ? $taskfilename : $this->taskuuid, $files, 'zip', proforma_MERGED_FEEDBACK_TYPE, 'info', 'debug', $grading_hints, $taskxmlnamespace, $qa->get_max_mark());
 
         //Load task file and add it to the files that go into the zip file
         if ($includeTaskFile) {
@@ -218,8 +232,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
         }
 
         //Add the submission.xml file
-        $files['submission.xml'] = array($submissionXML);
-
+        $files['submission.xml'] = array($submissionXML);       //Syntax to use a string as file contents
         //Create submission.zip file
         $zipper = get_file_packer('application/zip');
         $zip_file = $zipper->archive_to_storage($files, $this->contextid, 'question', proforma_SUBMISSION_ZIP_FILEAREA . "_{$qa->get_slot()}", $qubaid, '/', 'submission.zip');
@@ -259,11 +272,20 @@ class qtype_programmingtask_question extends question_graded_automatically {
      * @return bool whether this response is a complete answer to this question.
      */
     public function is_complete_response(array $response): bool {
-        if (!isset($response['answerfiles']))
-            return false;
-
-        $question_file_saver = $response['answerfiles'];
-        return $question_file_saver != '';
+        if ($this->enablefilesubmissions && isset($response['answerfiles'])) {
+            $question_file_saver = $response['answerfiles'];
+            if ($question_file_saver != '') {
+                return true;
+            }
+        }
+        if ($this->enablefreetextsubmissions) {
+            for ($i = 0; $i < $this->ftsmaxnumfields; $i++) {
+                if (isset($response["answertext$i"]) && $response["answertext$i"] != '') {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -278,11 +300,23 @@ class qtype_programmingtask_question extends question_graded_automatically {
      *      whether the new set of responses can safely be discarded.
      */
     public function is_same_response(array $prevresponse, array $newresponse): bool {
-        if (!isset($prevresponse['answerfiles']))
+        if ($this->enablefilesubmissions) {
+            //Can't really compare files here
             return false;
-        $prevSummary = $prevresponse['answerfiles'];
-        $newSummary = (string) $newresponse['answerfiles'];
-        return $prevSummary == $newSummary;
+        }
+        if ($this->enablefreetextsubmissions) {
+            for ($i = 0; $i < $this->ftsmaxnumfields; $i++) {
+                if (!isset($prevresponse["answertext$i"]) || !isset($prevresponse["answerfilename$i"])) {
+                    //If there wasn't an answer before it can't be the same
+                    return false;
+                }
+                if ($prevresponse["answertext$i"] != $newresponse["answertext$i"] || $prevresponse["answerfilename$i"] != $newresponse["answerfilename$i"]) {
+                    //If filename or filecontent isn't the same it's not the same answer
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
