@@ -19,11 +19,13 @@ class grading_hints_helper {
     private $namespace;
     private $grading_hints_combines;
 
-    public function __construct(\DOMElement $grading_hints, $namespace) {
+    public function __construct($grading_hints, $namespace) {
         $this->grading_hints = $grading_hints;
         $this->namespace = $namespace;
-        foreach ($this->grading_hints->getElementsByTagNameNS($namespace, "combine") as $combine) {
-            $this->grading_hints_combines[$combine->getAttribute('id')] = $combine;
+        if ($this->grading_hints != null) {
+            foreach ($this->grading_hints->getElementsByTagNameNS($namespace, "combine") as $combine) {
+                $this->grading_hints_combines[$combine->getAttribute('id')] = $combine;
+            }
         }
     }
 
@@ -95,6 +97,8 @@ class grading_hints_helper {
     }
 
     public function isEmpty(): bool {
+        if ($this->grading_hints == null)
+            return true;
         $root = $this->grading_hints->getElementsByTagNameNS($this->namespace, "root")[0];
         return $root->getElementsByTagNameNS($this->namespace, "test-ref")->length == 0 && $root->getElementsByTagNameNS($this->namespace, "combine-ref")->length == 0;
     }

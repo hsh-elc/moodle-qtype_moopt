@@ -15,7 +15,7 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
     const MIME_TYPE_TEXT_PATTERN = "#text/.*#";
 
     public function createSubmissionXML(bool $includeTask, string $taskFilenameOrUUID, array $files, string $resultformat, string $resultstructure, $studentfeedbacklevel, $teacherfeedbacklevel,
-            \DOMElement $grading_hints, $grading_hints_namespace, $max_score_lms): string {
+            $grading_hints, $grading_hints_namespace, $max_score_lms): string {
         $this->initXMLWriterForDocument();
 
         $xml = $this->xmlWriter;

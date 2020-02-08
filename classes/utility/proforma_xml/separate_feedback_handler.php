@@ -34,7 +34,7 @@ class separate_feedback_handler {
     private $xpathTask;
     private $xpathResponse;
 
-    public function __construct(\DOMElement $grading_hints, \DOMElement $tests, \DOMElement $separate_test_feedback, \DOMElement $feedback_files, $namespace_gradinghints, $namespace_feedback, $max_score_lms, $xpathTask, $xpathResponse) {
+    public function __construct($grading_hints, \DOMElement $tests, \DOMElement $separate_test_feedback, \DOMElement $feedback_files, $namespace_gradinghints, $namespace_feedback, $max_score_lms, $xpathTask, $xpathResponse) {
         $this->grading_hints = $grading_hints;
         $this->tests_element = $tests;
         $this->separate_test_feedback = $separate_test_feedback;
@@ -56,9 +56,11 @@ class separate_feedback_handler {
 
     private function init() {
         //Preprocess grading hints
-        $this->grading_hints_root = $this->grading_hints->getElementsByTagNameNS($this->namespace_gradinghints, "root")[0];
-        foreach ($this->grading_hints->getElementsByTagNameNS($this->namespace_gradinghints, "combine") as $combine) {
-            $this->grading_hints_combines[$combine->getAttribute('id')] = $combine;
+        if ($this->grading_hints != null) {
+            $this->grading_hints_root = $this->grading_hints->getElementsByTagNameNS($this->namespace_gradinghints, "root")[0];
+            foreach ($this->grading_hints->getElementsByTagNameNS($this->namespace_gradinghints, "combine") as $combine) {
+                $this->grading_hints_combines[$combine->getAttribute('id')] = $combine;
+            }
         }
         //Preprocess tests
         foreach ($this->tests_element->getElementsByTagNameNS($this->namespace_gradinghints, "test") as $test) {
@@ -85,7 +87,7 @@ class separate_feedback_handler {
             $this->files[$file->getAttribute('id')] = $file;
         }
 
-        if ($this->has_children($this->grading_hints_root)) {
+        if ($this->grading_hints_root != null && $this->has_children($this->grading_hints_root)) {
             $grading_hints_helper = new grading_hints_helper($this->grading_hints, $this->namespace_gradinghints);
             $this->max_score_grading_hints = $grading_hints_helper->calculate_max_score();
             if (abs($this->max_score_grading_hints - $this->max_score_lms) > 1e-5) {
@@ -97,7 +99,7 @@ class separate_feedback_handler {
     public function processResult() {
 
         $this->detailedFeedback = new separate_feedback_text_node('detailed_feedback', get_string('detailedfeedback', 'qtype_programmingtask'));
-        if ($this->has_children($this->grading_hints_root)) {
+        if ($this->grading_hints_root != null && $this->has_children($this->grading_hints_root)) {
             $this->fill_feedback_with_combine_node_infos($this->grading_hints_root, $this->detailedFeedback);
             list($this->calculatedScore, $maxScore) = $this->calculate_from_children($this->grading_hints_root, $this->detailedFeedback);
             $this->detailedFeedback->setMaxScore($maxScore);
@@ -127,20 +129,23 @@ class separate_feedback_handler {
         return $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'test-ref')->length + $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'combine-ref')->length != 0;
     }
 
-    private function calculate_without_children(\DOMElement $elem, separate_feedback_text_node $detailedFeedback) {
-
-
-        if (($list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'description'))->length == 1) {
-            $detailedFeedback->setDescription($list[0]->nodeValue);
-        }
-        if (($list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'internal-description'))->length == 1) {
-            $detailedFeedback->setInternalDescription($list[0]->nodeValue);
-        }
+    private function calculate_without_children($elem, separate_feedback_text_node $detailedFeedback) {
 
         $function = "min";
-        if ($elem->hasAttribute('function')) {
-            $function = $elem->getAttribute('function');
+
+        if ($elem != null) {
+            if (($list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'description'))->length == 1) {
+                $detailedFeedback->setDescription($list[0]->nodeValue);
+            }
+            if (($list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'internal-description'))->length == 1) {
+                $detailedFeedback->setInternalDescription($list[0]->nodeValue);
+            }
+
+            if ($elem->hasAttribute('function')) {
+                $function = $elem->getAttribute('function');
+            }
         }
+
         switch ($function) {
             case 'min':
                 $initialValue = $totalScore = PHP_INT_MAX;
