@@ -49,7 +49,7 @@ class separate_feedback_text_renderer {
                       </h5>
                     </div>";
 
-        $text .= "<div id='collapse_{$node->getId()}' class='collapse' aria-labelledby='heading_{$node->getId()}' data-parent='#accordion_$accordionId'>
+        $text .= "<div id='collapse_{$node->getId()}' class='collapse' aria-labelledby='heading_{$node->getId()}' data-parent='#$accordionId'>
                     <div class='card-body'>";
 
         $text .= $this->formatContent($node);
