@@ -51,7 +51,7 @@ class qtype_programmingtask extends question_type {
      */
     public function extra_question_fields() {
         return array("qtype_programmingtask_optns", "internaldescription", "graderid", "taskuuid", 'showstudscorecalcscheme',
-            'enablefilesubmissions', 'enablefreetextsubmissions', 'ftsnuminitialfields', 'ftsmaxnumfields', 'ftsautogeneratefilenames');
+            'enablefilesubmissions', 'enablefreetextsubmissions', 'ftsnuminitialfields', 'ftsmaxnumfields', 'ftsautogeneratefilenames', 'ftsstandardlang');
     }
 
     /**
@@ -93,6 +93,7 @@ class qtype_programmingtask extends question_type {
                     $data = new stdClass();
                     $data->questionid = $question->id;
                     $data->inputindex = $i;
+                    $data->ftslang = $question->{"ftsoverwrittenlang$i"};
                     $data->presetfilename = $question->{"namesettingsforfreetextinput$i"} == 0;
                     $data->filename = $data->presetfilename ? $question->{"freetextinputfieldname$i"} : null;
                     $DB->insert_record('qtype_programmingtask_fts', $data);

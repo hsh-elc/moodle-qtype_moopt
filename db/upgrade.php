@@ -175,5 +175,17 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2020012500, 'qtype', 'programmingtask');
     }
 
+    if ($oldversion < 2020020800) {
+
+        $table_optns = new xmldb_table('qtype_programmingtask_optns');
+        $dbman->add_field($table_optns, new xmldb_field('ftsstandardlang', XMLDB_TYPE_CHAR, '64', null, true, null, 'txt'));
+
+        $table_fts = new xmldb_table('qtype_programmingtask_fts');
+        $dbman->add_field($table_fts, new xmldb_field('ftslang', XMLDB_TYPE_CHAR, '64', null, true, null, 'default'));
+
+        // ProForma savepoint reached.
+        upgrade_plugin_savepoint(true, 2020020800, 'qtype', 'programmingtask');
+    }
+
     return true;
 }

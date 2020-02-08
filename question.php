@@ -46,6 +46,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
     public $ftsnuminitialfields;
     public $ftsmaxnumfields;
     public $ftsautogeneratefilenames;
+    public $ftsstandardlang;
 
     /**
      * What data may be included in the form submission when a student submits

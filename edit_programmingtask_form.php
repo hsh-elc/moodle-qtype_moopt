@@ -108,8 +108,14 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         $mform->addGroup($defaultnamesettingsarray, "ftsautogeneratefilenamesgroup", get_string('freetextinputnamesettingstandard', 'qtype_programmingtask'), array(' '), false);
         $mform->hideIf("ftsautogeneratefilenamesgroup", 'enablefreetextsubmissions');
 
+        $mform->addElement('select', 'ftsstandardlang', get_string('ftsstandardlang', 'qtype_programmingtask'), proforma_ACE_PROGLANGS);
+        $mform->hideIf("ftsstandardlang", 'enablefreetextsubmissions');
+
+
         $mform->addElement('advcheckbox', "enablecustomsettingsforfreetextinputfields", get_string('enablecustomsettingsforfreetextinputfields', 'qtype_programmingtask'), ' ');
         $mform->hideIf("enablecustomsettingsforfreetextinputfields", 'enablefreetextsubmissions');
+
+        $proglangs = ['default' => get_string('defaultlang', 'qtype_programmingtask')] + proforma_ACE_PROGLANGS;
 
         for ($i = 0; $i < get_config("qtype_programmingtask", "max_number_free_text_inputs"); $i++) {
             $mform->addElement('advcheckbox', "enablecustomsettingsforfreetextinputfield$i", get_string('enablecustomsettingsforfreetextinputfield', 'qtype_programmingtask') . ($i + 1), ' ');
@@ -140,6 +146,11 @@ class qtype_programmingtask_edit_form extends question_edit_form {
             $mform->hideIf("freetextinputfieldname$i", "enablecustomsettingsforfreetextinputfield$i");
             $mform->hideIf("freetextinputfieldname$i", 'enablefreetextsubmissions');
             $mform->hideIf("freetextinputfieldname$i", "enablecustomsettingsforfreetextinputfields");
+
+            $mform->addElement('select', "ftsoverwrittenlang$i", '', $proglangs);
+            $mform->hideIf("ftsoverwrittenlang$i", "enablecustomsettingsforfreetextinputfield$i");
+            $mform->hideIf("ftsoverwrittenlang$i", 'enablefreetextsubmissions');
+            $mform->hideIf("ftsoverwrittenlang$i", "enablecustomsettingsforfreetextinputfields");
         }
     }
 
@@ -178,13 +189,14 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         if ($numCustomFts != 0) {
             $question->enablecustomsettingsforfreetextinputfields = 1;
             $customftsfields = $DB->get_records('qtype_programmingtask_fts', ['questionid' => $question->id]);
-            foreach($customftsfields as $unusedkey => $value){
+            foreach ($customftsfields as $unusedkey => $value) {
                 $indx = $value->inputindex;
                 $question->{"enablecustomsettingsforfreetextinputfield$indx"} = 1;
                 $question->{"namesettingsforfreetextinput$indx"} = !$value->presetfilename;
-                if($value->presetfilename){
+                if ($value->presetfilename) {
                     $question->{"freetextinputfieldname$indx"} = $value->filename;
                 }
+                $question->{"ftsoverwrittenlang$indx"} = $value->ftslang;
             }
         }
 

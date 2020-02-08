@@ -47,7 +47,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
      * @return string HTML fragment.
      */
     public function formulation_and_controls(question_attempt $qa, question_display_options $options) {
-        global $DB;
+        global $DB, $PAGE;
 
         $o = parent::formulation_and_controls($qa, $options);
 
@@ -56,6 +56,12 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         $slot = $qa->get_slot();
         $questionid = $question->id;
 
+        //load ace scripts
+        $plugindirrel = '/question/type/programmingtask';
+        $PAGE->requires->js($plugindirrel . '/ace/ace.js');
+        $PAGE->requires->js($plugindirrel . '/ace/ext-language_tools.js');
+        $PAGE->requires->js($plugindirrel . '/ace/ext-modelist.js');
+
         if (empty($options->readonly)) {
             $submissionarea = $this->renderSubmissionArea($qa, $options);
         } else {
@@ -63,6 +69,8 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         }
         $o .= $this->output->heading(get_string('submission', 'qtype_programmingtask'), 3);
         $o .= html_writer::tag('div', $submissionarea, array('class' => 'submissionfilearea'));
+
+        $PAGE->requires->js_call_amd('qtype_programmingtask/textareas', 'setupAllTAs');
 
         if (has_capability('mod/quiz:grade', $options->context) && $question->internaldescription != '') {
             $internalDescription = $this->renderInternalDescription($question);
@@ -119,7 +127,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
     }
 
     private function renderFilesReadOnly(question_attempt $qa, question_display_options $options) {
-        global $DB;
+        global $DB, $PAGE;
 
         $rendered = '';
 
@@ -139,16 +147,28 @@ class qtype_programmingtask_renderer extends qtype_renderer {
 
         if ($qa->get_question()->enablefreetextsubmissions) {
             $renderedfreetext = '';
+
+            $questionoptions = $DB->get_record('qtype_programmingtask_optns', ['questionid' => $qa->get_question()->id]);
+            $defaultproglang = $questionoptions->ftsstandardlang;
+
             for ($i = 0; $i < $qa->get_question()->ftsmaxnumfields; $i++) {
                 $text = $qa->get_last_qt_var("answertext$i");
                 if ($text) {
                     list($filename, ) = $this->get_filename($qa->get_question()->id, $i, $qa->get_last_qt_var("answerfilename$i"), $qa->get_question()->ftsautogeneratefilenames);
+
+                    $customOptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $qa->get_question()->id, 'inputindex' => $i]);
+
+                    $proglang = $defaultproglang;
+                    if ($customOptions && $customOptions->ftslang != 'default') {
+                        $proglang = $customOptions->ftslang;
+                    }
+
                     $renderedfreetext .= html_writer::start_div('answertextreadonly');
-                    $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ':');
-                    $renderedfreetext .= html_writer::start_div('answertextcode');
-                    $renderedfreetext .= html_writer::tag('pre', html_writer::tag('code', $text));
+                    $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ' (' . proforma_ACE_PROGLANGS[$proglang] . ')' . ':');
+                    $renderedfreetext .= html_writer::tag('div', html_writer::tag('textarea', $text, array('id' => "answertext$i", 'style' => 'width: 100%;padding-left: 10px;height:400px;', 'class' => 'edit_code', 'data-lang' => $proglang, 'readonly' => '')));
                     $renderedfreetext .= html_writer::end_div();
-                    $renderedfreetext .= html_writer::end_div();
+
+                    $PAGE->requires->js_call_amd('qtype_programmingtask/userinterfacewrapper', 'newUiWrapper', ['ace', "answertext$i"]);
                 }
             }
 
@@ -195,6 +215,8 @@ class qtype_programmingtask_renderer extends qtype_renderer {
             $autogeneratefilenames = $questionoptions->ftsautogeneratefilenames;
             $maxIndexOfFieldWithContent = 0;
 
+            $defaultproglang = $questionoptions->ftsstandardlang;
+
             for ($i = 0; $i < $questionoptions->ftsmaxnumfields; $i++) {
                 $answertextname = "answertext$i";
                 $answertextinputname = $qa->get_qt_field_name($answertextname);
@@ -209,6 +231,13 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 $filenameinputname = $qa->get_qt_field_name($filenamename);
                 $filenameid = $filenameinputname . '_id';
 
+                $customOptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $qa->get_question()->id, 'inputindex' => $i]);
+
+                $proglang = $defaultproglang;
+                if ($customOptions && $customOptions->ftslang != 'default') {
+                    $proglang = $customOptions->ftslang;
+                }
+
                 list($filenameresponse, $disablefilenameinput) = $this->get_filename($qa->get_question()->id, $i, $qa->get_last_step_with_qt_var($filenamename)->get_qt_var($filenamename), $autogeneratefilenames);
 
                 $output = '';
@@ -221,7 +250,8 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 }
                 $output .= html_writer::tag('input', '', $inputoptions);
                 $output .= html_writer::end_div();
-                $output .= html_writer::tag('div', html_writer::tag('textarea', $answertextresponse, array('id' => $answertextid, 'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;', 'rows' => 15)));
+                $output .= html_writer::div(get_string('yourcode', 'qtype_programmingtask') . ' (' . get_string('programminglanguage', 'qtype_programmingtask') . ': ' . proforma_ACE_PROGLANGS[$proglang] . '):');
+                $output .= html_writer::tag('div', html_writer::tag('textarea', $answertextresponse, array('id' => $answertextid, 'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height:250px;', 'class' => 'edit_code', 'data-lang' => $proglang)));
                 $output .= html_writer::end_tag('div');
 
                 $renderedArea .= $output;
@@ -229,6 +259,8 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 if ($answertextresponse != '') {
                     $maxIndexOfFieldWithContent = $i + 1;
                 }
+
+                $PAGE->requires->js_call_amd('qtype_programmingtask/userinterfacewrapper', 'newUiWrapper', ['ace', $answertextid]);
             }
             $renderedArea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
             $renderedArea .= html_writer::tag('button', get_string('addanswertext', 'qtype_programmingtask'), ['id' => 'addAnswertextButton']);

@@ -14,6 +14,7 @@
                 <FIELD NAME="ftsnuminitialfields" TYPE="int" LENGTH="8" NOTNULL="false" SEQUENCE="false" DEFAULT="0"/>
                 <FIELD NAME="ftsmaxnumfields" TYPE="int" LENGTH="8" NOTNULL="false" SEQUENCE="false" DEFAULT="0"/>
                 <FIELD NAME="ftsautogeneratefilenames" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" DEFAULT="1"/>
+                <FIELD NAME="ftsstandardlang" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" DEFAULT="txt"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -90,6 +91,7 @@
                 <FIELD NAME="inputindex" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="presetfilename" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" DEFAULT="1"/>
                 <FIELD NAME="filename" TYPE="char" LENGTH="256" SEQUENCE="false" DEFAULT=""/>
+                <FIELD NAME="ftslang" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" DEFAULT="default"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

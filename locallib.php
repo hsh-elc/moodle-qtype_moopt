@@ -25,6 +25,40 @@ define('proforma_TASK_XML_NAMESPACES', [/* default namespace: */ 'urn:proforma:v
 define('proforma_MERGED_FEEDBACK_TYPE', 'merged-test-feedback');
 define('proforma_SEPARATE_FEEDBACK_TYPE', 'separate-test-feedback');
 
+define('proforma_ACE_PROGLANGS', [
+    'txt' => 'Plain text',
+    'java' => 'Java',
+    'sql' => 'SQL',
+    'cpp' => 'C/C++',
+    'javascript' => 'Javascript',
+    'php' => 'PHP',
+    'py' => 'Python',
+    'cs' => 'C#',
+    'scala' => 'Scala',
+    'bat' => 'Batchfile',
+    'css' => 'CSS',
+    'dart' => 'Dart',
+    'glsl' => 'GLSL',
+    'go' => 'Go',
+    'html' => 'HTML',
+    'json' => 'JSON',
+    'kt' => 'Kotlin',
+    'latex' => 'LaTeX',
+    'lua' => 'Lua',
+    'matlab' => 'MATLAB',
+    'mm' => 'Objective-C',
+    'pas' => 'Pascal',
+    'pl' => 'Perl',
+    'prolog' => 'Prolog',
+    'r' => 'R',
+    'rb' => 'Ruby',
+    'rs' => 'Rust',
+    'swift' => 'Swift',
+    'typescript' => 'Typescript',
+    'xml' => 'XML',
+    'yaml' => 'YAML'
+]);
+
 require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
