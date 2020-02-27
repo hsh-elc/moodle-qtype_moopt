@@ -14,6 +14,7 @@ define('proforma_TASKXML_FILEAREA', 'taskxmlfile');
 define('proforma_ATTACHED_TASK_FILES_FILEAREA', 'attachedtaskfiles');
 define('proforma_EMBEDDED_TASK_FILES_FILEAREA', 'embeddedtaskfiles');
 define('proforma_SUBMISSION_ZIP_FILEAREA', 'submissionzip');
+define('proforma_RESPONSE_FILE_AREA_RESPONSEFILE', 'responsefilesresponsefile');
 define('proforma_RESPONSE_FILE_AREA', 'responsefiles');
 define('proforma_RESPONSE_FILE_AREA_EMBEDDED', 'responsefilesembedded');
 
@@ -406,7 +407,7 @@ function internal_retrieve_grading_results($qubaid) {
                 //Write response to file system
                 $file_record = array(
                     'component' => 'question',
-                    'filearea' => proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}",
+                    'filearea' => proforma_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$record->questionattemptdbid}",
                     'itemid' => $qubaid,
                     'contextid' => $quba_record->contextid,
                     'filepath' => "/",
@@ -433,8 +434,6 @@ function internal_retrieve_grading_results($qubaid) {
 
                 //Apply the grade from the response
                 $result = $file->extract_to_storage($zipper, $quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/");
-                //Recreate file because extract_to_storage seems to delete the zip file for whatever reason
-                $file = $fs->create_file_from_string($file_record, $response);
                 if ($result) {
                     $doc = new DOMDocument();
                     $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}", $qubaid, "/", 'response.xml');

@@ -426,7 +426,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                     $slot = $qa->get_slot();
                     $responsefileinfos = array(
                         'component' => 'question',
-                        'filearea' => proforma_RESPONSE_FILE_AREA . "_{$qa->get_database_id()}",
+                        'filearea' => proforma_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$qa->get_database_id()}",
                         'itemid' => "{$qa->get_usage_id()}/$slot/{$qa->get_usage_id()}",
                         'contextid' => $quba_record->contextid,
                         'filepath' => "/",

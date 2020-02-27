@@ -147,7 +147,8 @@ class qtype_programmingtask_question extends question_graded_automatically {
             }
 
             return true;
-        } else if ((substr($filearea, 0, strlen(proforma_RESPONSE_FILE_AREA)) === proforma_RESPONSE_FILE_AREA) || (substr($filearea, 0, strlen(proforma_RESPONSE_FILE_AREA_EMBEDDED)) === proforma_RESPONSE_FILE_AREA_EMBEDDED)) {
+        } else if ((substr($filearea, 0, strlen(proforma_RESPONSE_FILE_AREA)) === proforma_RESPONSE_FILE_AREA) || (substr($filearea, 0, strlen(proforma_RESPONSE_FILE_AREA_EMBEDDED)) === proforma_RESPONSE_FILE_AREA_EMBEDDED) ||
+                (substr($filearea, 0, strlen(proforma_RESPONSE_FILE_AREA_RESPONSEFILE)) === proforma_RESPONSE_FILE_AREA_RESPONSEFILE)) {
             return true;
         } else if ($component == 'question' && $filearea == 'response_answerfiles') {
             return true;
