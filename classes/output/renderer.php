@@ -316,6 +316,9 @@ class qtype_programmingtask_renderer extends qtype_renderer {
     protected function specific_feedback(question_attempt $qa) {
         global $PAGE, $DB;
         if ($qa->get_state()->is_finished()) {
+
+            $PAGE->requires->js_call_amd('qtype_programmingtask/change_display_name_of_redo_button', 'init');
+
             if ($qa->get_state() == question_state::$finished) {
                 $PAGE->requires->js_call_amd('qtype_programmingtask/pull_grading_status', 'init', [$qa->get_usage_id(), get_config("qtype_programmingtask", "grappa_client_polling_interval") * 1000 /* to milliseconds */]);
                 $loader = '<div class="loader"></div>';
@@ -324,8 +327,6 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 //If a teacher is looking at this feedback and we did receive a valid response but it has an internal-error-attribute we still want to display this result
                 return html_writer::div(get_string('needsgradingbyteacher', 'qtype_programmingtask'), 'gradingstatus');
             } else if ($qa->get_state()->is_graded() || (has_capability('mod/quiz:grade', $PAGE->context) && $qa->get_state() == question_state::$needsgrading)) {
-
-                $PAGE->requires->js_call_amd('qtype_programmingtask/change_display_name_of_redo_button', 'init');
 
                 $quba_record = $DB->get_record('question_usages', ['id' => $qa->get_usage_id()]);
                 $initial_slot = $DB->get_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id()], 'slot')->slot;
