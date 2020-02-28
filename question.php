@@ -29,7 +29,7 @@ defined('MOODLE_INTERNAL') || die();
 //
 // Make sure to implement all the abstract methods of the base class.
 
-use qtype_programmingtask\utility\grappa_communicator;
+use qtype_programmingtask\utility\communicator\communicator_factory;
 use qtype_programmingtask\utility\proforma_xml\proforma_submission_xml_creator;
 
 /**
@@ -188,7 +188,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
      */
     public function grade_response_asynch(question_attempt $qa, array $responsefiles, array $freetextanswers): question_state {
         global $DB;
-        $grappa_communicator = grappa_communicator::getInstance();
+        $communicator = communicator_factory::getInstance();
         $fs = get_file_storage();
 
         //Get response files
@@ -203,7 +203,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
         }
 
         try {
-            $includeTaskFile = !$grappa_communicator->isTaskCached($this->taskuuid);
+            $includeTaskFile = !$communicator->isTaskCached($this->taskuuid);
         } catch (invalid_response_exception $ex) {
             //Not good but not severe either - just assume the task isn't cached and include it
             $includeTaskFile = true;
@@ -244,7 +244,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
 
         $returnState = question_state::$finished;
         try {
-            $gradeProcessId = $grappa_communicator->enqueueSubmission($this->graderid, 'true', $zip_file);
+            $gradeProcessId = $communicator->enqueueSubmission($this->graderid, 'true', $zip_file);
             $DB->insert_record('qtype_programmingtask_grprcs', ['qubaid' => $qa->get_usage_id(), 'questionattemptdbid' => $qa->get_database_id(), 'gradeprocessid' => $gradeProcessId, 'graderid' => $this->graderid]);
             if (!$DB->record_exists('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id()])) {
                 //This will already exist when this is a regrade

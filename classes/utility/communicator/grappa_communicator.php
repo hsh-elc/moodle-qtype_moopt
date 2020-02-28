@@ -6,7 +6,7 @@
  * and open the template in the editor.
  */
 
-namespace qtype_programmingtask\utility;
+namespace qtype_programmingtask\utility\communicator;
 
 use qtype_programmingtask\exceptions\grappa_exception;
 
@@ -14,7 +14,7 @@ require_once($CFG->libdir . '/filelib.php');
 
 defined('MOODLE_INTERNAL') || die();
 
-class grappa_communicator {
+class grappa_communicator implements communicator_interface{
 
     private $grappa_url;
     private $grappa_timeout;

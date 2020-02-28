@@ -64,7 +64,7 @@ require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
 
-use qtype_programmingtask\utility\grappa_communicator;
+use qtype_programmingtask\utility\communicator\communicator_factory;
 use qtype_programmingtask\utility\proforma_xml\separate_feedback_handler;
 
 /** Unzips the task zip file in the given draft area into the area
@@ -366,7 +366,7 @@ function retrieve_grading_results($qubaid) {
  */
 function internal_retrieve_grading_results($qubaid) {
     global $DB;
-    $grappa_communicator = \qtype_programmingtask\utility\grappa_communicator::getInstance();
+    $communicator = communicator_factory::getInstance();
     $fs = get_file_storage();
 
     $finishedGradingProcesses = [];
@@ -384,7 +384,7 @@ function internal_retrieve_grading_results($qubaid) {
         $initial_slot = $DB->get_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $record->questionattemptdbid], 'slot')->slot;
 
         try {
-            $response = $grappa_communicator->getGradingResult($record->graderid, $record->gradeprocessid);
+            $response = $communicator->getGradingResult($record->graderid, $record->gradeprocessid);
         } catch (invalid_response_exception $ex) {
             //There was a network error
             error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
@@ -573,7 +573,7 @@ function internal_retrieve_grading_results($qubaid) {
 function retrieve_graders_and_update_local_list() {
     global $DB;
 
-    $graders = grappa_communicator::getInstance()->getGraders();
+    $graders = communicator_factory::getInstance()->getGraders();
     $records = array();
     foreach ($graders['graders'] as $name => $id) {
         if (!$DB->record_exists('qtype_programmingtask_gradrs', array("graderid" => $id))) {

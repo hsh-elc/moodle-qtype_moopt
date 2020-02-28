@@ -27,6 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['addanswertext'] = 'Add answer field';
 $string['addfreetextfieldsettings'] = 'Add settings for another free text input field';
+$string['chose_communicator'] = 'Communicator';
 $string['client_polling_interval'] = 'Client polling interval';
 $string['combinedresult'] = 'Combined result';
 $string['commonsettings'] = 'Common settings';
