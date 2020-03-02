@@ -185,18 +185,20 @@ class qtype_programmingtask_edit_form extends question_edit_form {
             $this->grader_select->setSelected($question->graderid);
         }
 
-        $numCustomFts = $DB->count_records('qtype_programmingtask_fts', ['questionid' => $question->id]);
+        if (isset($question->id)) {
+            $numCustomFts = $DB->count_records('qtype_programmingtask_fts', ['questionid' => $question->id]);
         if ($numCustomFts != 0) {
             $question->enablecustomsettingsforfreetextinputfields = 1;
-            $customftsfields = $DB->get_records('qtype_programmingtask_fts', ['questionid' => $question->id]);
-            foreach ($customftsfields as $unusedkey => $value) {
-                $indx = $value->inputindex;
-                $question->{"enablecustomsettingsforfreetextinputfield$indx"} = 1;
-                $question->{"namesettingsforfreetextinput$indx"} = !$value->presetfilename;
-                if ($value->presetfilename) {
-                    $question->{"freetextinputfieldname$indx"} = $value->filename;
+                $customftsfields = $DB->get_records('qtype_programmingtask_fts', ['questionid' => $question->id]);
+                foreach ($customftsfields as $unusedkey => $value) {
+                    $indx = $value->inputindex;
+                    $question->{"enablecustomsettingsforfreetextinputfield$indx"} = 1;
+                    $question->{"namesettingsforfreetextinput$indx"} = !$value->presetfilename;
+                    if ($value->presetfilename) {
+                        $question->{"freetextinputfieldname$indx"} = $value->filename;
+                    }
+                    $question->{"ftsoverwrittenlang$indx"} = $value->ftslang;
                 }
-                $question->{"ftsoverwrittenlang$indx"} = $value->ftslang;
             }
         }
 
