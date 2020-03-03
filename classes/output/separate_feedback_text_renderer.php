@@ -22,12 +22,14 @@ class separate_feedback_text_renderer {
     private $embeddedfileinfos;
     private $fileinfos;
     private $showStudentsScoreCalculationScheme;
+    private $randid;
 
     public function __construct($root_node, $displayTeacherContent, $fileinfos, $showStudentsScoreCalculationScheme) {
         $this->root_node = $root_node;
         $this->displayTeacherContent = $displayTeacherContent;
         $this->fileinfos = $fileinfos;
         $this->showStudentsScoreCalculationScheme = $showStudentsScoreCalculationScheme;
+        $this->randid = bin2hex(random_bytes(6));
     }
 
     public function render() {
@@ -35,21 +37,22 @@ class separate_feedback_text_renderer {
     }
 
     private function renderInternal(separate_feedback_text_node $node) {
-        $accordionId = "accordion_{$node->getId()}";
+        $currentid = $node->getId() . '_' . $this->randid;
+        $accordionId = "accordion_$currentid";
 
         $additionalHeaderClasses = $node->hasInternalError() ? ', internalerror' : '';
 
         $text = "<div id='$accordionId'>";
         $text .= "<div class='card'>
-                    <div class='card-header, {$additionalHeaderClasses}' id='{$node->getId()}'>
+                    <div class='card-header, {$additionalHeaderClasses}' id='$currentid'>
                       <h5 class='mb-0'>
-                        <button type='button' class='btn btn-link' data-toggle='collapse' data-target='#collapse_{$node->getId()}' aria-expanded='true' aria-controls='collapse_{$node->getId()}' style='width: 100%;'>
+                        <button type='button' class='btn btn-link' data-toggle='collapse' data-target='#collapse_$currentid' aria-expanded='true' aria-controls='collapse_$currentid' style='width: 100%;'>
                             {$this->formatHeading($node)}
                         </button>
                       </h5>
                     </div>";
 
-        $text .= "<div id='collapse_{$node->getId()}' class='collapse' aria-labelledby='heading_{$node->getId()}' data-parent='#$accordionId'>
+        $text .= "<div id='collapse_$currentid' class='collapse' aria-labelledby='heading_$currentid' data-parent='#$accordionId'>
                     <div class='card-body'>";
 
         $text .= $this->formatContent($node);
