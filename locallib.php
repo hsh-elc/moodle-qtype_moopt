@@ -365,7 +365,7 @@ function retrieve_grading_results($qubaid) {
  * Do not call this function unless you know what you are doing. Use retrieve_grading_results instead
  */
 function internal_retrieve_grading_results($qubaid) {
-    global $DB;
+    global $DB, $USER;
     $communicator = communicator_factory::getInstance();
     $fs = get_file_storage();
 
@@ -560,6 +560,11 @@ function internal_retrieve_grading_results($qubaid) {
             $attempt->timemodified = time();
             $attempt->sumgrades = $quba->get_total_mark();
             $DB->update_record('quiz_attempts', $attempt);
+
+            //Update gradebook
+            $quiz = $DB->get_record('quiz', array('id' => $attempt->quiz), '*', MUST_EXIST);
+            //quiz_update_grades($quiz, $USER->id);
+            quiz_save_best_grade($quiz, $USER->id);
         }
     }
 
