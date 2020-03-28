@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -15,7 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
+defined('MOODLE_INTERNAL') || die();
+
+/*
  * Web service for qtype programmingtask
  */
 $functions = array(
@@ -33,7 +34,8 @@ $functions = array(
         'classname' => 'qtype_programmingtask_external',
         'methodname' => 'retrieve_grading_results',
         'classpath' => 'question/type/programmingtask/externallib.php',
-        'description' => 'Check if any grade process with the given qubaid finished, retrieves those results, inserts them into the database and returns whether any grade process finished.',
+        'description' => 'Check if any grade process with the given qubaid finished, retrieves those results,'
+        . ' inserts them into the database and returns whether any grade process finished.',
         'type' => 'write',
         'ajax' => true,
         'services' => array('programmingtaskwebservice')
@@ -42,7 +44,8 @@ $functions = array(
 
 $services = array(
     'programmingtaskwebservice' => array(
-        'functions' => array('qtype_programmingtask_extract_task_infos_from_draft_file', 'qtype_programmingtask_check_if_any_gradeprocess_finished'),
+        'functions' => array('qtype_programmingtask_extract_task_infos_from_draft_file',
+            'qtype_programmingtask_check_if_any_gradeprocess_finished'),
         'requiredcapability' => '',
         'restrictedusers' => 0,
         'enabled' => 1

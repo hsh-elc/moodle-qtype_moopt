@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -40,36 +39,36 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
 
     if ($oldversion < 2019031700) {
 
-        $optionsTable = new xmldb_table('qtype_programmingtask_optns');
+        $optionstable = new xmldb_table('qtype_programmingtask_optns');
 
-        $optionsTable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null));
-        $optionsTable->addField(new xmldb_field('questionid', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
-        $optionsTable->addField(new xmldb_field('internaldescription', XMLDB_TYPE_TEXT, 'medium', null, null, null, null));
+        $optionstable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null));
+        $optionstable->addField(new xmldb_field('questionid', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
+        $optionstable->addField(new xmldb_field('internaldescription', XMLDB_TYPE_TEXT, 'medium', null, null, null, null));
 
-        $optionsTable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id'), null, null));
-        $optionsTable->addKey(new xmldb_key('questionid', XMLDB_KEY_FOREIGN, array('questionid'), 'question', 'id'));
+        $optionstable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id'), null, null));
+        $optionstable->addKey(new xmldb_key('questionid', XMLDB_KEY_FOREIGN, array('questionid'), 'question', 'id'));
 
-        $dbman->create_table($optionsTable);
+        $dbman->create_table($optionstable);
 
+        $filestable = new xmldb_table('qtype_programmingtask_files');
 
-        $filesTable = new xmldb_table('qtype_programmingtask_files');
+        $filestable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null));
+        $filestable->addField(new xmldb_field('questionid', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
+        $filestable->addField(new xmldb_field('fileid', XMLDB_TYPE_CHAR, 255, null, XMLDB_NOTNULL, null, null));
+        $filestable->addField(new xmldb_field('usedbygrader', XMLDB_TYPE_INTEGER, 2, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
+        $filestable->addField(new xmldb_field('visibletostudents', XMLDB_TYPE_INTEGER, 2,
+                        XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
+        $filestable->addField(new xmldb_field('usagebylms', XMLDB_TYPE_CHAR, 64, null, XMLDB_NOTNULL, null, 'download'));
+        $filestable->addField(new xmldb_field('filepath', XMLDB_TYPE_TEXT, 'medium', null, XMLDB_NOTNULL, null, null));
+        $filestable->addField(new xmldb_field('filename', XMLDB_TYPE_CHAR, 255, null, XMLDB_NOTNULL, null, null));
+        $filestable->addField(new xmldb_field('filearea', XMLDB_TYPE_CHAR, 255, null, XMLDB_NOTNULL, null, null));
 
-        $filesTable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null));
-        $filesTable->addField(new xmldb_field('questionid', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
-        $filesTable->addField(new xmldb_field('fileid', XMLDB_TYPE_CHAR, 255, null, XMLDB_NOTNULL, null, null));
-        $filesTable->addField(new xmldb_field('usedbygrader', XMLDB_TYPE_INTEGER, 2, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
-        $filesTable->addField(new xmldb_field('visibletostudents', XMLDB_TYPE_INTEGER, 2, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
-        $filesTable->addField(new xmldb_field('usagebylms', XMLDB_TYPE_CHAR, 64, null, XMLDB_NOTNULL, null, 'download'));
-        $filesTable->addField(new xmldb_field('filepath', XMLDB_TYPE_TEXT, 'medium', null, XMLDB_NOTNULL, null, null));
-        $filesTable->addField(new xmldb_field('filename', XMLDB_TYPE_CHAR, 255, null, XMLDB_NOTNULL, null, null));
-        $filesTable->addField(new xmldb_field('filearea', XMLDB_TYPE_CHAR, 255, null, XMLDB_NOTNULL, null, null));
+        $filestable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id'), null, null));
+        $filestable->addKey(new xmldb_key('questionid', XMLDB_KEY_FOREIGN, array('questionid'), 'question', 'id'));
 
-        $filesTable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id'), null, null));
-        $filesTable->addKey(new xmldb_key('questionid', XMLDB_KEY_FOREIGN, array('questionid'), 'question', 'id'));
+        $filestable->addIndex(new xmldb_index('fileid', XMLDB_INDEX_NOTUNIQUE, array('fileid')));
 
-        $filesTable->addIndex(new xmldb_index('fileid', XMLDB_INDEX_NOTUNIQUE, array('fileid')));
-
-        $dbman->create_table($filesTable);
+        $dbman->create_table($filestable);
 
         // ProForma savepoint reached.
         upgrade_plugin_savepoint(true, 2019031700, 'qtype', 'programmingtask');
@@ -77,15 +76,16 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
 
     if ($oldversion < 2019052601) {
 
-        $graderTable = new xmldb_table('qtype_programmingtask_gradrs');
-        $graderTable->addField(new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
-        $graderTable->addField(new xmldb_field('gradername', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
-        $graderTable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('graderid'), null, null));
-        $dbman->create_table($graderTable);
+        $gradertable = new xmldb_table('qtype_programmingtask_gradrs');
+        $gradertable->addField(new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
+        $gradertable->addField(new xmldb_field('gradername', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
+        $gradertable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('graderid'), null, null));
+        $dbman->create_table($gradertable);
 
         $table = new xmldb_table('qtype_programmingtask_optns');
         $dbman->add_field($table, new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
-        $dbman->add_key($table, new xmldb_key('graderid', XMLDB_KEY_FOREIGN, array('graderid'), 'qtype_programmingtask_gradrs', 'graderid'));
+        $dbman->add_key($table, new xmldb_key('graderid', XMLDB_KEY_FOREIGN, array('graderid'),
+                        'qtype_programmingtask_gradrs', 'graderid'));
 
         // ProForma savepoint reached.
         upgrade_plugin_savepoint(true, 2019052601, 'qtype', 'programmingtask');
@@ -100,15 +100,16 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
     }
 
     if ($oldversion < 2019080301) {
-        $graderTable = new xmldb_table('qtype_programmingtask_grprcs');
-        $graderTable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, true));
-        $graderTable->addField(new xmldb_field('qubaid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
-        $graderTable->addField(new xmldb_field('questionattemptdbid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
-        $graderTable->addField(new xmldb_field('gradeprocessid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL));
-        $graderTable->addField(new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
-        $graderTable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id')));
-        $graderTable->addKey(new xmldb_key('graderid', XMLDB_KEY_FOREIGN, array('graderid'), 'qtype_programmingtask_gradrs', 'graderid'));
-        $dbman->create_table($graderTable);
+        $gradertable = new xmldb_table('qtype_programmingtask_grprcs');
+        $gradertable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, true));
+        $gradertable->addField(new xmldb_field('qubaid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
+        $gradertable->addField(new xmldb_field('questionattemptdbid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
+        $gradertable->addField(new xmldb_field('gradeprocessid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL));
+        $gradertable->addField(new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
+        $gradertable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id')));
+        $gradertable->addKey(new xmldb_key('graderid', XMLDB_KEY_FOREIGN, array('graderid'),
+                        'qtype_programmingtask_gradrs', 'graderid'));
+        $dbman->create_table($gradertable);
 
         // ProForma savepoint reached.
         upgrade_plugin_savepoint(true, 2019080301, 'qtype', 'programmingtask');
@@ -138,7 +139,8 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
 
     if ($oldversion < 2019110400) {
         $table = new xmldb_table('qtype_programmingtask_optns');
-        $dbman->add_field($table, new xmldb_field('showstudscorecalcscheme', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, false, 0));
+        $dbman->add_field($table, new xmldb_field('showstudscorecalcscheme', XMLDB_TYPE_INTEGER, '1', null,
+                        XMLDB_NOTNULL, false, 0));
 
         // ProForma savepoint reached.
         upgrade_plugin_savepoint(true, 2019110400, 'qtype', 'programmingtask');
@@ -152,7 +154,6 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         $dbman->add_field($table, new xmldb_field('ftsnuminitialfields', XMLDB_TYPE_INTEGER, '8', null, null, false, 0));
         $dbman->add_field($table, new xmldb_field('ftsmaxnumfields', XMLDB_TYPE_INTEGER, '8', null, null, false, 0));
         $dbman->add_field($table, new xmldb_field('ftsautogeneratefilenames', XMLDB_TYPE_INTEGER, '1', null, null, false, 1));
-
 
         // ProForma savepoint reached.
         upgrade_plugin_savepoint(true, 2020012300, 'qtype', 'programmingtask');
@@ -177,11 +178,11 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
 
     if ($oldversion < 2020020800) {
 
-        $table_optns = new xmldb_table('qtype_programmingtask_optns');
-        $dbman->add_field($table_optns, new xmldb_field('ftsstandardlang', XMLDB_TYPE_CHAR, '64', null, true, null, 'txt'));
+        $tableoptns = new xmldb_table('qtype_programmingtask_optns');
+        $dbman->add_field($tableoptns, new xmldb_field('ftsstandardlang', XMLDB_TYPE_CHAR, '64', null, true, null, 'txt'));
 
-        $table_fts = new xmldb_table('qtype_programmingtask_fts');
-        $dbman->add_field($table_fts, new xmldb_field('ftslang', XMLDB_TYPE_CHAR, '64', null, true, null, 'default'));
+        $tablefts = new xmldb_table('qtype_programmingtask_fts');
+        $dbman->add_field($tablefts, new xmldb_field('ftslang', XMLDB_TYPE_CHAR, '64', null, true, null, 'default'));
 
         // ProForma savepoint reached.
         upgrade_plugin_savepoint(true, 2020020800, 'qtype', 'programmingtask');
