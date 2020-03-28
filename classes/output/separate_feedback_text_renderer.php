@@ -1,10 +1,19 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 
 namespace qtype_programmingtask\output;
 
@@ -17,45 +26,45 @@ use qtype_programmingtask\utility\proforma_xml\separate_feedback_text_node;
  */
 class separate_feedback_text_renderer {
 
-    private $root_node;
-    private $displayTeacherContent;
-    private $embeddedfileinfos;
+    private $rootnode;
+    private $displayteachercontent;
     private $fileinfos;
-    private $showStudentsScoreCalculationScheme;
+    private $showstudentsscorecalculationscheme;
     private $randid;
 
-    public function __construct($root_node, $displayTeacherContent, $fileinfos, $showStudentsScoreCalculationScheme) {
-        $this->root_node = $root_node;
-        $this->displayTeacherContent = $displayTeacherContent;
+    public function __construct($rootnode, $displayteachercontent, $fileinfos, $showstudentsscorecalculationscheme) {
+        $this->rootnode = $rootnode;
+        $this->displayteachercontent = $displayteachercontent;
         $this->fileinfos = $fileinfos;
-        $this->showStudentsScoreCalculationScheme = $showStudentsScoreCalculationScheme;
+        $this->showstudentsscorecalculationscheme = $showstudentsscorecalculationscheme;
         $this->randid = bin2hex(random_bytes(6));
     }
 
     public function render() {
-        return $this->renderInternal($this->root_node);
+        return $this->render_internal($this->rootnode);
     }
 
-    private function renderInternal(separate_feedback_text_node $node) {
-        $currentid = $node->getId() . '_' . $this->randid;
-        $accordionId = "accordion_$currentid";
+    private function render_internal(separate_feedback_text_node $node) {
+        $currentid = $node->get_id() . '_' . $this->randid;
+        $accordionid = "accordion_$currentid";
 
-        $additionalHeaderClasses = $node->hasInternalError() ? ', internalerror' : '';
+        $additionalheaderclasses = $node->has_internal_error() ? ', internalerror' : '';
 
-        $text = "<div id='$accordionId'>";
+        $text = "<div id='$accordionid'>";
         $text .= "<div class='card'>
-                    <div class='card-header, {$additionalHeaderClasses}' id='$currentid'>
+                    <div class='card-header, {$additionalheaderclasses}' id='$currentid'>
                       <h5 class='mb-0'>
-                        <button type='button' class='btn btn-link' data-toggle='collapse' data-target='#collapse_$currentid' aria-expanded='true' aria-controls='collapse_$currentid' style='width: 100%;'>
-                            {$this->formatHeading($node)}
+                        <button type='button' class='btn btn-link' data-toggle='collapse' data-target='#collapse_$currentid'" .
+                " aria-expanded='true' aria-controls='collapse_$currentid' style='width: 100%;'>
+                            {$this->format_heading($node)}
                         </button>
                       </h5>
                     </div>";
 
-        $text .= "<div id='collapse_$currentid' class='collapse' aria-labelledby='heading_$currentid' data-parent='#$accordionId'>
+        $text .= "<div id='collapse_$currentid' class='collapse' aria-labelledby='heading_$currentid' data-parent='#$accordionid'>
                     <div class='card-body'>";
 
-        $text .= $this->formatContent($node);
+        $text .= $this->format_content($node);
 
         $text .= "</div></div></div>";
 
@@ -64,101 +73,108 @@ class separate_feedback_text_renderer {
         return $text;
     }
 
-    private function formatHeading(separate_feedback_text_node $node) {
+    private function format_heading(separate_feedback_text_node $node) {
         $heading = '<div style="text-align:left;width:70%;display:inline-block;">';
 
-        if ($node->hasInternalError()) {
-            $heading .= '<div style="font-family: FontAwesome; font-size: 1.5em;margin-right:20px;display:inline-block;">&#xf00d;</div>';
+        if ($node->has_internal_error()) {
+            $heading .= '<div style="font-family: FontAwesome; font-size: 1.5em;margin-right:20px;".'
+                    . '"display:inline-block;">&#xf00d;</div>';
         }
 
-        $heading .= '<div style="vertical-align: text-bottom;display:inline-block;">' . $node->getHeading();
-        if ($node->getTitle() != null) {
-            $heading .= " '{$node->getTitle()}'";
+        $heading .= '<div style="vertical-align: text-bottom;display:inline-block;">' . $node->get_heading();
+        if ($node->get_title() != null) {
+            $heading .= " '{$node->get_title()}'";
         }
         $heading .= '</div>';
         $heading .= '</div><div style="text-align:right;vertical-align: text-bottom; width:30%;display:inline-block;">';
-        if (!is_null($node->getScore())) {
-            $score = round($node->getScore(), 2);
-            $maxScore = round($node->getMaxScore(), 2);
+        if (!is_null($node->get_score())) {
+            $score = round($node->get_score(), 2);
+            $maxscore = round($node->get_max_score(), 2);
 
-            if (!is_null($node->getMaxScore())) {
-                $heading .= "$score / $maxScore";
+            if (!is_null($node->get_max_score())) {
+                $heading .= "$score / $maxscore";
             } else {
                 $heading .= "Score: $score";
             }
         }
-        if ($node->isNullified()) {
+        if ($node->is_nullified()) {
             $heading .= ' (' . get_string('hasbeennullified', 'qtype_programmingtask') . ')';
         }
         $heading .= '</div>';
         return $heading;
     }
 
-    private function formatContent(separate_feedback_text_node $node) {
+    private function format_content(separate_feedback_text_node $node) {
 
         $content = '';
-        if ($node->getDescription() != null || ($node->getInternalDescription() != null && $this->displayTeacherContent)) {
-            if ($node->getDescription() != null) {
-                $content .= "<div><h4>" . get_string('testdescription', 'qtype_programmingtask') . "</h4><i><p>{$node->getDescription()}</p></i></div>";
+        if ($node->get_description() != null || ($node->get_internal_description() != null && $this->displayteachercontent)) {
+            if ($node->get_description() != null) {
+                $content .= "<div><h4>" . get_string('testdescription', 'qtype_programmingtask') .
+                        "</h4><i><p>{$node->get_description()}</p></i></div>";
             }
-            if ($this->displayTeacherContent && $node->getInternalDescription() != null) {
-                $content .= "<div><h4>" . get_string('internaldescription', 'qtype_programmingtask') . "</h4><i><p>{$node->getInternalDescription()}</p></i></div>";
+            if ($this->displayteachercontent && $node->get_internal_description() != null) {
+                $content .= "<div><h4>" . get_string('internaldescription', 'qtype_programmingtask') .
+                        "</h4><i><p>{$node->get_internal_description()}</p></i></div>";
             }
         }
 
-        if (!empty($node->getChildren())) {
-            if ($this->displayTeacherContent || $this->showStudentsScoreCalculationScheme) {
+        if (!empty($node->get_children())) {
+            if ($this->displayteachercontent || $this->showstudentsscorecalculationscheme) {
                 $content .= '<div align="right" style="margin-bottom: 10px">';
-                $subScores = [];
-                foreach ($node->getChildren() as $child) {
-                    $subScores[] = round($child->getScore(), 2);
+                $subscores = [];
+                foreach ($node->get_children() as $child) {
+                    $subscores[] = round($child->get_score(), 2);
                 }
-                $scoreCalc = '<small>' . get_string('scorecalculationscheme', 'qtype_programmingtask') . ': ' . round($node->getScore(), 2) . ' = ';
-                switch ($node->getAccumulatorFunction()) {
+                $scorecalc = '<small>' . get_string('scorecalculationscheme', 'qtype_programmingtask') . ': ' .
+                        round($node->get_score(), 2) . ' = ';
+                switch ($node->get_accumulator_function()) {
                     case 'min':
-                        $scoreCalc .= get_string('minimum', 'qtype_programmingtask') . ' {';
-                        $scoreCalc .= implode(', ', $subScores);
-                        $scoreCalc .= '}';
+                        $scorecalc .= get_string('minimum', 'qtype_programmingtask') . ' {';
+                        $scorecalc .= implode(', ', $subscores);
+                        $scorecalc .= '}';
                         break;
                     case 'max':
-                        $scoreCalc .= get_string('maximum', 'qtype_programmingtask') . ' {';
-                        $scoreCalc .= implode(', ', $subScores);
-                        $scoreCalc .= '}';
+                        $scorecalc .= get_string('maximum', 'qtype_programmingtask') . ' {';
+                        $scorecalc .= implode(', ', $subscores);
+                        $scorecalc .= '}';
                         break;
                     case 'sum':
-                        $scoreCalc .= implode(' + ', $subScores);
+                        $scorecalc .= implode(' + ', $subscores);
                         break;
                 }
-                $content .= "<i>$scoreCalc</i></small></div>";
+                $content .= "<i>$scorecalc</i></small></div>";
             }
 
-
             $content .= '<div>';
-            foreach ($node->getChildren() as $child) {
-                $content .= '<p>' . $this->renderInternal($child) . '</p>';
+            foreach ($node->get_children() as $child) {
+                $content .= '<p>' . $this->render_internal($child) . '</p>';
             }
             $content .= '</div>';
 
             return $content;
         } else {
-            if (!empty($node->getStudentFeedback())) {
+            if (!empty($node->get_student_feedback())) {
                 $content .= '<div><h4>' . get_string('feedback', 'qtype_programmingtask') . '</h4>';
-                foreach ($node->getStudentFeedback() as $studFeed) {
-                    if ($studFeed['title'] != null) {
-                        $content .= "<p><strong>{$studFeed['title']}</strong></p>";
+                foreach ($node->get_student_feedback() as $studfeed) {
+                    if ($studfeed['title'] != null) {
+                        $content .= "<p><strong>{$studfeed['title']}</strong></p>";
                     }
-                    $content .= "<p>{$studFeed['content']}</p>";
-                    $files = $studFeed['files'];
+                    $content .= "<p>{$studfeed['content']}</p>";
+                    $files = $studfeed['files'];
                     if (!empty($files['embeddedFiles'] || !empty($files['attachedFiles']))) {
                         $content .= '<p>' . get_string('files', 'qtype_programmingtask') . ':<br/><ul>';
                         foreach ($files['embeddedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['id'] . '/' . $file['filename']);
-                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question', proforma_RESPONSE_FILE_AREA_EMBEDDED . $this->fileinfos['fileareasuffix'], $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
+                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
+                                            proforma_RESPONSE_FILE_AREA_EMBEDDED . $this->fileinfos['fileareasuffix'],
+                                            $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
                         foreach ($files['attachedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['filename']);
-                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question', proforma_RESPONSE_FILE_AREA . $this->fileinfos['fileareasuffix'], $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
+                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
+                                            proforma_RESPONSE_FILE_AREA . $this->fileinfos['fileareasuffix'],
+                                            $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
                         $content .= '</ul></p>';
@@ -166,25 +182,29 @@ class separate_feedback_text_renderer {
                 }
                 $content .= '</div>';
             }
-            if (!empty($node->getTeacherFeedback()) && $this->displayTeacherContent) {
+            if (!empty($node->get_teacher_feedback()) && $this->displayteachercontent) {
                 $content .= '<div><h4>' . get_string('teacherfeedback', 'qtype_programmingtask') . '</h4>';
-                foreach ($node->getTeacherFeedback() as $teacherFeed) {
+                foreach ($node->get_teacher_feedback() as $teacherfeed) {
                     $content .= '<p>';
-                    if ($teacherFeed['title'] != null) {
-                        $content .= "<p><strong>{$teacherFeed['title']}</strong></p>";
+                    if ($teacherfeed['title'] != null) {
+                        $content .= "<p><strong>{$teacherfeed['title']}</strong></p>";
                     }
-                    $content .= "<p>{$teacherFeed['content']}</p>";
-                    $files = $teacherFeed['files'];
+                    $content .= "<p>{$teacherfeed['content']}</p>";
+                    $files = $teacherfeed['files'];
                     if (!empty($files['embeddedFiles'] || !empty($files['attachedFiles']))) {
                         $content .= '<p>' . get_string('files', 'qtype_programmingtask') . ':<br/><ul>';
                         foreach ($files['embeddedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['id'] . '/' . $file['filename']);
-                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question', proforma_RESPONSE_FILE_AREA_EMBEDDED . $this->fileinfos['fileareasuffix'], $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
+                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
+                                            proforma_RESPONSE_FILE_AREA_EMBEDDED . $this->fileinfos['fileareasuffix'],
+                                            $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
                         foreach ($files['attachedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['filename']);
-                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question', proforma_RESPONSE_FILE_AREA . $this->fileinfos['fileareasuffix'], $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
+                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
+                                            proforma_RESPONSE_FILE_AREA . $this->fileinfos['fileareasuffix'],
+                                            $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
                         $content .= '</ul></p>';

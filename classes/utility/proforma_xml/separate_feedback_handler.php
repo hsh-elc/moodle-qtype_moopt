@@ -1,10 +1,18 @@
 <?php
-
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace qtype_programmingtask\utility\proforma_xml;
 
@@ -14,40 +22,41 @@ defined('MOODLE_INTERNAL') || die();
 
 class separate_feedback_handler {
 
-    private $namespace_gradinghints;
-    private $namespace_feedback;
-    private $grading_hints;
-    private $tests_element;
-    private $separate_test_feedback;
-    private $grading_hints_combines;
-    private $grading_hints_root;
-    private $test_results;
+    private $namespacegradinghints;
+    private $namespacefeedback;
+    private $gradinghints;
+    private $testselement;
+    private $separatetestfeedback;
+    private $gradinghintscombines;
+    private $gradinghintsroot;
+    private $testresults;
     private $tests;
-    private $max_score_grading_hints;
-    private $max_score_lms;
-    private $score_compensation_factor;
-    private $calculatedScore;
-    private $detailedFeedback;
-    private $summarisedFeedback;
+    private $maxscoregradinghints;
+    private $maxscorelms;
+    private $scorecompensationfactor;
+    private $calculatedscore;
+    private $detailedfeedback;
+    private $summarisedfeedback;
     private $files;
-    private $feedback_files;
-    private $xpathTask;
-    private $xpathResponse;
+    private $feedbackfiles;
+    private $xpathtask;
+    private $xpathresponse;
 
-    public function __construct($grading_hints, \DOMElement $tests, \DOMElement $separate_test_feedback, \DOMElement $feedback_files, $namespace_gradinghints, $namespace_feedback, $max_score_lms, $xpathTask, $xpathResponse) {
-        $this->grading_hints = $grading_hints;
-        $this->tests_element = $tests;
-        $this->separate_test_feedback = $separate_test_feedback;
-        $this->namespace_gradinghints = $namespace_gradinghints;
-        $this->namespace_feedback = $namespace_feedback;
-        $this->max_score_lms = $max_score_lms;
-        $this->feedback_files = $feedback_files;
-        $this->xpathTask = $xpathTask;
-        $this->xpathResponse = $xpathResponse;
-        $this->score_compensation_factor = 1;
+    public function __construct($gradinghints, \DOMElement $tests, \DOMElement $separatetestfeedback, \DOMElement $feedbackfiles,
+            $namespacegradinghints, $namespacefeedback, $maxscorelms, $xpathtask, $xpathresponse) {
+        $this->gradinghints = $gradinghints;
+        $this->testselement = $tests;
+        $this->separatetestfeedback = $separatetestfeedback;
+        $this->namespacegradinghints = $namespacegradinghints;
+        $this->namespacefeedback = $namespacefeedback;
+        $this->maxscorelms = $maxscorelms;
+        $this->feedbackfiles = $feedbackfiles;
+        $this->xpathtask = $xpathtask;
+        $this->xpathresponse = $xpathresponse;
+        $this->scorecompensationfactor = 1;
 
-        $this->grading_hints_combines = [];
-        $this->test_results = [];
+        $this->gradinghintscombines = [];
+        $this->testresults = [];
         $this->tests = [];
         $this->files = [];
 
@@ -55,90 +64,98 @@ class separate_feedback_handler {
     }
 
     private function init() {
-        //Preprocess grading hints
-        if ($this->grading_hints != null) {
-            $this->grading_hints_root = $this->grading_hints->getElementsByTagNameNS($this->namespace_gradinghints, "root")[0];
-            foreach ($this->grading_hints->getElementsByTagNameNS($this->namespace_gradinghints, "combine") as $combine) {
-                $this->grading_hints_combines[$combine->getAttribute('id')] = $combine;
+        // Preprocess grading hints.
+        if ($this->gradinghints != null) {
+            $this->gradinghintsroot = $this->gradinghints->getElementsByTagNameNS($this->namespacegradinghints, "root")[0];
+            foreach ($this->gradinghints->getElementsByTagNameNS($this->namespacegradinghints, "combine") as $combine) {
+                $this->gradinghintscombines[$combine->getAttribute('id')] = $combine;
             }
         }
-        //Preprocess tests
-        foreach ($this->tests_element->getElementsByTagNameNS($this->namespace_gradinghints, "test") as $test) {
+        // Preprocess tests.
+        foreach ($this->testselement->getElementsByTagNameNS($this->namespacegradinghints, "test") as $test) {
             $this->tests[$test->getAttribute('id')] = $test;
         }
-        //Preprocess test feedback
-        $tests_responses = $this->separate_test_feedback->getElementsByTagNameNS($this->namespace_feedback, "tests-response")[0];
-        foreach ($tests_responses->getElementsByTagNameNS($this->namespace_feedback, "test-response") as $test_response) {
-            $subtests_response = $test_response->getElementsByTagNameNS($this->namespace_feedback, 'subtests-response');
-            if ($subtests_response->length == 0) {
-                //No subtests
-                $this->test_results[$test_response->getAttribute('id')] = $test_response->getElementsByTagNameNS($this->namespace_feedback, 'test-result')[0];
+        // Preprocess test feedback.
+        $testsresponses = $this->separatetestfeedback->getElementsByTagNameNS($this->namespacefeedback, "tests-response")[0];
+        foreach ($testsresponses->getElementsByTagNameNS($this->namespacefeedback, "test-response") as $testresponse) {
+            $subtestsresponse = $testresponse->getElementsByTagNameNS($this->namespacefeedback, 'subtests-response');
+            if ($subtestsresponse->length == 0) {
+                // No subtests.
+                $this->testresults[$testresponse->getAttribute('id')] = $testresponse->getElementsByTagNameNS(
+                                $this->namespacefeedback, 'test-result')[0];
             } else {
-                //Add an array of all subtests
+                // Add an array of all subtests.
                 $subtests = [];
-                foreach ($subtests_response[0]->getElementsByTagNameNS($this->namespace_feedback, 'subtest-response') as $subtest_response) {
-                    $subtests[$subtest_response->getAttribute('id')] = $subtest_response->getElementsByTagNameNS($this->namespace_feedback, 'test-result')[0];
+                foreach ($subtestsresponse[0]->getElementsByTagNameNS(
+                        $this->namespacefeedback, 'subtest-response') as $subtestresponse) {
+                    $subtests[$subtestresponse->getAttribute('id')] = $subtestresponse->getElementsByTagNameNS(
+                                    $this->namespacefeedback, 'test-result')[0];
                 }
-                $this->test_results[$test_response->getAttribute('id')] = $subtests;
+                $this->testresults[$testresponse->getAttribute('id')] = $subtests;
             }
         }
-        //Preprocess files
-        foreach ($this->feedback_files->getElementsByTagNameNS($this->namespace_feedback, "file") as $file) {
+        // Preprocess files.
+        foreach ($this->feedbackfiles->getElementsByTagNameNS($this->namespacefeedback, "file") as $file) {
             $this->files[$file->getAttribute('id')] = $file;
         }
 
-        if ($this->grading_hints_root != null && $this->has_children($this->grading_hints_root)) {
-            $grading_hints_helper = new grading_hints_helper($this->grading_hints, $this->namespace_gradinghints);
-            $this->max_score_grading_hints = $grading_hints_helper->calculate_max_score();
-            if (abs($this->max_score_grading_hints - $this->max_score_lms) > 1e-5) {
-                $this->score_compensation_factor = $this->max_score_lms / $this->max_score_grading_hints;
+        if ($this->gradinghintsroot != null && $this->has_children($this->gradinghintsroot)) {
+            $gradinghintshelper = new grading_hints_helper($this->gradinghints, $this->namespacegradinghints);
+            $this->maxscoregradinghints = $gradinghintshelper->calculate_max_score();
+            if (abs($this->maxscoregradinghints - $this->maxscorelms) > 1e-5) {
+                $this->scorecompensationfactor = $this->maxscorelms / $this->maxscoregradinghints;
             }
         }
     }
 
-    public function processResult() {
+    public function process_result() {
 
-        $this->detailedFeedback = new separate_feedback_text_node('detailed_feedback', get_string('detailedfeedback', 'qtype_programmingtask'));
-        if ($this->grading_hints_root != null && $this->has_children($this->grading_hints_root)) {
-            $this->fill_feedback_with_combine_node_infos($this->grading_hints_root, $this->detailedFeedback);
-            list($this->calculatedScore, $maxScore) = $this->calculate_from_children($this->grading_hints_root, $this->detailedFeedback);
-            $this->detailedFeedback->setMaxScore($maxScore);
+        $this->detailedfeedback = new separate_feedback_text_node('detailed_feedback',
+                get_string('detailedfeedback', 'qtype_programmingtask'));
+        if ($this->gradinghintsroot != null && $this->has_children($this->gradinghintsroot)) {
+            $this->fill_feedback_with_combine_node_infos($this->gradinghintsroot, $this->detailedfeedback);
+            list($this->calculatedscore, $maxscore) = $this->calculate_from_children($this->gradinghintsroot,
+                    $this->detailedfeedback);
+            $this->detailedfeedback->set_max_score($maxscore);
         } else {
-            $this->calculatedScore = $this->calculate_without_children($this->grading_hints_root, $this->detailedFeedback);
+            $this->calculatedscore = $this->calculate_without_children($this->gradinghintsroot, $this->detailedfeedback);
         }
 
-        $this->detailedFeedback->setScore($this->calculatedScore);
+        $this->detailedfeedback->set_score($this->calculatedscore);
 
-        $this->summarisedFeedback = new separate_feedback_text_node('summarised_feedback', get_string('summarizedfeedback', 'qtype_programmingtask'));
-        $this->fillFeedbackNodeWithFeedbackList($this->summarisedFeedback, $this->separate_test_feedback->getElementsByTagNameNS($this->namespace_feedback, 'submission-feedback-list')[0]);
+        $this->summarisedfeedback = new separate_feedback_text_node('summarised_feedback',
+                get_string('summarizedfeedback', 'qtype_programmingtask'));
+        $this->fill_feedback_node_with_feedback_list($this->summarisedfeedback,
+                $this->separatetestfeedback->getElementsByTagNameNS($this->namespacefeedback, 'submission-feedback-list')[0]);
     }
 
-    public function getCalculatedScore() {
-        return $this->calculatedScore;
+    public function get_calculated_score() {
+        return $this->calculatedscore;
     }
 
-    public function getDetailedFeedback(): separate_feedback_text_node {
-        return $this->detailedFeedback;
+    public function get_detailed_feedback(): separate_feedback_text_node {
+        return $this->detailedfeedback;
     }
 
-    public function getSummarisedFeedback(): separate_feedback_text_node {
-        return $this->summarisedFeedback;
+    public function get_summarised_feedback(): separate_feedback_text_node {
+        return $this->summarisedfeedback;
     }
 
     private function has_children(\DOMElement $elem) {
-        return $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'test-ref')->length + $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'combine-ref')->length != 0;
+        return $elem->getElementsByTagNameNS($this->namespacegradinghints, 'test-ref')->length +
+                $elem->getElementsByTagNameNS($this->namespacegradinghints, 'combine-ref')->length != 0;
     }
 
-    private function calculate_without_children($elem, separate_feedback_text_node $detailedFeedback) {
+    private function calculate_without_children($elem, separate_feedback_text_node $detailedfeedback) {
 
         $function = "min";
 
         if ($elem != null) {
-            if (($list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'description'))->length == 1) {
-                $detailedFeedback->setDescription($list[0]->nodeValue);
+            if (($list = $elem->getElementsByTagNameNS($this->namespacegradinghints, 'description'))->length == 1) {
+                $detailedfeedback->set_description($list[0]->nodeValue);
             }
-            if (($list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'internal-description'))->length == 1) {
-                $detailedFeedback->setInternalDescription($list[0]->nodeValue);
+            if (($list = $elem->getElementsByTagNameNS($this->namespacegradinghints, 'internal-description'))->length == 1) {
+                $detailedfeedback->set_internal_description($list[0]->nodeValue);
             }
 
             if ($elem->hasAttribute('function')) {
@@ -148,276 +165,295 @@ class separate_feedback_handler {
 
         switch ($function) {
             case 'min':
-                $initialValue = $totalScore = PHP_INT_MAX;
-                $merge_func = 'min';
+                $initialvalue = $totalscore = PHP_INT_MAX;
+                $mergefunc = 'min';
                 break;
             case 'max':
-                $initialValue = $totalScore = 0.0;
-                $merge_func = 'max';
+                $initialvalue = $totalscore = 0.0;
+                $mergefunc = 'max';
                 break;
             case 'sum':
-                $initialValue = $totalScore = 0.0;
-                $merge_func = function($a, $b) {
+                $initialvalue = $totalscore = 0.0;
+                $mergefunc = function($a, $b) {
                     return $a + $b;
                 };
                 break;
         }
-        $detailedFeedback->setAccumulatorFunction($function);
+        $detailedfeedback->set_accumulator_function($function);
 
-        foreach ($this->test_results as $key => $value) {
+        foreach ($this->testresults as $key => $value) {
 
-            $det_feed = new separate_feedback_text_node($key);
-            $detailedFeedback->addChild($det_feed);
+            $detfeed = new separate_feedback_text_node($key);
+            $detailedfeedback->add_child($detfeed);
 
-            //Get infos from tests
-            $det_feed->setTitle($this->tests[$key]->getElementsByTagNameNS($this->namespace_gradinghints, 'title')[0]->nodeValue);
-            if (($list = $this->tests[$key]->getElementsByTagNameNS($this->namespace_gradinghints, 'description'))->length == 1) {
-                $det_feed->setDescription($list[0]->nodeValue);
+            // Get infos from tests.
+            $detfeed->set_title($this->tests[$key]->getElementsByTagNameNS($this->namespacegradinghints, 'title')[0]->nodeValue);
+            if (($list = $this->tests[$key]->getElementsByTagNameNS($this->namespacegradinghints, 'description'))->length == 1) {
+                $detfeed->set_description($list[0]->nodeValue);
             }
-            if (($list = $this->tests[$key]->getElementsByTagNameNS($this->namespace_gradinghints, 'internal-description'))->length == 1) {
-                $det_feed->setInternalDescription($list[0]->nodeValue);
+            if (($list = $this->tests[$key]->getElementsByTagNameNS(
+                    $this->namespacegradinghints, 'internal-description'))->length == 1) {
+                $detfeed->set_internal_description($list[0]->nodeValue);
             }
 
             if (is_array($value)) {
-                //According to the specification there musst not be a subresult that is not specified in the grading hints. If we are here  we don't have any grading hints at all
-                //hence there musst not be any subresult.
-                throw new grappa_exception("Grader returned subresult(s) for test result with id '$key' but there were no subresults specified in the grading hints. According to the specification this is invalid behaviour. In fact there are no grading hints in the task at all.");
+                // According to the specification there musst not be a subresult that is not specified in the grading hints.
+                // If we are here  we don't have any grading hints at all
+                // hence there musst not be any subresult.
+                throw new grappa_exception("Grader returned subresult(s) for test result with id '$key' but there were no" .
+                        " subresults specified in the grading hints. According to the specification this is invalid behaviour." .
+                        " In fact there are no grading hints in the task at all.");
             } else {
-                $det_feed->setHeading(get_string('test', 'qtype_programmingtask'));
-                $result = $value->getElementsByTagNameNS($this->namespace_feedback, 'result')[0];
-                $score = $result->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
-                $this->fillFeedbackNodeWithFeedbackList($det_feed, $value->getElementsByTagNameNS($this->namespace_feedback, 'feedback-list')[0]);
-                $det_feed->setScore($score);
-                $totalScore = $merge_func($totalScore, $score);
+                $detfeed->set_heading(get_string('test', 'qtype_programmingtask'));
+                $result = $value->getElementsByTagNameNS($this->namespacefeedback, 'result')[0];
+                $score = $result->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
+                $this->fill_feedback_node_with_feedback_list($detfeed, $value->getElementsByTagNameNS(
+                                $this->namespacefeedback, 'feedback-list')[0]);
+                $detfeed->set_score($score);
+                $totalscore = $mergefunc($totalscore, $score);
 
                 if ($result->hasAttribute('is-internal-error') && $result->getAttribute('is-internal-error') == "true") {
-                    $det_feed->setHasInternalError(true);
-                    $detailedFeedback->setHasInternalError(true);
+                    $detfeed->set_has_internal_error(true);
+                    $detailedfeedback->set_has_internal_error(true);
                 }
             }
         }
 
-        return $totalScore;
+        return $totalscore;
     }
 
-    private function calculate_from_children(\DOMElement $elem, separate_feedback_text_node $detailedFeedback, $scale_score_to_lms = true) {
+    private function calculate_from_children(\DOMElement $elem, separate_feedback_text_node $detailedfeedback,
+            $scalescoretolms = true) {
         $function = "min";
         if ($elem->hasAttribute('function')) {
             $function = $elem->getAttribute('function');
         }
         switch ($function) {
             case 'min':
-                $value = $maxValue = PHP_INT_MAX;
-                $merge_func = 'min';
+                $value = $maxvalue = PHP_INT_MAX;
+                $mergefunc = 'min';
                 break;
             case 'max':
-                $value = $maxValue = 0;
-                $merge_func = 'max';
+                $value = $maxvalue = 0;
+                $mergefunc = 'max';
                 break;
             case 'sum':
-                $value = $maxValue = 0;
-                $merge_func = function($a, $b) {
+                $value = $maxvalue = 0;
+                $mergefunc = function($a, $b) {
                     return $a + $b;
                 };
                 break;
         }
-        $detailedFeedback->setAccumulatorFunction($function);
+        $detailedfeedback->set_accumulator_function($function);
         $counter = 0;
-        $internalErrorInChildren = false;
-        foreach ($elem->getElementsByTagNameNS($this->namespace_gradinghints, 'test-ref') as $testref) {
-            $det_feed = new separate_feedback_text_node($detailedFeedback->getId() . '_' . $counter++);
-            $detailedFeedback->addChild($det_feed);
+        $internalerrorinchildren = false;
+        foreach ($elem->getElementsByTagNameNS($this->namespacegradinghints, 'test-ref') as $testref) {
+            $detfeed = new separate_feedback_text_node($detailedfeedback->get_id() . '_' . $counter++);
+            $detailedfeedback->add_child($detfeed);
 
-            list($score, $maxScore) = $this->get_weighted_score_testref($testref, $det_feed, $scale_score_to_lms);
-            //Execute function and only later set score to 0 because the above function also fills the feedback elements
+            list($score, $maxscore) = $this->get_weighted_score_testref($testref, $detfeed, $scalescoretolms);
+            // Execute function and only later set score to 0 because the above function also fills the feedback elements.
             if ($this->should_be_nullified_elem($testref)) {
                 $score = 0;
-                $det_feed->setNullified(true);
+                $detfeed->set_nullified(true);
             }
-            $det_feed->setScore($score);
-            $det_feed->setMaxScore($maxScore);
+            $detfeed->set_score($score);
+            $detfeed->set_max_score($maxscore);
 
-            $value = $merge_func($value, $score);
-            $maxValue = $merge_func($maxValue, $maxScore);
+            $value = $mergefunc($value, $score);
+            $maxvalue = $mergefunc($maxvalue, $maxscore);
 
-            if ($det_feed->hasInternalError()) {
-                $internalErrorInChildren = true;
+            if ($detfeed->has_internal_error()) {
+                $internalerrorinchildren = true;
             }
         }
-        foreach ($elem->getElementsByTagNameNS($this->namespace_gradinghints, 'combine-ref') as $combineref) {
-            $det_feed = new separate_feedback_text_node($detailedFeedback->getId() . '_' . $counter++);
-            $detailedFeedback->addChild($det_feed);
+        foreach ($elem->getElementsByTagNameNS($this->namespacegradinghints, 'combine-ref') as $combineref) {
+            $detfeed = new separate_feedback_text_node($detailedfeedback->get_id() . '_' . $counter++);
+            $detailedfeedback->add_child($detfeed);
 
-            $det_feed->setHeading(get_string('combinedresult', 'qtype_programmingtask'));
-            $this->fill_feedback_with_combine_node_infos($this->grading_hints_combines[$combineref->getAttribute('ref')], $det_feed);
+            $detfeed->set_heading(get_string('combinedresult', 'qtype_programmingtask'));
+            $this->fill_feedback_with_combine_node_infos($this->gradinghintscombines[$combineref->getAttribute('ref')], $detfeed);
 
-            list($score, $maxScore) = $this->get_weighted_score_combineref($combineref, $det_feed, $scale_score_to_lms);
-            //Execute function and only later set score to 0 because the above function also processes the child elements
+            list($score, $maxscore) = $this->get_weighted_score_combineref($combineref, $detfeed, $scalescoretolms);
+            // Execute function and only later set score to 0 because the above function also processes the child elements.
             if ($this->should_be_nullified_elem($combineref)) {
                 $score = 0;
-                $det_feed->setNullified(true);
+                $detfeed->set_nullified(true);
             }
-            $det_feed->setScore($score);
-            $det_feed->setMaxScore($maxScore);
+            $detfeed->set_score($score);
+            $detfeed->set_max_score($maxscore);
 
-            $value = $merge_func($value, $score);
-            $maxValue = $merge_func($maxValue, $maxScore);
+            $value = $mergefunc($value, $score);
+            $maxvalue = $mergefunc($maxvalue, $maxscore);
 
-            if ($det_feed->hasInternalError()) {
-                $internalErrorInChildren = true;
+            if ($detfeed->has_internal_error()) {
+                $internalerrorinchildren = true;
             }
         }
 
-        if ($internalErrorInChildren) {
-            $detailedFeedback->setHasInternalError(true);
+        if ($internalerrorinchildren) {
+            $detailedfeedback->set_has_internal_error(true);
         }
 
-        return [$value, $maxValue];
+        return [$value, $maxvalue];
     }
 
-    private function get_weighted_score_combineref(\DOMElement $elem, separate_feedback_text_node $detailedFeedbackNode, $scale_score_to_lms = true) {
+    private function get_weighted_score_combineref(\DOMElement $elem, separate_feedback_text_node $detailedfeedbacknode,
+            $scalescoretolms = true) {
         $refid = $elem->getAttribute('ref');
-        $combine = $this->grading_hints_combines[$refid];
-        list($score, $maxScore) = $this->calculate_from_children($combine, $detailedFeedbackNode, $scale_score_to_lms);
+        $combine = $this->gradinghintscombines[$refid];
+        list($score, $maxscore) = $this->calculate_from_children($combine, $detailedfeedbacknode, $scalescoretolms);
         $weight = 1;
         if ($elem->hasAttribute('weight')) {
             $weight = $elem->getAttribute('weight');
         }
-        return [$score * $weight, $maxScore * $weight];
+        return [$score * $weight, $maxscore * $weight];
     }
 
-    private function fill_feedback_with_combine_node_infos(\DOMElement $elem, separate_feedback_text_node $detailedFeedbackNode) {
-        if (($list = $this->xpathTask->query('./p:title', $elem))->length == 1) {
-            $detailedFeedbackNode->setTitle($list[0]->nodeValue);
+    private function fill_feedback_with_combine_node_infos(\DOMElement $elem, separate_feedback_text_node $detailedfeedbacknode) {
+        if (($list = $this->xpathtask->query('./p:title', $elem))->length == 1) {
+            $detailedfeedbacknode->set_title($list[0]->nodeValue);
         }
-        if (($list = $this->xpathTask->query('./p:description', $elem))->length == 1) {
-            $detailedFeedbackNode->setDescription($list[0]->nodeValue);
+        if (($list = $this->xpathtask->query('./p:description', $elem))->length == 1) {
+            $detailedfeedbacknode->set_description($list[0]->nodeValue);
         }
-        if (($list = $this->xpathTask->query('./p:internal-description', $elem))->length == 1) {
-            $detailedFeedbackNode->setInternalDescription($list[0]->nodeValue);
+        if (($list = $this->xpathtask->query('./p:internal-description', $elem))->length == 1) {
+            $detailedfeedbacknode->set_internal_description($list[0]->nodeValue);
         }
     }
 
-    private function get_weighted_score_testref(\DOMElement $elem, separate_feedback_text_node $detailedFeedbackNode, $scale_score_to_lms = true) {
+    private function get_weighted_score_testref(\DOMElement $elem, separate_feedback_text_node $detailedfeedbacknode,
+            $scalescoretolms = true) {
         $refid = $elem->getAttribute('ref');
         if ($elem->hasAttribute('sub-ref')) {
-            $test_result = $this->test_results[$refid][$elem->getAttribute('sub-ref')];
+            $testresult = $this->testresults[$refid][$elem->getAttribute('sub-ref')];
         } else {
-            $test_result = $this->test_results[$refid];
-            if (is_array($test_result)) {
-                throw new grappa_exception("Grader returned subresult(s) for test result with id '$refid' but there were no subresults specified in the grading hints. According to the specification this is invalid behaviour");
+            $testresult = $this->testresults[$refid];
+            if (is_array($testresult)) {
+                throw new grappa_exception("Grader returned subresult(s) for test result with id '$refid' but there were no" .
+                        " subresults specified in the grading hints. According to the specification this is invalid behaviour");
             }
         }
-        $result = $test_result->getElementsByTagNameNS($this->namespace_feedback, 'result')[0];
-        $score = $result->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
+        $result = $testresult->getElementsByTagNameNS($this->namespacefeedback, 'result')[0];
+        $score = $result->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
         $weight = 1;
         if ($elem->hasAttribute('weight')) {
             $weight = $elem->getAttribute('weight');
         }
-        $detailedFeedbackNode->setHeading(get_string('test', 'qtype_programmingtask') . ' ');
-        $this->fillFeedbackNodeWithTestInfos($elem, $detailedFeedbackNode, $test_result);
+        $detailedfeedbacknode->set_heading(get_string('test', 'qtype_programmingtask') . ' ');
+        $this->fill_feedback_node_with_test_infos($elem, $detailedfeedbacknode, $testresult);
 
         if ($result->hasAttribute('is-internal-error')) {
-            $detailedFeedbackNode->setHasInternalError($result->getAttribute('is-internal-error') == "true");
+            $detailedfeedbacknode->set_has_internal_error($result->getAttribute('is-internal-error') == "true");
         }
 
-        if ($scale_score_to_lms) {
-            return [$score * $weight * $this->score_compensation_factor, $weight * $this->score_compensation_factor];
+        if ($scalescoretolms) {
+            return [$score * $weight * $this->scorecompensationfactor, $weight * $this->scorecompensationfactor];
         } else {
             return [$score * $weight, $weight];
         }
     }
 
-    private function fillFeedbackNodeWithTestInfos(\DOMElement $elem, separate_feedback_text_node $node, \DOMElement $testResult) {
+    private function fill_feedback_node_with_test_infos(\DOMElement $elem, separate_feedback_text_node $node,
+            \DOMElement $testresult) {
         $refid = $elem->getAttribute('ref');
-        if (($titleList = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'title'))->length == 1) {
-            $node->setTitle($titleList[0]->nodeValue);
+        if (($titlelist = $elem->getElementsByTagNameNS($this->namespacegradinghints, 'title'))->length == 1) {
+            $node->set_title($titlelist[0]->nodeValue);
         } else {
-            $node->setTitle($this->tests[$refid]->getElementsByTagNameNS($this->namespace_gradinghints, 'title')[0]->nodeValue);
+            $node->set_title($this->tests[$refid]->getElementsByTagNameNS($this->namespacegradinghints, 'title')[0]->nodeValue);
         }
-        if (($list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'description'))->length == 1) {
-            $node->setDescription($list[0]->nodeValue);
+        if (($list = $elem->getElementsByTagNameNS($this->namespacegradinghints, 'description'))->length == 1) {
+            $node->set_description($list[0]->nodeValue);
         } else {
-            if (($list = $this->tests[$refid]->getElementsByTagNameNS($this->namespace_gradinghints, 'description'))->length == 1) {
-                $node->setDescription($list[0]->nodeValue);
+            if (($list = $this->tests[$refid]->getElementsByTagNameNS($this->namespacegradinghints, 'description'))->length == 1) {
+                $node->set_description($list[0]->nodeValue);
             }
         }
-        if (($list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'internal-description'))->length == 1) {
-            $node->setInternalDescription($list[0]->nodeValue);
+        if (($list = $elem->getElementsByTagNameNS($this->namespacegradinghints, 'internal-description'))->length == 1) {
+            $node->set_internal_description($list[0]->nodeValue);
         } else {
-            if (($list = $this->tests[$refid]->getElementsByTagNameNS($this->namespace_gradinghints, 'internal-description'))->length == 1) {
-                $node->setInternalDescription($list[0]->nodeValue);
+            if (($list = $this->tests[$refid]->getElementsByTagNameNS(
+                    $this->namespacegradinghints, 'internal-description'))->length == 1) {
+                $node->set_internal_description($list[0]->nodeValue);
             }
         }
 
-        $this->fillFeedbackNodeWithFeedbackList($node, $testResult->getElementsByTagNameNS($this->namespace_feedback, 'feedback-list')[0]);
+        $this->fill_feedback_node_with_feedback_list($node, $testresult->getElementsByTagNameNS($this->namespacefeedback,
+                        'feedback-list')[0]);
     }
 
-    private function fillFeedbackNodeWithFeedbackList(separate_feedback_text_node $node, \DOMElement $feedback_list) {
-        foreach ($feedback_list->getElementsByTagNameNS($this->namespace_feedback, 'student-feedback') as $stud_feedback) {
-            $node->addStudentFeedback(
+    private function fill_feedback_node_with_feedback_list(separate_feedback_text_node $node, \DOMElement $feedbacklist) {
+        foreach ($feedbacklist->getElementsByTagNameNS($this->namespacefeedback, 'student-feedback') as $studfeedback) {
+            $node->add_student_feedback(
                     [
-                        "title" => ($tmp = $stud_feedback->getElementsByTagNameNS($this->namespace_feedback, 'title'))->length == 1 ? $tmp[0]->nodeValue : null,
-                        "content" => ($tmp = $stud_feedback->getElementsByTagNameNS($this->namespace_feedback, 'content'))->length == 1 ? $tmp[0]->nodeValue : null,
-                        "files" => $this->extractFileInfosFromFilerefs($stud_feedback)
+                        "title" => ($tmp = $studfeedback->getElementsByTagNameNS($this->namespacefeedback, 'title'))->length == 1 ?
+                                $tmp[0]->nodeValue : null,
+                        "content" => (
+                        $tmp = $studfeedback->getElementsByTagNameNS($this->namespacefeedback, 'content'))->length == 1 ?
+                                $tmp[0]->nodeValue : null,
+                        "files" => $this->extract_file_infos_from_filerefs($studfeedback)
                     ]
             );
         }
-        foreach ($feedback_list->getElementsByTagNameNS($this->namespace_feedback, 'teacher-feedback') as $teach_feedback) {
-            $node->addTeacherFeedback(
+        foreach ($feedbacklist->getElementsByTagNameNS($this->namespacefeedback, 'teacher-feedback') as $teachfeedback) {
+            $node->add_teacher_feedback(
                     [
-                        "title" => ($tmp = $teach_feedback->getElementsByTagNameNS($this->namespace_feedback, 'title'))->length == 1 ? $tmp[0]->nodeValue : null,
-                        "content" => ($tmp = $teach_feedback->getElementsByTagNameNS($this->namespace_feedback, 'content'))->length == 1 ? $tmp[0]->nodeValue : null,
-                        "files" => $this->extractFileInfosFromFilerefs($teach_feedback)
+                        "title" => ($tmp = $teachfeedback->getElementsByTagNameNS($this->namespacefeedback, 'title'))->length == 1 ?
+                                $tmp[0]->nodeValue : null,
+                        "content" => (
+                        $tmp = $teachfeedback->getElementsByTagNameNS($this->namespacefeedback, 'content'))->length == 1 ?
+                                $tmp[0]->nodeValue : null,
+                        "files" => $this->extract_file_infos_from_filerefs($teachfeedback)
                     ]
             );
         }
     }
 
-    private function extractFileInfosFromFilerefs(\DOMElement $elem) {
-        $embeddedFiles = [];
-        $attachedFiles = [];
-        if (($tmp = $elem->getElementsByTagNameNS($this->namespace_feedback, 'filerefs'))->length == 1) {
+    private function extract_file_infos_from_filerefs(\DOMElement $elem) {
+        $embeddedfiles = [];
+        $attachedfiles = [];
+        if (($tmp = $elem->getElementsByTagNameNS($this->namespacefeedback, 'filerefs'))->length == 1) {
             $filerefs = $tmp[0];
-            foreach ($filerefs->getElementsByTagNameNS($this->namespace_feedback, 'fileref') as $fileref) {
+            foreach ($filerefs->getElementsByTagNameNS($this->namespacefeedback, 'fileref') as $fileref) {
                 $refid = $fileref->getAttribute('refid');
                 $file = $this->files[$refid];
 
                 $elem = null;
-                if (($tmp = $file->getElementsByTagNameNS($this->namespace_feedback, 'embedded-bin-file'))->length == 1) {
+                if (($tmp = $file->getElementsByTagNameNS($this->namespacefeedback, 'embedded-bin-file'))->length == 1) {
                     $elem = $tmp[0];
-                } else if (($tmp = $file->getElementsByTagNameNS($this->namespace_feedback, 'embedded-txt-file'))->length == 1) {
+                } else if (($tmp = $file->getElementsByTagNameNS($this->namespacefeedback, 'embedded-txt-file'))->length == 1) {
                     $elem = $tmp[0];
                 }
                 if ($elem != null) {
-                    //embedded file
-                    $embeddedFiles[] = ['id' => $refid, 'filename' => $elem->getAttribute('filename'), 'title' => $file->getAttribute('title')];
+                    // Embedded file.
+                    $embeddedfiles[] = ['id' => $refid, 'filename' => $elem->getAttribute('filename'),
+                        'title' => $file->getAttribute('title')];
                     continue;
                 }
 
-                if (($tmp = $file->getElementsByTagNameNS($this->namespace_feedback, 'attached-bin-file'))->length == 1) {
+                if (($tmp = $file->getElementsByTagNameNS($this->namespacefeedback, 'attached-bin-file'))->length == 1) {
                     $elem = $tmp[0];
-                } else if (($tmp = $file->getElementsByTagNameNS($this->namespace_feedback, 'attached-txt-file'))->length == 1) {
+                } else if (($tmp = $file->getElementsByTagNameNS($this->namespacefeedback, 'attached-txt-file'))->length == 1) {
                     $elem = $tmp[0];
                 }
-                $attachedFiles[] = ['filename' => $elem->nodeValue, 'title' => $file->getAttribute('title')];
+                $attachedfiles[] = ['filename' => $elem->nodeValue, 'title' => $file->getAttribute('title')];
             }
         }
-        return ["embeddedFiles" => $embeddedFiles, "attachedFiles" => $attachedFiles];
+        return ["embeddedFiles" => $embeddedfiles, "attachedFiles" => $attachedfiles];
     }
 
-    //Nullifying from here on
+    // Nullifying from here on.
 
     private function should_be_nullified_elem(\DOMElement $elem): bool {
-        $nullify_condition_list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'nullify-condition');
-        if ($nullify_condition_list->length == 1) {
-            $nullify_condition = $nullify_condition_list[0];
-            return $this->should_be_nullified_single($nullify_condition);
+        $nullifyconditionlist = $elem->getElementsByTagNameNS($this->namespacegradinghints, 'nullify-condition');
+        if ($nullifyconditionlist->length == 1) {
+            $nullifycondition = $nullifyconditionlist[0];
+            return $this->should_be_nullified_single($nullifycondition);
         }
-        $nullify_conditions_list = $elem->getElementsByTagNameNS($this->namespace_gradinghints, 'nullify-conditions');
-        if ($nullify_conditions_list->length == 1) {
-            $nullify_conditions = $nullify_conditions_list[0];
-            return $this->should_be_nullified_composite($nullify_conditions);
+        $nullifyconditionslist = $elem->getElementsByTagNameNS($this->namespacegradinghints, 'nullify-conditions');
+        if ($nullifyconditionslist->length == 1) {
+            $nullifyconditions = $nullifyconditionslist[0];
+            return $this->should_be_nullified_composite($nullifyconditions);
         }
         return false;
     }
@@ -465,20 +501,21 @@ class separate_feedback_handler {
 
     private function get_nullify_combine_value(\DOMElement $elem): float {
         $refid = $elem->getAttribute('ref');
-        $combine = $this->grading_hints_combines[$refid];
-        $score = $this->calculate_from_children($combine, new separate_feedback_text_node('dummy') /* This is just a dummy object */, false);
+        $combine = $this->gradinghintscombines[$refid];
+        $score = $this->calculate_from_children($combine,
+                new separate_feedback_text_node('dummy') /* This is just a dummy object */, false);
         return $score;
     }
 
     private function get_nullify_test_value(\DOMElement $elem): float {
         $refid = $elem->getAttribute('ref');
         if ($elem->hasAttribute('sub-ref')) {
-            $test_result = $this->test_results[$refid][$elem->getAttribute('sub-ref')];
+            $testresult = $this->testresults[$refid][$elem->getAttribute('sub-ref')];
         } else {
-            $test_result = $this->test_results[$refid];
+            $testresult = $this->testresults[$refid];
         }
-        $score = $test_result->getElementsByTagNameNS($this->namespace_feedback, 'result')[0]
-                        ->getElementsByTagNameNS($this->namespace_feedback, 'score')[0]->nodeValue;
+        $score = $testresult->getElementsByTagNameNS($this->namespacefeedback, 'result')[0]->getElementsByTagNameNS(
+                        $this->namespacefeedback, 'score')[0]->nodeValue;
         return $score;
     }
 
@@ -489,20 +526,20 @@ class separate_feedback_handler {
     private function should_be_nullified_composite(\DOMElement $elem): bool {
         if ($elem->getAttribute('compose-op') == 'and') {
             $value = true;
-            $merge_func = function($prev, $next) {
+            $mergefunc = function($prev, $next) {
                 return $prev && $next;
             };
         } else {
             $value = false;
-            $merge_func = function($prev, $next) {
+            $mergefunc = function($prev, $next) {
                 return $prev || $next;
             };
         }
-        foreach ($elem->getElementsByTagNameNS($this->namespace_gradinghints, 'nullify-conditions') as $conditions) {
-            $value = $merge_func($value, $this->should_be_nullified_composite($conditions));
+        foreach ($elem->getElementsByTagNameNS($this->namespacegradinghints, 'nullify-conditions') as $conditions) {
+            $value = $mergefunc($value, $this->should_be_nullified_composite($conditions));
         }
-        foreach ($elem->getElementsByTagNameNS($this->namespace_gradinghints, 'nullify-condition') as $condition) {
-            $value = $merge_func($value, $this->should_be_nullified_single($condition));
+        foreach ($elem->getElementsByTagNameNS($this->namespacegradinghints, 'nullify-condition') as $condition) {
+            $value = $mergefunc($value, $this->should_be_nullified_single($condition));
         }
         return $value;
     }

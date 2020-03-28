@@ -1,10 +1,18 @@
 <?php
-
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace qtype_programmingtask\utility\proforma_xml;
 
@@ -14,44 +22,46 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
 
     const MIME_TYPE_TEXT_PATTERN = "#text/.*#";
 
-    public function createSubmissionXML(bool $includeTask, string $taskFilenameOrUUID, array $files, string $resultformat, string $resultstructure, $studentfeedbacklevel, $teacherfeedbacklevel,
-            $grading_hints, $grading_hints_namespace, $max_score_lms): string {
-        $this->initXMLWriterForDocument();
+    public function create_submission_xml(bool $includetask, string $taskfilenameoruuid, array $files, string $resultformat,
+            string $resultstructure, $studentfeedbacklevel, $teacherfeedbacklevel,
+            $gradinghints, $gradinghintsnamespace, $maxscorelms): string {
+        $this->init_xml_writer_for_document();
 
-        $xml = $this->xmlWriter;
+        $xml = $this->xmlwriter;
 
         $xml->startDocument('1.0', 'UTF-8');
         $xml->startElement('submission');
         $xml->writeAttribute('xmlns', proforma_TASK_XML_NAMESPACES[0]);
-        //TODO: Maybe add another namespace for grading hints if it differs from proforma_TASK_XML_NAMESPACES[0] because *in the future* there *might* be incompatibilities
+        // TODO: Maybe add another namespace for grading hints if it differs from proforma_TASK_XML_NAMESPACES[0] because *in the
+        // future* there *might* be incompatibilities.
 
-        if ($includeTask) {
+        if ($includetask) {
             $xml->startElement('included-task-file');
-            $xml->writeElement('attached-zip-file', $taskFilenameOrUUID);
+            $xml->writeElement('attached-zip-file', $taskfilenameoruuid);
             $xml->endElement();
         } else {
             $xml->startElement('external-task');
-            $xml->writeAttribute('uuid', $taskFilenameOrUUID);
+            $xml->writeAttribute('uuid', $taskfilenameoruuid);
             $xml->endElement();
         }
 
         if ($resultstructure == proforma_MERGED_FEEDBACK_TYPE) {
-            $grading_hints_helper = new grading_hints_helper($grading_hints, $grading_hints_namespace);
-            if (!$grading_hints_helper->isEmpty()) {
-                $max_score_grading_hints = $grading_hints_helper->calculate_max_score();
-                if (abs($max_score_grading_hints - $max_score_lms) > 1E-5) {
-                    $grading_hints_helper->adjust_weights($max_score_lms / $max_score_grading_hints);
-                    $this->writeDomElement($grading_hints);
+            $gradinghintshelper = new grading_hints_helper($gradinghints, $gradinghintsnamespace);
+            if (!$gradinghintshelper->is_empty()) {
+                $maxscoregradinghints = $gradinghintshelper->calculate_max_score();
+                if (abs($maxscoregradinghints - $maxscorelms) > 1E-5) {
+                    $gradinghintshelper->adjust_weights($maxscorelms / $maxscoregradinghints);
+                    $this->write_dom_element($gradinghints);
                 }
             }
         }
 
         $xml->startElement('files');
         foreach ($files as $filename => $file) {
-            $isStoredFile = $file instanceof stored_file;
+            $isstoredfile = $file instanceof stored_file;
             $xml->startElement('file');
-            $xml->writeAttribute('mimetype', $isStoredFile ? $file->get_mimetype() : 'text/*');
-            if (!$isStoredFile || preg_match($this::MIME_TYPE_TEXT_PATTERN, $file->get_mimetype())) {
+            $xml->writeAttribute('mimetype', $isstoredfile ? $file->get_mimetype() : 'text/*');
+            if (!$isstoredfile || preg_match($this::MIME_TYPE_TEXT_PATTERN, $file->get_mimetype())) {
                 $xml->writeElement('attached-txt-file', $filename);
             } else {
                 $xml->writeElement('attached-bin-file', $filename);
@@ -73,28 +83,28 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
         return $xml->outputMemory();
     }
 
-    private function writeDomElement($elem) {
+    private function write_dom_element($elem) {
         if ($elem->nodeType == XML_TEXT_NODE) {
-            //Only use this node if it contains not only whitespace
+            // Only use this node if it contains not only whitespace.
             $text = preg_replace('/\s+/', '', $elem->nodeValue);
             if (strlen($text) != 0) {
-                $this->xmlWriter->text($elem->nodeValue);
+                $this->xmlwriter->text($elem->nodeValue);
             }
             return;
         }
 
-        $this->xmlWriter->startElement($elem->localName);
+        $this->xmlwriter->startElement($elem->localName);
         foreach ($elem->attributes as $attrib) {
-            $this->xmlWriter->writeAttribute($attrib->nodeName, $attrib->nodeValue);
+            $this->xmlwriter->writeAttribute($attrib->nodeName, $attrib->nodeValue);
         }
         if ($elem->nodeType == XML_ELEMENT_NODE) {
             foreach ($elem->childNodes as $child) {
-                $this->writeDomElement($child);
+                $this->write_dom_element($child);
             }
         } else {
             throw new invalid_state_exception("Grading hints contain an unexpected node type");
         }
-        $this->xmlWriter->endElement();
+        $this->xmlwriter->endElement();
     }
 
 }

@@ -1,10 +1,18 @@
 <?php
-
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace qtype_programmingtask\utility\proforma_xml;
 
@@ -15,22 +23,22 @@ namespace qtype_programmingtask\utility\proforma_xml;
  */
 class grading_hints_helper {
 
-    private $grading_hints;
+    private $gradinghints;
     private $namespace;
-    private $grading_hints_combines;
+    private $gradinghintscombines;
 
-    public function __construct($grading_hints, $namespace) {
-        $this->grading_hints = $grading_hints;
+    public function __construct($gradinghints, $namespace) {
+        $this->gradinghints = $gradinghints;
         $this->namespace = $namespace;
-        if ($this->grading_hints != null) {
-            foreach ($this->grading_hints->getElementsByTagNameNS($namespace, "combine") as $combine) {
-                $this->grading_hints_combines[$combine->getAttribute('id')] = $combine;
+        if ($this->gradinghints != null) {
+            foreach ($this->gradinghints->getElementsByTagNameNS($namespace, "combine") as $combine) {
+                $this->gradinghintscombines[$combine->getAttribute('id')] = $combine;
             }
         }
     }
 
     public function calculate_max_score() {
-        return $this->calculate_max_score_internal($this->grading_hints->getElementsByTagNameNS($this->namespace, "root")[0]);
+        return $this->calculate_max_score_internal($this->gradinghints->getElementsByTagNameNS($this->namespace, "root")[0]);
     }
 
     private function calculate_max_score_internal(\DOMElement $elem) {
@@ -41,15 +49,15 @@ class grading_hints_helper {
         switch ($function) {
             case 'min':
                 $value = PHP_INT_MAX;
-                $merge_func = 'min';
+                $mergefunc = 'min';
                 break;
             case 'max':
                 $value = 0;
-                $merge_func = 'max';
+                $mergefunc = 'max';
                 break;
             case 'sum':
                 $value = 0;
-                $merge_func = function($a, $b) {
+                $mergefunc = function($a, $b) {
                     return $a + $b;
                 };
                 break;
@@ -61,27 +69,27 @@ class grading_hints_helper {
                 $weight = $testref->getAttribute('weight');
             }
 
-            $value = $merge_func($value, $weight);
+            $value = $mergefunc($value, $weight);
         }
         foreach ($elem->getElementsByTagNameNS($this->namespace, 'combine-ref') as $combineref) {
 
             $refid = $combineref->getAttribute('ref');
-            $combine = $this->grading_hints_combines[$refid];
-            $maxScore = $this->calculate_max_score_internal($combine);
+            $combine = $this->gradinghintscombines[$refid];
+            $maxscore = $this->calculate_max_score_internal($combine);
             $weight = 1;
             if ($combineref->hasAttribute('weight')) {
                 $weight = $combineref->getAttribute('weight');
             }
 
-            $value = $merge_func($value, $maxScore * $weight);
+            $value = $mergefunc($value, $maxscore * $weight);
         }
 
         return $value;
     }
 
     public function adjust_weights($factor) {
-        $this->adjust_weights_internal($this->grading_hints->getElementsByTagNameNS($this->namespace, "root")[0], $factor);
-        foreach ($this->grading_hints->getElementsByTagNameNS($this->namespace, "combine") as $combine) {
+        $this->adjust_weights_internal($this->gradinghints->getElementsByTagNameNS($this->namespace, "root")[0], $factor);
+        foreach ($this->gradinghints->getElementsByTagNameNS($this->namespace, "combine") as $combine) {
             $this->adjust_weights_internal($combine, $factor);
         }
     }
@@ -96,11 +104,13 @@ class grading_hints_helper {
         }
     }
 
-    public function isEmpty(): bool {
-        if ($this->grading_hints == null)
+    public function is_empty(): bool {
+        if ($this->gradinghints == null) {
             return true;
-        $root = $this->grading_hints->getElementsByTagNameNS($this->namespace, "root")[0];
-        return $root->getElementsByTagNameNS($this->namespace, "test-ref")->length == 0 && $root->getElementsByTagNameNS($this->namespace, "combine-ref")->length == 0;
+        }
+        $root = $this->gradinghints->getElementsByTagNameNS($this->namespace, "root")[0];
+        return $root->getElementsByTagNameNS($this->namespace, "test-ref")->length == 0 &&
+                $root->getElementsByTagNameNS($this->namespace, "combine-ref")->length == 0;
     }
 
 }

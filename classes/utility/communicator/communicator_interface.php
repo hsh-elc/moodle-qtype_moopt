@@ -1,20 +1,28 @@
 <?php
-
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace qtype_programmingtask\utility\communicator;
 
 interface communicator_interface {
 
-    public function getGraders(): array;
+    public function get_graders(): array;
 
-    public function isTaskCached($uuid): bool;
+    public function is_task_cached($uuid): bool;
 
-    public function enqueueSubmission(string $graderid, bool $asynch, \stored_file $submissionfile);
+    public function enqueue_submission(string $graderid, bool $asynch, \stored_file $submissionfile);
 
-    public function getGradingResult(string $graderid, string $gradeprocessid);
+    public function get_grading_result(string $graderid, string $gradeprocessid);
 }

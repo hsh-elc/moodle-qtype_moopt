@@ -17,7 +17,7 @@ if ($mform->is_cancelled()) {
     redirect(new moodle_url('/admin/category.php?category=qtypeprogrammingtaskfolder'));
 } else if ($data = $mform->get_data()) {
 
-    $graders = $mform->getGraders();
+    $graders = $mform->get_graders();
 
     foreach ($graders as $grader) {
         $lmsid = $data->{'lmsid_' . $grader->graderid};

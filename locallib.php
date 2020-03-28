@@ -366,7 +366,7 @@ function retrieve_grading_results($qubaid) {
  */
 function internal_retrieve_grading_results($qubaid) {
     global $DB, $USER;
-    $communicator = communicator_factory::getInstance();
+    $communicator = communicator_factory::get_instance();
     $fs = get_file_storage();
 
     $finishedGradingProcesses = [];
@@ -384,7 +384,7 @@ function internal_retrieve_grading_results($qubaid) {
         $initial_slot = $DB->get_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $record->questionattemptdbid], 'slot')->slot;
 
         try {
-            $response = $communicator->getGradingResult($record->graderid, $record->gradeprocessid);
+            $response = $communicator->get_grading_result($record->graderid, $record->gradeprocessid);
         } catch (invalid_response_exception $ex) {
             //There was a network error
             error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
@@ -513,9 +513,9 @@ function internal_retrieve_grading_results($qubaid) {
 
                                 $separate_feedback_helper = new separate_feedback_handler($grading_hints, $tests, $separate_test_feedback, $feedbackfiles, $taskxmlnamespace, $namespace, $quba->get_question_max_mark($slot), $xpathTask, $xpathResponse);
 
-                                $separate_feedback_helper->processResult();
-                                if (!$separate_feedback_helper->getDetailedFeedback()->hasInternalError()) {
-                                    $score = $separate_feedback_helper->getCalculatedScore();
+                                $separate_feedback_helper->process_result();
+                                if (!$separate_feedback_helper->get_detailed_feedback()->has_internal_error()) {
+                                    $score = $separate_feedback_helper->get_calculated_score();
                                 } else {
                                     $internalError = true;
                                 }
@@ -578,7 +578,7 @@ function internal_retrieve_grading_results($qubaid) {
 function retrieve_graders_and_update_local_list() {
     global $DB;
 
-    $graders = communicator_factory::getInstance()->getGraders();
+    $graders = communicator_factory::get_instance()->get_graders();
     $records = array();
     foreach ($graders['graders'] as $name => $id) {
         if (!$DB->record_exists('qtype_programmingtask_gradrs', array("graderid" => $id))) {

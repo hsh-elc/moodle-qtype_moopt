@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -27,6 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once(__DIR__ . '/../../locallib.php');
 
 use qtype_programmingtask\utility\proforma_xml\separate_feedback_handler;
+use qtype_programmingtask\output\separate_feedback_text_renderer;
 
 /**
  * Generates the output for programmingtask questions.
@@ -56,16 +56,16 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         $slot = $qa->get_slot();
         $questionid = $question->id;
 
-        //load ace scripts
+        // Load ace scripts.
         $plugindirrel = '/question/type/programmingtask';
         $PAGE->requires->js($plugindirrel . '/ace/ace.js');
         $PAGE->requires->js($plugindirrel . '/ace/ext-language_tools.js');
         $PAGE->requires->js($plugindirrel . '/ace/ext-modelist.js');
 
         if (empty($options->readonly)) {
-            $submissionarea = $this->renderSubmissionArea($qa, $options);
+            $submissionarea = $this->render_submission_area($qa, $options);
         } else {
-            $submissionarea = $this->renderFilesReadOnly($qa, $options);
+            $submissionarea = $this->render_files_read_only($qa, $options);
         }
         $o .= $this->output->heading(get_string('submission', 'qtype_programmingtask'), 3);
         $o .= html_writer::tag('div', $submissionarea, array('class' => 'submissionfilearea'));
@@ -73,25 +73,24 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         $PAGE->requires->js_call_amd('qtype_programmingtask/textareas', 'setupAllTAs');
 
         if (has_capability('mod/quiz:grade', $options->context) && $question->internaldescription != '') {
-            $internalDescription = $this->renderInternalDescription($question);
-            $o .= html_writer::tag('div', $internalDescription, array('class' => 'internaldescription'));
+            $internaldescription = $this->render_internal_description($question);
+            $o .= html_writer::tag('div', $internaldescription, array('class' => 'internaldescription'));
         }
 
-        $download_links = $this->renderDownloadLinks($qa, $options);
-        $o .= html_writer::tag('div', $download_links, array('class' => 'downloadlinks'));
-
+        $downloadlinks = $this->render_download_links($qa, $options);
+        $o .= html_writer::tag('div', $downloadlinks, array('class' => 'downloadlinks'));
 
         return $o;
     }
 
-    private function renderInternalDescription($question) {
+    private function render_internal_description($question) {
         $o = '';
         $o .= $this->output->heading(get_string('internaldescription', 'qtype_programmingtask'), 3);
         $o .= $question->internaldescription;
         return $o;
     }
 
-    private function renderDownloadLinks(question_attempt $qa, question_display_options $options) {
+    private function render_download_links(question_attempt $qa, question_display_options $options) {
         global $DB;
 
         $question = $qa->get_question();
@@ -112,7 +111,9 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                     continue;
                 }
                 $anythingtodisplay = true;
-                $url = moodle_url::make_pluginfile_url($question->contextid, 'question', $file->filearea, "$qubaid/$slot/$questionid", $file->filepath, $file->filename, in_array($file->usagebylms, array('download', 'edit')));
+                $url = moodle_url::make_pluginfile_url($question->contextid, 'question', $file->filearea,
+                                "$qubaid/$slot/$questionid", $file->filepath, $file->filename, in_array($file->usagebylms,
+                                        array('download', 'edit')));
                 $linkdisplay = ($file->filearea == proforma_ATTACHED_TASK_FILES_FILEAREA ? $file->filepath : '') . $file->filename;
                 $downloadurls .= '<li><a href="' . $url . '">' . $linkdisplay . '</a></li>';
             }
@@ -126,7 +127,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         return $o;
     }
 
-    private function renderFilesReadOnly(question_attempt $qa, question_display_options $options) {
+    private function render_files_read_only(question_attempt $qa, question_display_options $options) {
         global $DB, $PAGE;
 
         $rendered = '';
@@ -138,7 +139,9 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 $output = array();
 
                 foreach ($files as $file) {
-                    $output[] = html_writer::tag('p', html_writer::link($qa->get_response_file_url($file), $this->output->pix_icon(file_file_icon($file), get_mimetype_description($file), 'moodle', array('class' => 'icon')) . ' ' . s($file->get_filename())));
+                    $output[] = html_writer::tag('p', html_writer::link($qa->get_response_file_url($file),
+                                            $this->output->pix_icon(file_file_icon($file), get_mimetype_description($file),
+                                                    'moodle', array('class' => 'icon')) . ' ' . s($file->get_filename())));
                 }
                 $rendered .= $this->output->heading(get_string('files', 'qtype_programmingtask'), 4);
                 $rendered .= html_writer::div(implode($output), 'readonlysubmittedfiles');
@@ -154,21 +157,27 @@ class qtype_programmingtask_renderer extends qtype_renderer {
             for ($i = 0; $i < $qa->get_question()->ftsmaxnumfields; $i++) {
                 $text = $qa->get_last_qt_var("answertext$i");
                 if ($text) {
-                    list($filename, ) = $this->get_filename($qa->get_question()->id, $i, $qa->get_last_qt_var("answerfilename$i"), $qa->get_question()->ftsautogeneratefilenames);
+                    list($filename, ) = $this->get_filename($qa->get_question()->id, $i, $qa->get_last_qt_var("answerfilename$i"),
+                            $qa->get_question()->ftsautogeneratefilenames);
 
-                    $customOptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $qa->get_question()->id, 'inputindex' => $i]);
+                    $customoptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $qa->get_question()->id,
+                        'inputindex' => $i]);
 
                     $proglang = $defaultproglang;
-                    if ($customOptions && $customOptions->ftslang != 'default') {
-                        $proglang = $customOptions->ftslang;
+                    if ($customoptions && $customoptions->ftslang != 'default') {
+                        $proglang = $customoptions->ftslang;
                     }
 
                     $renderedfreetext .= html_writer::start_div('answertextreadonly');
-                    $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ' (' . proforma_ACE_PROGLANGS[$proglang] . ')' . ':');
-                    $renderedfreetext .= html_writer::tag('div', html_writer::tag('textarea', $text, array('id' => "answertext$i", 'style' => 'width: 100%;padding-left: 10px;height:400px;', 'class' => 'edit_code', 'data-lang' => $proglang, 'readonly' => '')));
+                    $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ' (' .
+                                    proforma_ACE_PROGLANGS[$proglang] . ')' . ':');
+                    $renderedfreetext .= html_writer::tag('div', html_writer::tag('textarea', $text, array('id' => "answertext$i",
+                                        'style' => 'width: 100%;padding-left: 10px;height:400px;', 'class' => 'edit_code',
+                                        'data-lang' => $proglang, 'readonly' => '')));
                     $renderedfreetext .= html_writer::end_div();
 
-                    $PAGE->requires->js_call_amd('qtype_programmingtask/userinterfacewrapper', 'newUiWrapper', ['ace', "answertext$i"]);
+                    $PAGE->requires->js_call_amd('qtype_programmingtask/userinterfacewrapper', 'newUiWrapper',
+                            ['ace', "answertext$i"]);
                 }
             }
 
@@ -181,14 +190,14 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         return $rendered;
     }
 
-    private function renderSubmissionArea(question_attempt $qa, question_display_options $options) {
+    private function render_submission_area(question_attempt $qa, question_display_options $options) {
         global $CFG, $DB, $PAGE;
         require_once($CFG->dirroot . '/lib/form/filemanager.php');
         require_once($CFG->dirroot . '/repository/lib.php');
 
         $questionoptions = $DB->get_record('qtype_programmingtask_optns', ['questionid' => $qa->get_question()->id]);
 
-        $renderedArea = '';
+        $renderedarea = '';
 
         if ($questionoptions->enablefilesubmissions) {
             $pickeroptions = new stdClass();
@@ -199,21 +208,21 @@ class qtype_programmingtask_renderer extends qtype_renderer {
             $fm = new form_filemanager($pickeroptions);
             $filesrenderer = $this->page->get_renderer('core', 'files');
 
-            //This is moodles weird way to express which file manager is responsible for which response variable
+            // This is moodles weird way to express which file manager is responsible for which response variable.
             $hidden = html_writer::empty_tag(
                             'input', array('type' => 'hidden', 'name' => $qa->get_qt_field_name('answerfiles'),
                         'value' => $pickeroptions->itemid));
 
-            $renderedArea .= $filesrenderer->render($fm) . $hidden;
+            $renderedarea .= $filesrenderer->render($fm) . $hidden;
         }
         if ($questionoptions->enablefreetextsubmissions) {
 
-            if ($renderedArea != '') {
-                $renderedArea .= html_writer::tag('hr', '');
+            if ($renderedarea != '') {
+                $renderedarea .= html_writer::tag('hr', '');
             }
 
             $autogeneratefilenames = $questionoptions->ftsautogeneratefilenames;
-            $maxIndexOfFieldWithContent = 0;
+            $maxindexoffieldwithcontent = 0;
 
             $defaultproglang = $questionoptions->ftsstandardlang;
 
@@ -222,85 +231,94 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 $answertextinputname = $qa->get_qt_field_name($answertextname);
                 $answertextid = $answertextinputname . '_id';
 
-                //$editor = editors_get_preferred_editor();
                 $answertextresponse = $qa->get_last_step_with_qt_var($answertextname)->get_qt_var($answertextname) ?? '';
-                //$editor->set_text($answertextresponse);
-                //$editor->use_editor($answertextid, ['context' => $options->context, 'autosave' => false]);
 
                 $filenamename = "answerfilename$i";
                 $filenameinputname = $qa->get_qt_field_name($filenamename);
                 $filenameid = $filenameinputname . '_id';
 
-                $customOptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $qa->get_question()->id, 'inputindex' => $i]);
+                $customoptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $qa->get_question()->id,
+                    'inputindex' => $i]);
 
                 $proglang = $defaultproglang;
-                if ($customOptions && $customOptions->ftslang != 'default') {
-                    $proglang = $customOptions->ftslang;
+                if ($customoptions && $customoptions->ftslang != 'default') {
+                    $proglang = $customoptions->ftslang;
                 }
 
-                list($filenameresponse, $disablefilenameinput) = $this->get_filename($qa->get_question()->id, $i, $qa->get_last_step_with_qt_var($filenamename)->get_qt_var($filenamename), $autogeneratefilenames);
+                list($filenameresponse, $disablefilenameinput) = $this->get_filename($qa->get_question()->id, $i,
+                        $qa->get_last_step_with_qt_var($filenamename)->get_qt_var($filenamename), $autogeneratefilenames);
 
                 $output = '';
-                $output .= html_writer::start_tag('div', array('class' => "qtype_programmingtask_answertext", 'id' => "qtype_programmingtask_answertext_$i", 'style' => 'display:none;'));
+                $output .= html_writer::start_tag('div', array('class' => "qtype_programmingtask_answertext",
+                            'id' => "qtype_programmingtask_answertext_$i",
+                            'style' => 'display:none;'));
                 $output .= html_writer::start_div('answertextfilename');
                 $output .= html_writer::label(get_string('filename', 'qtype_programmingtask') . ":", $filenameid);
-                $inputoptions = ['id' => $filenameid, 'name' => $filenameinputname, 'style' => 'width: 100%;padding-left: 10px;', 'value' => $filenameresponse];
+                $inputoptions = ['id' => $filenameid, 'name' => $filenameinputname, 'style' => 'width: 100%;padding-left: 10px;',
+                    'value' => $filenameresponse];
                 if ($disablefilenameinput) {
                     $inputoptions['disabled'] = true;
                 }
                 $output .= html_writer::tag('input', '', $inputoptions);
                 $output .= html_writer::end_div();
-                $output .= html_writer::div(get_string('yourcode', 'qtype_programmingtask') . ' (' . get_string('programminglanguage', 'qtype_programmingtask') . ': ' . proforma_ACE_PROGLANGS[$proglang] . '):');
-                $output .= html_writer::tag('div', html_writer::tag('textarea', $answertextresponse, array('id' => $answertextid, 'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height:250px;', 'class' => 'edit_code', 'data-lang' => $proglang)));
+                $output .= html_writer::div(get_string('yourcode', 'qtype_programmingtask') . ' (' .
+                                get_string('programminglanguage', 'qtype_programmingtask') . ': ' .
+                                proforma_ACE_PROGLANGS[$proglang] . '):');
+                $output .= html_writer::tag('div', html_writer::tag('textarea', $answertextresponse, array('id' => $answertextid,
+                                    'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height:250px;',
+                                    'class' => 'edit_code', 'data-lang' => $proglang)));
                 $output .= html_writer::end_tag('div');
 
-                $renderedArea .= $output;
+                $renderedarea .= $output;
 
                 if ($answertextresponse != '') {
-                    $maxIndexOfFieldWithContent = $i + 1;
+                    $maxindexoffieldwithcontent = $i + 1;
                 }
 
                 $PAGE->requires->js_call_amd('qtype_programmingtask/userinterfacewrapper', 'newUiWrapper', ['ace', $answertextid]);
             }
-            $renderedArea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
-            $renderedArea .= html_writer::tag('button', get_string('addanswertext', 'qtype_programmingtask'), ['id' => 'addAnswertextButton']);
-            $renderedArea .= html_writer::tag('button', get_string('removelastanswertext', 'qtype_programmingtask'), ['id' => 'removeLastAnswertextButton', 'style' => 'margin-left: 10px']);
-            $renderedArea .= html_writer::end_div();
+            $renderedarea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
+            $renderedarea .= html_writer::tag('button', get_string('addanswertext', 'qtype_programmingtask'),
+                            ['id' => 'addAnswertextButton']);
+            $renderedarea .= html_writer::tag('button', get_string('removelastanswertext', 'qtype_programmingtask'),
+                            ['id' => 'removeLastAnswertextButton', 'style' => 'margin-left: 10px']);
+            $renderedarea .= html_writer::end_div();
 
-            $PAGE->requires->js_call_amd('qtype_programmingtask/manage_answer_texts', 'init', [$questionoptions->ftsmaxnumfields, max($maxIndexOfFieldWithContent, $questionoptions->ftsnuminitialfields)]);
+            $PAGE->requires->js_call_amd('qtype_programmingtask/manage_answer_texts', 'init',
+                    [$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, $questionoptions->ftsnuminitialfields)]);
         }
 
-        if ($renderedArea == '') {
-            $noSubmissionPossible = get_string('nosubmissionpossible', 'qtype_programmingtask');
-            $renderedArea = "<div>$noSubmissionPossible</div>";
+        if ($renderedarea == '') {
+            $nosubmissionpossible = get_string('nosubmissionpossible', 'qtype_programmingtask');
+            $renderedarea = "<div>$nosubmissionpossible</div>";
         }
 
-        return $renderedArea;
+        return $renderedarea;
     }
 
     private function get_filename($questionid, $index, $usersuppliedname, $autogeneratefilenames) {
         global $DB;
 
-        $customOptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $questionid, 'inputindex' => $index]);
-        $filenameresponse = $usersuppliedname ?? '';         //Init with previous value
+        $customoptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $questionid, 'inputindex' => $index]);
+        $filenameresponse = $usersuppliedname ?? '';         // Init with previous value.
         if ($filenameresponse == '') {
             $temp = $index + 1;
             $filenameresponse = "File$temp.txt";
         }
         $disablefilenameinput = false;
-        if ($customOptions) {
-            if ($customOptions->presetfilename) {
-                $filenameresponse = $customOptions->filename;
+        if ($customoptions) {
+            if ($customoptions->presetfilename) {
+                $filenameresponse = $customoptions->filename;
                 $disablefilenameinput = true;
             }
-            //else use already set previous value
+            // Else use already set previous value.
         } else {
             if ($autogeneratefilenames) {
                 $temp = $index + 1;
                 $filenameresponse = "File$temp.txt";
                 $disablefilenameinput = true;
             }
-            //else use already set previous value
+            // Else use already set previous value.
         }
         return [$filenameresponse, $disablefilenameinput];
     }
@@ -320,23 +338,30 @@ class qtype_programmingtask_renderer extends qtype_renderer {
             $PAGE->requires->js_call_amd('qtype_programmingtask/change_display_name_of_redo_button', 'init');
 
             if ($qa->get_state() == question_state::$finished) {
-                $PAGE->requires->js_call_amd('qtype_programmingtask/pull_grading_status', 'init', [$qa->get_usage_id(), get_config("qtype_programmingtask", "grappa_client_polling_interval") * 1000 /* to milliseconds */]);
+                $PAGE->requires->js_call_amd('qtype_programmingtask/pull_grading_status', 'init', [$qa->get_usage_id(),
+                    get_config("qtype_programmingtask",
+                            "grappa_client_polling_interval") * 1000 /* to milliseconds */]);
                 $loader = '<div class="loader"></div>';
                 return html_writer::div(get_string('currentlybeeinggraded', 'qtype_programmingtask') . $loader, 'gradingstatus');
             } else if ($qa->get_state() == question_state::$needsgrading && !has_capability('mod/quiz:grade', $PAGE->context)) {
-                //If a teacher is looking at this feedback and we did receive a valid response but it has an internal-error-attribute we still want to display this result
+                // If a teacher is looking at this feedback and we did receive a valid response but it has an
+                // internal-error-attribute we still want to display this result.
                 return html_writer::div(get_string('needsgradingbyteacher', 'qtype_programmingtask'), 'gradingstatus');
-            } else if ($qa->get_state()->is_graded() || (has_capability('mod/quiz:grade', $PAGE->context) && $qa->get_state() == question_state::$needsgrading)) {
+            } else if ($qa->get_state()->is_graded() || (has_capability('mod/quiz:grade', $PAGE->context) &&
+                    $qa->get_state() == question_state::$needsgrading)) {
 
-                $quba_record = $DB->get_record('question_usages', ['id' => $qa->get_usage_id()]);
-                $initial_slot = $DB->get_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id()], 'slot')->slot;
+                $qubarecord = $DB->get_record('question_usages', ['id' => $qa->get_usage_id()]);
+                $initialslot = $DB->get_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id()],
+                                'slot')->slot;
 
                 $fs = get_file_storage();
 
                 $html = '';
 
-                $responseXmlFile = $fs->get_file($quba_record->contextid, 'question', proforma_RESPONSE_FILE_AREA . "_{$qa->get_database_id()}", $qa->get_usage_id(), "/", 'response.xml');
-                if ($responseXmlFile) {
+                $responsexmlfile = $fs->get_file($qubarecord->contextid, 'question', proforma_RESPONSE_FILE_AREA .
+                        "_{$qa->get_database_id()}", $qa->get_usage_id(),
+                        "/", 'response.xml');
+                if ($responsexmlfile) {
                     $doc = new DOMDocument();
 
                     set_error_handler(function($number, $error) {
@@ -345,7 +370,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                         }
                     });
                     try {
-                        $doc->loadXML($responseXmlFile->get_content());
+                        $doc->loadXML($responsexmlfile->get_content());
                     } catch (Exception $ex) {
                         $doc = false;
                     } finally {
@@ -356,101 +381,105 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                         if ($doc) {
                             $namespace = detect_proforma_namespace($doc);
 
-                            $separate_test_feedback_list = $doc->getElementsByTagNameNS($namespace, "separate-test-feedback");
+                            $separatetestfeedbacklist = $doc->getElementsByTagNameNS($namespace, "separate-test-feedback");
 
-                            if ($separate_test_feedback_list->length == 1) {
-                                //Separate test feedback
-                                $separate_test_feedback_elem = $separate_test_feedback_list[0];
+                            if ($separatetestfeedbacklist->length == 1) {
+                                // Separate test feedback.
+                                $separatetestfeedbackelem = $separatetestfeedbacklist[0];
 
-                                //Load task.xml to get grading hints and tests
+                                // Load task.xml to get grading hints and tests.
                                 $fs = get_file_storage();
                                 $taskxmlfile = $fs->get_file($qa->get_question()->contextid, 'question', proforma_TASKXML_FILEAREA,
                                         $qa->get_question()->id, '/', 'task.xml');
                                 $taskdoc = new DOMDocument();
                                 $taskdoc->loadXML($taskxmlfile->get_content());
                                 $taskxmlnamespace = detect_proforma_namespace($taskdoc);
-                                $grading_hints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
+                                $gradinghints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
                                 $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
                                 $feedbackfiles = $doc->getElementsByTagNameNS($namespace, "files")[0];
 
-                                $xpathTask = new DOMXPath($taskdoc);
-                                $xpathTask->registerNamespace('p', $taskxmlnamespace);
-                                $xpathResponse = new DOMXPath($doc);
-                                $xpathResponse->registerNamespace('p', $namespace);
+                                $xpathtask = new DOMXPath($taskdoc);
+                                $xpathtask->registerNamespace('p', $taskxmlnamespace);
+                                $xpathresponse = new DOMXPath($doc);
+                                $xpathresponse->registerNamespace('p', $namespace);
 
-                                $separate_feedback_helper = new separate_feedback_handler($grading_hints, $tests, $separate_test_feedback_elem, $feedbackfiles, $taskxmlnamespace, $namespace, $qa->get_max_mark(), $xpathTask, $xpathResponse);
-                                $separate_feedback_helper->processResult();
+                                $separatefeedbackhelper = new separate_feedback_handler($gradinghints, $tests,
+                                        $separatetestfeedbackelem, $feedbackfiles, $taskxmlnamespace, $namespace,
+                                        $qa->get_max_mark(), $xpathtask, $xpathresponse);
+                                $separatefeedbackhelper->process_result();
 
                                 $fileinfos = [
                                     'component' => 'question',
                                     'itemid' => $qa->get_usage_id(),
                                     'fileareasuffix' => "_{$qa->get_database_id()}",
-                                    'contextid' => $quba_record->contextid,
-                                    'filepath' => "/$initial_slot/{$qa->get_usage_id()}/"
+                                    'contextid' => $qubarecord->contextid,
+                                    'filepath' => "/$initialslot/{$qa->get_usage_id()}/"
                                 ];
 
-                                if (!$separate_feedback_helper->getDetailedFeedback()->hasInternalError() || has_capability('mod/quiz:grade', $PAGE->context)) {
-                                    $separate_feedback_renderer_summarised = new qtype_programmingtask\output\separate_feedback_text_renderer($separate_feedback_helper->getSummarisedFeedback(), has_capability('mod/quiz:grade', $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
-                                    $html .= '<p>' . $separate_feedback_renderer_summarised->render() . '</p>';
+                                if (!$separatefeedbackhelper->get_detailed_feedback()->has_internal_error() ||
+                                        has_capability('mod/quiz:grade', $PAGE->context)) {
+                                    $separatefeedbackrenderersummarised = new separate_feedback_text_renderer(
+                                            $separatefeedbackhelper->get_summarised_feedback(),
+                                            has_capability('mod/quiz:grade', $PAGE->context), $fileinfos,
+                                            $qa->get_question()->showstudscorecalcscheme);
+                                    $html .= '<p>' . $separatefeedbackrenderersummarised->render() . '</p>';
 
-                                    $separate_feedback_renderer_detailed = new qtype_programmingtask\output\separate_feedback_text_renderer($separate_feedback_helper->getDetailedFeedback(), has_capability('mod/quiz:grade', $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
-                                    $html .= '<p>' . $separate_feedback_renderer_detailed->render() . '</p>';
+                                    $separatefeedbackrendererdetailed = new separate_feedback_text_renderer(
+                                            $separatefeedbackhelper->get_detailed_feedback(), has_capability('mod/quiz:grade',
+                                                    $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
+                                    $html .= '<p>' . $separatefeedbackrendererdetailed->render() . '</p>';
                                 } else {
                                     $html .= '<p>' . get_string('needsgradingbyteacher', 'qtype_programmingtask') . '</p>';
                                 }
                             } else {
-                                //Merged test feedback
-                                $html .= html_writer::div($doc->getElementsByTagNameNS($namespace, "student-feedback")[0]->nodeValue, 'studentfeedback');
+                                // Merged test feedback.
+                                $html .= html_writer::div($doc->getElementsByTagNameNS(
+                                                        $namespace, "student-feedback")[0]->nodeValue, 'studentfeedback');
                                 if (has_capability('mod/quiz:grade', $PAGE->context)) {
                                     $html .= '<hr/>';
-                                    $html .= html_writer::div($doc->getElementsByTagNameNS($namespace, "teacher-feedback")[0]->nodeValue, 'teacherfeedback');
+                                    $html .= html_writer::div($doc->getElementsByTagNameNS(
+                                                            $namespace, "teacher-feedback")[0]->nodeValue, 'teacherfeedback');
                                 }
                             }
                         } else {
                             $html = html_writer::div('The response contains an invalid response.xml file', 'gradingstatus');
                         }
                     } catch (\qtype_programmingtask\exceptions\grappa_exception $ex) {
-                        //We did get a xml-valid response but something was still wrong. Display that message
+                        // We did get a xml-valid response but something was still wrong. Display that message.
                         $html = html_writer::div($ex->getMessage(), 'gradingstatus');
                     } catch (\exception $ex) {
-                        //Catch anything weird that might happend during processing of the response
-                        $html = html_writer::div($ex->getMessage(), 'gradingstatus') . html_writer::div($ex->getTraceAsString(), 'gradingstatus');
+                        // Catch anything weird that might happend during processing of the response.
+                        $html = html_writer::div($ex->getMessage(), 'gradingstatus') . html_writer::div($ex->getTraceAsString(),
+                                        'gradingstatus');
                     } catch (\Error $er) {
-                        //Catch anything weird that might happend during processing of the response
-                        $html = html_writer::div('Error code: ' . $er->getCode() . ". Message: " . $er->getMessage(), 'gradingstatus') . html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
+                        // Catch anything weird that might happend during processing of the response.
+                        $html = html_writer::div('Error code: ' . $er->getCode() . ". Message: " .
+                                        $er->getMessage(), 'gradingstatus') .
+                                html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
                     }
                 } else {
                     $html = html_writer::div('Response didn\'t contain response.xml file', 'gradingstatus');
                 }
-                //If teacher, display response.zip for download
+                // If teacher, display response.zip for download.
                 if (has_capability('mod/quiz:grade', $PAGE->context)) {
                     $slot = $qa->get_slot();
                     $responsefileinfos = array(
                         'component' => 'question',
                         'filearea' => proforma_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$qa->get_database_id()}",
                         'itemid' => "{$qa->get_usage_id()}/$slot/{$qa->get_usage_id()}",
-                        'contextid' => $quba_record->contextid,
+                        'contextid' => $qubarecord->contextid,
                         'filepath' => "/",
                         'filename' => 'response.zip');
-                    $url = moodle_url::make_pluginfile_url($responsefileinfos['contextid'], $responsefileinfos['component'], $responsefileinfos['filearea'], $responsefileinfos['itemid'], $responsefileinfos['filepath'], $responsefileinfos['filename'], true);
-                    $html .= "<a href='$url' style='display:block;text-align:right;'> <span style='font-family: FontAwesome; display:inline-block;margin-right: 5px'>&#xf019;</span> Download complete 'response.zip' file</a>";
+                    $url = moodle_url::make_pluginfile_url($responsefileinfos['contextid'], $responsefileinfos['component'],
+                                    $responsefileinfos['filearea'], $responsefileinfos['itemid'], $responsefileinfos['filepath'],
+                                    $responsefileinfos['filename'], true);
+                    $html .= "<a href='$url' style='display:block;text-align:right;'>" .
+                            " <span style='font-family: FontAwesome; display:inline-block;" .
+                            "margin-right: 5px'>&#xf019;</span> Download complete 'response.zip' file</a>";
                 }
                 return $html;
             }
         }
         return '';
     }
-
-    /**
-     * Generates an automatic description of the correct response to this question.
-     * Not all question types can do this. If it is not possible, this method
-     * should just return an empty string.
-     *
-     * @param question_attempt $qa the question attempt to display.
-     * @return string HTML fragment.
-     */
-    protected function correct_response(question_attempt $qa) {
-        return parent::correct_response($qa);
-    }
-
 }

@@ -1,10 +1,20 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+defined('MOODLE_INTERNAL') || die();
 
 namespace qtype_programmingtask\utility\communicator;
 
@@ -12,71 +22,74 @@ use qtype_programmingtask\exceptions\grappa_exception;
 
 require_once($CFG->libdir . '/filelib.php');
 
-defined('MOODLE_INTERNAL') || die();
+class grappa_communicator implements communicator_interface {
 
-class grappa_communicator implements communicator_interface{
-
-    private $grappa_url;
-    private $grappa_timeout;
+    private $grappaurl;
+    private $grappatimeout;
     private $lmsid;
     private $lmspw;
 
-    public function getGraders(): array {
-        $url = "{$this->grappa_url}/graders";
-        list($graders_json, $http_status_code) = $this->GETfromGrappa($url);
+    public function get_graders(): array {
+        $url = "{$this->grappaurl}/graders";
+        list($gradersjson, $httpstatuscode) = $this->get_from_grappa($url);
 
-        if ($http_status_code != 200) {
-            throw new grappa_exception("Received HTTP status code $http_status_code when accessing URL GET $url");
+        if ($httpstatuscode != 200) {
+            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL GET $url");
         }
-        return json_decode($graders_json, true);
+        return json_decode($gradersjson, true);
     }
 
-    public function isTaskCached($uuid): bool {
-        $url = "{$this->grappa_url}/tasks/$uuid";
-        list(, $http_status_code) = $this->HEADfromGrappa($url);
+    public function is_task_cached($uuid): bool {
+        $url = "{$this->grappaurl}/tasks/$uuid";
+        list(, $httpstatuscode) = $this->head_from_grappa($url);
 
-        if ($http_status_code == 200) {
+        if ($httpstatuscode == 200) {
             return true;
-        } else if ($http_status_code == 404) {
+        } else if ($httpstatuscode == 404) {
             return false;
         } else {
-            throw new grappa_exception("Received HTTP status code $http_status_code when accessing URL HEAD $url");
+            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL HEAD $url");
         }
     }
 
-    public function enqueueSubmission(string $graderid, bool $asynch, \stored_file $submissionfile) {
-        $url = "{$this->grappa_url}/{$this->lmsid}/gradeprocesses?graderid=$graderid&async=$asynch";
+    public function enqueue_submission(string $graderid, bool $asynch, \stored_file $submissionfile) {
+        $url = "{$this->grappaurl}/{$this->lmsid}/gradeprocesses?graderid=$graderid&async=$asynch";
         $params = array('submission' => $submissionfile);
 
-        list($response_json, $http_status_code) = $this->POSTtoGrappa($url, $params);
-        if ($http_status_code != 201 /* = CREATED */) {
-            throw new grappa_exception("Received HTTP status code $http_status_code when accessing URL POST $url");
+        list($responsejson, $httpstatuscode) = $this->post_to_grappa($url, $params);
+        if ($httpstatuscode != 201 /* = CREATED */) {
+            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL POST $url");
         }
-        return json_decode($response_json)->gradeProcessId;
+        return json_decode($responsejson)->gradeProcessId;
     }
 
-    public function getGradingResult(string $graderid, string $gradeprocessid) {
-        $url = "{$this->grappa_url}/$graderid/gradeprocesses/$gradeprocessid";
-        list($response, $http_status_code) = $this->GETfromGrappa($url);
-        if ($http_status_code == 202) {
+    public function get_grading_result(string $graderid, string $gradeprocessid) {
+        $url = "{$this->grappaurl}/$graderid/gradeprocesses/$gradeprocessid";
+        list($response, $httpstatuscode) = $this->get_from_grappa($url);
+        if ($httpstatuscode == 202) {
             return false;
-        } else if ($http_status_code == 200) {
+        } else if ($httpstatuscode == 200) {
             return $response;
         } else {
-            throw new grappa_exception("Received HTTP status code $http_status_code when accessing URL POST $url");
+            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL POST $url");
         }
     }
 
-    //#####################################
-    //utility functions to access grappa from here on
-    //#####################################
+    /*
+     *
+     *
+     * Utility functions to access grappa from here on
+     *
+     *
+     *
+     */
 
-    private function GETfromGrappa($url, $params = array(), $options = array()) {
+    private function get_from_grappa($url, $params = array(), $options = array()) {
         $curl = new \curl();
         if (!isset($options['CURLOPT_TIMEOUT'])) {
-            $options['CURLOPT_TIMEOUT'] = $this->grappa_timeout;
+            $options['CURLOPT_TIMEOUT'] = $this->grappatimeout;
         }
-        /**
+        /*
          *
          * TODO: AUTHENTICATION
          *
@@ -86,21 +99,21 @@ class grappa_communicator implements communicator_interface{
         $info = $curl->get_info();
         $errno = $curl->get_errno();
         if ($errno != 0) {
-            //errno indicates errors on transport level therefore this is almost certainly an error we do not want
-            //http errors need to be handled by each calling function individually
+            // Errno indicates errors on transport level therefore this is almost certainly an error we do not want
+            // http errors need to be handled by each calling function individually.
             throw new \invalid_response_exception("Error accessing GET $url;  CURL error code: $errno;  Error: {$curl->error}");
         }
 
         return array($response, $info['http_code']);
     }
 
-    private function HEADfromGrappa($url, $options = array()) {
+    private function head_from_grappa($url, $options = array()) {
         $curl = new \curl();
         if (!isset($options['CURLOPT_TIMEOUT'])) {
-            $options['CURLOPT_TIMEOUT'] = $this->grappa_timeout;
+            $options['CURLOPT_TIMEOUT'] = $this->grappatimeout;
         }
 
-        /**
+        /*
          *
          * TODO: AUTHENTICATION
          *
@@ -110,20 +123,20 @@ class grappa_communicator implements communicator_interface{
         $info = $curl->get_info();
         $errno = $curl->get_errno();
         if ($errno != 0) {
-            //errno indicates errors on transport level therefore this is almost certainly an error we do not want
-            //http errors need to be handled by each calling function individually
+            // Errno indicates errors on transport level therefore this is almost certainly an error we do not want
+            // http errors need to be handled by each calling function individually.
             throw new \invalid_response_exception("Error accessing HEAD $url;  CURL error code: $errno;  Error: {$curl->error}");
         }
 
         return array($response, $info['http_code']);
     }
 
-    private function POSTtoGrappa($url, $params = array(), $options = array()) {
+    private function post_to_grappa($url, $params = array(), $options = array()) {
         $curl = new \curl();
         if (!isset($options['CURLOPT_TIMEOUT'])) {
-            $options['CURLOPT_TIMEOUT'] = $this->grappa_timeout;
+            $options['CURLOPT_TIMEOUT'] = $this->grappatimeout;
         }
-        /**
+        /*
          *
          * TODO: AUTHENTICATION
          *
@@ -133,22 +146,26 @@ class grappa_communicator implements communicator_interface{
         $info = $curl->get_info();
         $errno = $curl->get_errno();
         if ($errno != 0) {
-            //errno indicates errors on transport level therefore this is almost certainly an error we do not want
-            //http errors need to be handled by each calling function individually
+            // Errno indicates errors on transport level therefore this is almost certainly an error we do not want
+            // http errors need to be handled by each calling function individually.
             throw new \invalid_response_exception("Error accessing POST $url;  CURL error code: $errno;  Error: {$curl->error}");
         }
 
         return array($response, $info['http_code']);
     }
 
-    //#####################################
-    //Singleton related code from here on
-    //#####################################
+    /*
+     *
+     *
+     * Singleton related code from here on
+     *
+     *
+     */
 
     protected function __construct() {
-        $this->grappa_url = get_config("qtype_programmingtask", "grappa_url");
-        $this->grappa_timeout = get_config("qtype_programmingtask", "grappa_timeout");
-        /**
+        $this->grappaurl = get_config("qtype_programmingtask", "grappa_url");
+        $this->grappatimeout = get_config("qtype_programmingtask", "grappa_timeout");
+        /*
          * TODO: Put both into some kind of config var?
          */
         $this->lmsid = "moodle";
@@ -157,7 +174,7 @@ class grappa_communicator implements communicator_interface{
 
     protected static $instance = null;
 
-    public static function getInstance(): grappa_communicator {
+    public static function get_instance(): grappa_communicator {
         if (self::$instance === null) {
             self::$instance = new self;
         }
@@ -165,7 +182,6 @@ class grappa_communicator implements communicator_interface{
     }
 
     protected function __clone() {
-        
     }
 
 }

@@ -188,7 +188,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
      */
     public function grade_response_asynch(question_attempt $qa, array $responsefiles, array $freetextanswers): question_state {
         global $DB;
-        $communicator = communicator_factory::getInstance();
+        $communicator = communicator_factory::get_instance();
         $fs = get_file_storage();
 
         //Get response files
@@ -203,7 +203,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
         }
 
         try {
-            $includeTaskFile = !$communicator->isTaskCached($this->taskuuid);
+            $includeTaskFile = !$communicator->is_task_cached($this->taskuuid);
         } catch (invalid_response_exception $ex) {
             //Not good but not severe either - just assume the task isn't cached and include it
             $includeTaskFile = true;
@@ -225,7 +225,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
 
         //Create the submission.xml file
         $submission_xml_creator = new proforma_submission_xml_creator();
-        $submissionXML = $submission_xml_creator->createSubmissionXML($includeTaskFile, $includeTaskFile ? $taskfilename : $this->taskuuid, $files, 'zip', proforma_MERGED_FEEDBACK_TYPE, 'info', 'debug', $grading_hints, $taskxmlnamespace, $qa->get_max_mark());
+        $submissionXML = $submission_xml_creator->create_submission_xml($includeTaskFile, $includeTaskFile ? $taskfilename : $this->taskuuid, $files, 'zip', proforma_MERGED_FEEDBACK_TYPE, 'info', 'debug', $grading_hints, $taskxmlnamespace, $qa->get_max_mark());
 
         //Load task file and add it to the files that go into the zip file
         if ($includeTaskFile) {
@@ -244,7 +244,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
 
         $returnState = question_state::$finished;
         try {
-            $gradeProcessId = $communicator->enqueueSubmission($this->graderid, 'true', $zip_file);
+            $gradeProcessId = $communicator->enqueue_submission($this->graderid, 'true', $zip_file);
             $DB->insert_record('qtype_programmingtask_grprcs', ['qubaid' => $qa->get_usage_id(), 'questionattemptdbid' => $qa->get_database_id(), 'gradeprocessid' => $gradeProcessId, 'graderid' => $this->graderid]);
             if (!$DB->record_exists('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id()])) {
                 //This will already exist when this is a regrade
