@@ -17,7 +17,7 @@ define(['jquery'], function ($) {
         },
 
         setContentsOfText: function (common_id, contents) {
-           $("[id^='" + common_id + "']").val(contents);
+            $("[id^='" + common_id + "']").val(contents);
         }
 
     };

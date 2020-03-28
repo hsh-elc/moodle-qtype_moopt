@@ -1,5 +1,6 @@
 /**
- * Module that contains functions in order to extract the necessary informations from a ProFormA-task and insert into the respective form elements.
+ * Module that contains functions in order to extract the necessary informations from a ProFormA-task and insert into
+ * the respective form elements.
  */
 
 /*global console */
@@ -21,7 +22,8 @@ define(['jquery', 'core/ajax',
                     var fileManager = $("#id_proformataskfileupload").parent();
                     var itemId = fileManager.find("[name='proformataskfileupload']")[0].value;
 
-                    ajax.call([{
+                    ajax.call([
+                        {
                             methodname: 'qtype_programmingtask_extract_task_infos_from_draft_file',
                             args: {itemid: itemId},
                             done: function (result) {
@@ -40,7 +42,8 @@ define(['jquery', 'core/ajax',
                                 var warnings = '';
                                 if (typeof result.moodleValidationWarnings !== 'undefined') {
                                     if (typeof result.moodleValidationProformaNamespace !== 'undefined') {
-                                        warnings = '<p>Detected ProFormA-version ' + result.moodleValidationProformaNamespace + '. Found the following problems during validation but still continued:</p><ul>';
+                                        warnings = '<p>Detected ProFormA-version ' + result.moodleValidationProformaNamespace +
+                                                '. Found the following problems during validation but still continued:</p><ul>';
                                         result.moodleValidationWarnings.forEach(function (e) {
                                             warnings += '<li>' + e + '</li>';
                                         });
@@ -55,9 +58,11 @@ define(['jquery', 'core/ajax',
                             fail: function (errorObject) {
                                 console.log(errorObject);
                                 $("#id_error_ajaxerrorlabel").parent().children().first().
-                                        html('<div>' + errorObject.debuginfo + '</div><div> For more information see browser console.</div>');
+                                        html('<div>' + errorObject.debuginfo + '</div><div> For more information see browser '
+                                                + 'console.</div>');
                             }
-                        }]);
+                        }
+                    ]);
                 }
 
             };

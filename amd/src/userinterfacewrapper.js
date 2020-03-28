@@ -1,4 +1,4 @@
-//Copied from https://github.com/trampgeek/moodle-qtype_coderunner and adjusted to our needs
+// Copied from https://github.com/trampgeek/moodle-qtype_coderunner and adjusted to our needs.
 
 /******************************************************************************
  *
@@ -132,7 +132,7 @@ define(['jquery'], function ($) {
                 params,
                 t = this; // For use by embedded functions.
 
-        this.GUTTER = 14;  // Size of gutter at base of wrapper Node (pixels)
+        this.GUTTER = 14;  // Size of gutter at base of wrapper Node (pixels).
         this.MIN_WRAPPER_HEIGHT = 50;
 
         this.taId = textareaId;
@@ -148,7 +148,7 @@ define(['jquery'], function ($) {
         this.readOnly = this.textArea.prop('readonly');
         this.isLoading = false;  // True if we're busy loading a UI element
         this.loadFailed = false;  // True if UI failed to initialise properly
-        this.retries = 0;        // Number of failed attempts to load a UI component
+        this.retries = 0;        // Number of failed attempts to load a UI component.
 
         h = Math.max(parseInt(this.textArea.css("height")), this.MIN_WRAPPER_HEIGHT);
 
@@ -172,9 +172,9 @@ define(['jquery'], function ($) {
 
         // Load the UI into the wrapper (aysnchronous).
         this.uiInstance = null;  // Defined by loadUi asynchronously
-        this.loadUi(uiname, this.templateParams);  // Load the required UI element
+        this.loadUi(uiname, this.templateParams);  // Load the required UI element.
 
-        // Add event handlers
+        // Add event handlers.
         $(document).mousemove(function () {
             t.checkForResize();
         });
@@ -192,12 +192,11 @@ define(['jquery'], function ($) {
                 if (t.uiInstance !== null || t.loadFailed) {
                     t.stop();
                 } else {
-                    t.restart();        // Reactivate
+                    t.restart();        // Reactivate.
                 }
             }
         });
     }
-
 
     InterfaceWrapper.prototype.loadUi = function (uiname, params) {
         // Load the specified UI element (which in the case of Ace will need
@@ -215,7 +214,7 @@ define(['jquery'], function ($) {
             // Get the given language string and plug it into the given jQuery
             // div element as its html, plus a 'fallback' message on a separate line.
             require(['core/str'], function (str) {
-                // Get langString text via AJAX
+                // Get langString text via AJAX.
                 var
                         s = str.get_string(langString, 'qtype_programmingtask'),
                         fallback = str.get_string('ui_fallback', 'qtype_programmingtask');
@@ -225,7 +224,7 @@ define(['jquery'], function ($) {
             });
         }
 
-        if (this.isLoading) {  // Oops, we're loading a UI element already
+        if (this.isLoading) {  // Oops, we're loading a UI element already.
             this.retries += 1;
             if (this.retries > 20) {
                 alert(errPart1 + uiname + errPart2);
@@ -234,14 +233,14 @@ define(['jquery'], function ($) {
             } else {
                 setTimeout(function () {
                     t.loadUi(uiname, params);
-                }, 200); // Try again in 200 msecs
+                }, 200); // Try again in 200 msecs.
             }
             return;
         }
         this.retries = 0;
-        this.params = params;  // Save in case need to restart
+        this.params = params;  // Save in case need to restart.
 
-        this.stop();  // Kill any active UI first
+        this.stop();  // Kill any active UI first.
         this.uiname = uiname;
 
         if (this.uiname === '' || this.uiname === 'none' || sessionStorage.getItem('disableUis')) {
@@ -266,10 +265,10 @@ define(['jquery'], function ($) {
                             loadFailDiv = '<div id="' + t.loadFailId + '"class="uiloadfailed"></div>';
                             jqLoadFailDiv = $(loadFailDiv);
                             jqLoadFailDiv.insertBefore(t.textArea);
-                            setLoadFailMessage(uiInstance.failMessage(), jqLoadFailDiv);  // Insert error by AJAX
+                            setLoadFailMessage(uiInstance.failMessage(), jqLoadFailDiv);  // Insert error by AJAX.
                         } else {
                             t.hLast = 0;  // Force resize (and hence redraw)
-                            t.wLast = 0;  // ... on first call to checkForResize
+                            t.wLast = 0;  // ... on first call to checkForResize.
                             t.textArea.hide();
                             t.wrapperNode.show();
                             t.wrapperNode.append(uiInstance.getElement());
@@ -281,7 +280,6 @@ define(['jquery'], function ($) {
                     });
         }
     };
-
 
     InterfaceWrapper.prototype.stop = function () {
         // Disable (shutdown) the embedded ui component.
@@ -297,26 +295,23 @@ define(['jquery'], function ($) {
             this.wrapperNode.hide();
         }
         this.loadFailed = false;
-        this.textArea.removeClass('uiloadfailed'); // Just in case it failed before
+        this.textArea.removeClass('uiloadfailed'); // Just in case it failed before.
         $(document.getElementById(this.loadFailId)).remove();
     };
-
 
     InterfaceWrapper.prototype.restart = function () {
         // Re-enable the ui element (e.g. after alt-cntrl-M). This is
         // a full re-initialisation of the ui element.
         if (this.uiInstance === null) {
-            // Restart the UI component in the textarea
+            // Restart the UI component in the textarea.
             this.loadUi(this.uiname, this.params);
         }
     };
 
-
-
     InterfaceWrapper.prototype.checkForResize = function () {
         // Check for wrapper resize - propagate to ui element.
         var h, hAdjusted, w, wAdjusted, xLeft, maxWidth;
-        var SIZE_HACK = 25;  // Horrible but best I can do. TODO: FIXME
+        var SIZE_HACK = 25;  // Horrible but best I can do. TODO: FIXME.
 
         if (this.uiInstance) {
             h = this.wrapperNode.innerHeight();
@@ -346,7 +341,6 @@ define(['jquery'], function ($) {
             return null;
         }
     }
-
 
     return {
         newUiWrapper: newUiWrapper,

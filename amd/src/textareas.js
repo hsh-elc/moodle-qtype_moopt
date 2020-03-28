@@ -1,6 +1,6 @@
-//Copied from https://github.com/trampgeek/moodle-qtype_coderunner and adjusted to our needs
+// Copied from https://github.com/trampgeek/moodle-qtype_coderunner and adjusted to our needs.
 
-// // This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by

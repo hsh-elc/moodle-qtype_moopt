@@ -1,11 +1,13 @@
-define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/str'], function ($, ajax, ModalFactory, ModalEvents, Strings) {
+define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/str'],
+function ($, ajax, ModalFactory, ModalEvents, Strings) {
 
     var timer;
     var qubaid;
     var isCurrentlyShowingModal = false;
 
     function checkGradingFinished() {
-        ajax.call([{
+        ajax.call([
+            {
                 methodname: 'qtype_programmingtask_retrieve_grading_results',
                 args: {qubaid: qubaid},
                 done: function (result) {
@@ -16,7 +18,8 @@ define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/
                 fail: function (errorObject) {
                     console.log(errorObject);
                 }
-            }]);
+            }
+        ]);
     }
 
     function showReloadModal() {
@@ -25,16 +28,19 @@ define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/
         }
         isCurrentlyShowingModal = true;
 
-        var strings = [{
-                key: 'reloadpage',
-                component: 'qtype_programmingtask'
-            }, {
-                key: 'gradeprocessfinished',
-                component: 'qtype_programmingtask'
-            }, {
-                key: 'reload',
-                component: 'qtype_programmingtask'
-            }];
+        var strings = [
+        {
+            key: 'reloadpage',
+            component: 'qtype_programmingtask'
+        },
+        {
+            key: 'gradeprocessfinished',
+            component: 'qtype_programmingtask'
+        },
+        {
+            key: 'reload',
+            component: 'qtype_programmingtask'
+        }];
 
         Strings.get_strings(strings).then(function (values) {
             ModalFactory.create({
@@ -61,8 +67,8 @@ define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/
     return {
 
         init: function (qubaid_param, polling_interval) {
-            //Don't show the retry button yet
-            $( "input[name='redoslot2']" ).remove();
+            // Don't show the retry button yet.
+            $("input[name='redoslot2']").remove();
 
             qubaid = qubaid_param;
             if (typeof timer === 'undefined') {

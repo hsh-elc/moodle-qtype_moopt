@@ -1,6 +1,6 @@
-//Copied from https://github.com/trampgeek/moodle-qtype_coderunner and adjusted to our needs
+// Copied from https://github.com/trampgeek/moodle-qtype_coderunner and adjusted to our needs.
 
-// // This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@
 define(['jquery'], function ($) {
 
     function AceWrapper(textareaId, w, h, params) {
-        // Constructor for the Ace interface object
+        // Constructor for the Ace interface object.
 
         var textarea = $(document.getElementById(textareaId)),
                 focused = textarea[0] === document.activeElement,
@@ -59,8 +59,7 @@ define(['jquery'], function ($) {
             this.capturingTab = false;
             this.clickInProgress = false;
 
-
-            this.editNode = $("<div></div>"); // Ace editor manages this
+            this.editNode = $("<div></div>"); // Ace editor manages this.
             this.editNode.css({
                 resize: 'none',
                 height: h,
@@ -109,11 +108,10 @@ define(['jquery'], function ($) {
             this.aceTextarea.attr('id', 'ace_' + textareaId);
             this.fail = false;
         } catch (err) {
-            // Something ugly happened. Probably ace editor hasn't been loaded
+            // Something ugly happened. Probably ace editor hasn't been loaded.
             this.fail = true;
         }
     }
-
 
     AceWrapper.prototype.failed = function () {
         return this.fail;
@@ -123,12 +121,10 @@ define(['jquery'], function ($) {
         return 'ace_ui_notready';
     };
 
-
-    // Sync to TextArea
+    // Sync to TextArea.
     AceWrapper.prototype.sync = function () {
-        // Nothing to do ... always sync'd
+        // Nothing to do ... always sync'd.
     };
-
 
     AceWrapper.prototype.setLanguage = function (language) {
         var session = this.editor.getSession(),
@@ -209,9 +205,9 @@ define(['jquery'], function ($) {
     AceWrapper.prototype.destroy = function () {
         var focused;
         if (!this.fail) {
-            // Proceed only if this wrapper was correctly constructed
+            // Proceed only if this wrapper was correctly constructed.
             focused = this.editor.isFocused();
-            this.textarea.val(this.editor.getSession().getValue()); // Copy data back
+            this.textarea.val(this.editor.getSession().getValue()); // Copy data back.
             this.editor.destroy();
             $(this.editNode).remove();
             if (focused) {
@@ -227,14 +223,13 @@ define(['jquery'], function ($) {
 
     AceWrapper.prototype.findMode = function (language) {
         var candidate,
-                filename,
-                result,
-                candidates = [], // List of candidate modes.
-                nameMap = {
-                    'octave': 'matlab',
-                    'nodejs': 'javascript',
-                    'c#': 'cs'
-                };
+            filename,
+            result,
+            candidates = [], // List of candidate modes.
+            nameMap = {
+                'octave': 'matlab',
+                'nodejs': 'javascript',
+                'c#': 'cs'};
 
         if (typeof language !== 'string') {
             return undefined;
