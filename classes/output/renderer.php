@@ -114,7 +114,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 $url = moodle_url::make_pluginfile_url($question->contextid, 'question', $file->filearea,
                                 "$qubaid/$slot/$questionid", $file->filepath, $file->filename, in_array($file->usagebylms,
                                         array('download', 'edit')));
-                $linkdisplay = ($file->filearea == proforma_ATTACHED_TASK_FILES_FILEAREA ? $file->filepath : '') . $file->filename;
+                $linkdisplay = ($file->filearea == PROFORMA_ATTACHED_TASK_FILES_FILEAREA ? $file->filepath : '') . $file->filename;
                 $downloadurls .= '<li><a href="' . $url . '">' . $linkdisplay . '</a></li>';
             }
             $downloadurls .= '</ul>';
@@ -170,7 +170,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
 
                     $renderedfreetext .= html_writer::start_div('answertextreadonly');
                     $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ' (' .
-                                    proforma_ACE_PROGLANGS[$proglang] . ')' . ':');
+                                    PROFORMA_ACE_PROGLANGS[$proglang] . ')' . ':');
                     $renderedfreetext .= html_writer::tag('div', html_writer::tag('textarea', $text, array('id' => "answertext$i",
                                         'style' => 'width: 100%;padding-left: 10px;height:400px;', 'class' => 'edit_code',
                                         'data-lang' => $proglang, 'readonly' => '')));
@@ -263,7 +263,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 $output .= html_writer::end_div();
                 $output .= html_writer::div(get_string('yourcode', 'qtype_programmingtask') . ' (' .
                                 get_string('programminglanguage', 'qtype_programmingtask') . ': ' .
-                                proforma_ACE_PROGLANGS[$proglang] . '):');
+                                PROFORMA_ACE_PROGLANGS[$proglang] . '):');
                 $output .= html_writer::tag('div', html_writer::tag('textarea', $answertextresponse, array('id' => $answertextid,
                                     'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height:250px;',
                                     'class' => 'edit_code', 'data-lang' => $proglang)));
@@ -358,7 +358,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
 
                 $html = '';
 
-                $responsexmlfile = $fs->get_file($qubarecord->contextid, 'question', proforma_RESPONSE_FILE_AREA .
+                $responsexmlfile = $fs->get_file($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
                         "_{$qa->get_database_id()}", $qa->get_usage_id(),
                         "/", 'response.xml');
                 if ($responsexmlfile) {
@@ -389,7 +389,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
 
                                 // Load task.xml to get grading hints and tests.
                                 $fs = get_file_storage();
-                                $taskxmlfile = $fs->get_file($qa->get_question()->contextid, 'question', proforma_TASKXML_FILEAREA,
+                                $taskxmlfile = $fs->get_file($qa->get_question()->contextid, 'question', PROFORMA_TASKXML_FILEAREA,
                                         $qa->get_question()->id, '/', 'task.xml');
                                 $taskdoc = new DOMDocument();
                                 $taskdoc->loadXML($taskxmlfile->get_content());
@@ -465,7 +465,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                     $slot = $qa->get_slot();
                     $responsefileinfos = array(
                         'component' => 'question',
-                        'filearea' => proforma_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$qa->get_database_id()}",
+                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$qa->get_database_id()}",
                         'itemid' => "{$qa->get_usage_id()}/$slot/{$qa->get_usage_id()}",
                         'contextid' => $qubarecord->contextid,
                         'filepath' => "/",

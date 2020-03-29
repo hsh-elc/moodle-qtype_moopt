@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -99,11 +98,12 @@ class qtype_programmingtask_question extends question_graded_automatically {
      */
     public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
 
-        $prefix_to_check = 'immediate';
-        if (substr($preferredbehaviour, 0, strlen($prefix_to_check)) === $prefix_to_check) {
+        $prefixtocheck = 'immediate';
+        if (substr($preferredbehaviour, 0, strlen($prefixtocheck)) === $prefixtocheck) {
             $preferredbehaviour = 'immediateprogrammingtask';
         } else {
-            // No need to check whether it starts with 'deferred' because this is also the default cause if it wouldn't start with 'deferred'
+            // No need to check whether it starts with 'deferred' because this is also the default cause if
+            // it wouldn't start with 'deferred'.
             $preferredbehaviour = 'deferredprogrammingtask';
         }
 
@@ -128,33 +128,39 @@ class qtype_programmingtask_question extends question_graded_automatically {
         $argscopy = $args;
         unset($argscopy[0]);
         $relativepath = implode('/', $argscopy);
-        if (in_array($filearea, array(proforma_TASKZIP_FILEAREA, proforma_ATTACHED_TASK_FILES_FILEAREA, proforma_EMBEDDED_TASK_FILES_FILEAREA, proforma_TASKXML_FILEAREA))) {
-            //If it is one of those files we need to check permissions because students could just guess download urls and not all files should be downloadable by students
-            //From the DBs point of view this combination of fields doesn't guarantee uniqueness; however, conceptually it does
-            $records = $DB->get_records_sql('SELECT visibletostudents FROM {qtype_programmingtask_files} WHERE questionid = ? and ' . $DB->sql_concat('filepath', 'filename') . ' = ? and ' . $DB->sql_compare_text('filearea') . ' = ?', array($questionid, '/' . $relativepath, $filearea));
+        if (in_array($filearea, array(PROFORMA_TASKZIP_FILEAREA, PROFORMA_ATTACHED_TASK_FILES_FILEAREA,
+                    PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, PROFORMA_TASKXML_FILEAREA))) {
+            // If it is one of those files we need to check permissions because students could just guess download urls
+            // and not all files should be downloadable by students
+            // From the DBs point of view this combination of fields doesn't guarantee uniqueness; however, conceptually it does.
+            $records = $DB->get_records_sql('SELECT visibletostudents FROM {qtype_programmingtask_files} WHERE questionid = ? and '
+                    . $DB->sql_concat('filepath', 'filename') . ' = ? and ' . $DB->sql_compare_text('filearea') . ' = ?',
+                    array($questionid, '/' . $relativepath, $filearea));
             if (count($records) != 1) {
                 return false;
             }
-            //$records[0] doesn't work because $records is an associative array with the keys being the ids of the record
-            $first_elem = reset($records);
-            $onlyteacher = $first_elem->visibletostudents == 0 ? true : false;
+            // Here $records[0] doesn't work because $records is an associative array with the keys being the ids of the record.
+            $firstelem = reset($records);
+            $onlyteacher = $firstelem->visibletostudents == 0 ? true : false;
 
-            $context_record = $DB->get_record('context', ['id' => $question->contextid]);
-            $context = context_course::instance($context_record->instanceid);
+            $contextrecord = $DB->get_record('context', ['id' => $question->contextid]);
+            $context = context_course::instance($contextrecord->instanceid);
 
             if ($onlyteacher && !has_capability('mod/quiz:grade', $context)) {
                 return false;
             }
 
             return true;
-        } else if ((substr($filearea, 0, strlen(proforma_RESPONSE_FILE_AREA)) === proforma_RESPONSE_FILE_AREA) || (substr($filearea, 0, strlen(proforma_RESPONSE_FILE_AREA_EMBEDDED)) === proforma_RESPONSE_FILE_AREA_EMBEDDED) ||
-                (substr($filearea, 0, strlen(proforma_RESPONSE_FILE_AREA_RESPONSEFILE)) === proforma_RESPONSE_FILE_AREA_RESPONSEFILE)) {
+        } else if ((substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA)) === PROFORMA_RESPONSE_FILE_AREA) ||
+                (substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA_EMBEDDED)) === PROFORMA_RESPONSE_FILE_AREA_EMBEDDED) ||
+                (substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) ===
+                PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) {
             return true;
         } else if ($component == 'question' && $filearea == 'response_answerfiles') {
             return true;
         }
 
-        //Not our thing - delegate to parent
+        // Not our thing - delegate to parent.
         return parent::check_file_access($qa, $options, $component, $filearea, $args, $forcedownload);
     }
 
@@ -164,15 +170,15 @@ class qtype_programmingtask_question extends question_graded_automatically {
      * @return string the message.
      */
     public function get_validation_error(array $response): string {
-        //Currently the only case where this might happen is that the students didn't submit any files
+        // Currently the only case where this might happen is that the students didn't submit any files.
         return get_string('nofilessubmitted', 'qtype_programmingtask');
     }
 
     /**
      * This method isn't used for programming task questions, see grade_response_asynch instead.
      * Explanation: grade_response is an overriden method from its parent class and is supposed to grade the given response
-     * synchronously. As we use asynchronous grading we need different parameters and have different return values. Using this method
-     * and just changing the params and return values would clearly violate the substitution principle.
+     * synchronously. As we use asynchronous grading we need different parameters and have different return values.
+     * Using this method and just changing the params and return values would clearly violate the substitution principle.
      */
     public function grade_response(array $response) {
         throw new coding_exception("This method isn't supported for programming tasks. See grade_response_asynch instead.");
@@ -180,7 +186,6 @@ class qtype_programmingtask_question extends question_graded_automatically {
 
     /**
      * Sends the response to grappa for grading.
-     * 
      * @param array $qa
      * @return \question_state Either question_state::$finished if it was succesfully transmitted or
      *          question_state::$needsgrading if there was an error and a teacher needs to either grade
@@ -191,77 +196,86 @@ class qtype_programmingtask_question extends question_graded_automatically {
         $communicator = communicator_factory::get_instance();
         $fs = get_file_storage();
 
-        //Get response files
+        // Get response files.
         $qubaid = $qa->get_usage_id();
-        $files = array();   //array for all files that end up in the ZIP file
+        $files = array();   // Array for all files that end up in the ZIP file.
         foreach ($responsefiles as $file) {
             $files["submission/files/{$file->get_filename()}"] = $file;
         }
         foreach ($freetextanswers as $filename => $filecontent) {
-            $mangledName = mangle_pathname($filename);
-            $files["submission/freetext/$mangledName"] = [$filecontent];            //Syntax to use a string as file contents
+            $mangledname = mangle_pathname($filename);
+            $files["submission/freetext/$mangledname"] = [$filecontent];            // Syntax to use a string as file contents.
         }
 
         try {
-            $includeTaskFile = !$communicator->is_task_cached($this->taskuuid);
+            $includetaskfile = !$communicator->is_task_cached($this->taskuuid);
         } catch (invalid_response_exception $ex) {
-            //Not good but not severe either - just assume the task isn't cached and include it
-            $includeTaskFile = true;
+            // Not good but not severe either - just assume the task isn't cached and include it.
+            $includetaskfile = true;
             error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
         }
 
-        //Get filename of task file if necessary but don't load it yet
+        // Get filename of task file if necessary but don't load it yet.
         $taskfilename = '';
-        if ($includeTaskFile) {
-            $taskfilename = $DB->get_record('qtype_programmingtask_files', array('questionid' => $this->id, 'filearea' => proforma_TASKZIP_FILEAREA), 'filename')->filename;
+        if ($includetaskfile) {
+            $taskfilename = $DB->get_record('qtype_programmingtask_files', array('questionid' => $this->id,
+                        'filearea' => PROFORMA_TASKZIP_FILEAREA), 'filename')->filename;
         }
 
-        //Load task.xml file because we need the grading_hints if feedback-mode is merged-test-feedback
-        $taskxmlfile = $fs->get_file($this->contextid, 'question', proforma_TASKXML_FILEAREA, $this->id, '/', 'task.xml');
+        // Load task.xml file because we need the grading_hints if feedback-mode is merged-test-feedback.
+        $taskxmlfile = $fs->get_file($this->contextid, 'question', PROFORMA_TASKXML_FILEAREA, $this->id, '/', 'task.xml');
         $taskdoc = new DOMDocument();
         $taskdoc->loadXML($taskxmlfile->get_content());
         $taskxmlnamespace = detect_proforma_namespace($taskdoc);
-        $grading_hints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
+        $gradinghints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
 
-        //Create the submission.xml file
-        $submission_xml_creator = new proforma_submission_xml_creator();
-        $submissionXML = $submission_xml_creator->create_submission_xml($includeTaskFile, $includeTaskFile ? $taskfilename : $this->taskuuid, $files, 'zip', proforma_MERGED_FEEDBACK_TYPE, 'info', 'debug', $grading_hints, $taskxmlnamespace, $qa->get_max_mark());
+        // Create the submission.xml file.
+        $submissionxmlcreator = new proforma_submission_xml_creator();
+        $submissionxml = $submissionxmlcreator->create_submission_xml($includetaskfile, $includetaskfile ?
+                $taskfilename : $this->taskuuid, $files, 'zip', PROFORMA_MERGED_FEEDBACK_TYPE, 'info', 'debug',
+                $gradinghints, $taskxmlnamespace, $qa->get_max_mark());
 
-        //Load task file and add it to the files that go into the zip file
-        if ($includeTaskFile) {
-            $taskfile = $fs->get_file($this->contextid, 'question', proforma_TASKZIP_FILEAREA, $this->id, '/', $taskfilename);
+        // Load task file and add it to the files that go into the zip file.
+        if ($includetaskfile) {
+            $taskfile = $fs->get_file($this->contextid, 'question', PROFORMA_TASKZIP_FILEAREA, $this->id, '/', $taskfilename);
             $files["task/$taskfilename"] = $taskfile;
         }
 
-        //Add the submission.xml file
-        $files['submission.xml'] = array($submissionXML);       //Syntax to use a string as file contents
-        //Create submission.zip file
+        // Add the submission.xml file.
+        $files['submission.xml'] = array($submissionxml);       // Syntax to use a string as file contents.
+        // Create submission.zip file.
         $zipper = get_file_packer('application/zip');
-        $zip_file = $zipper->archive_to_storage($files, $this->contextid, 'question', proforma_SUBMISSION_ZIP_FILEAREA . "_{$qa->get_slot()}", $qubaid, '/', 'submission.zip');
-        if (!$zip_file) {
+        $zipfile = $zipper->archive_to_storage($files, $this->contextid, 'question', PROFORMA_SUBMISSION_ZIP_FILEAREA .
+                "_{$qa->get_slot()}", $qubaid, '/', 'submission.zip');
+        if (!$zipfile) {
             throw new invalid_state_exception('Couldn\'t create submission.zip file.');
         }
 
-        $returnState = question_state::$finished;
+        $returnstate = question_state::$finished;
         try {
-            $gradeProcessId = $communicator->enqueue_submission($this->graderid, 'true', $zip_file);
-            $DB->insert_record('qtype_programmingtask_grprcs', ['qubaid' => $qa->get_usage_id(), 'questionattemptdbid' => $qa->get_database_id(), 'gradeprocessid' => $gradeProcessId, 'graderid' => $this->graderid]);
+            $gradeprocessid = $communicator->enqueue_submission($this->graderid, 'true', $zipfile);
+            $DB->insert_record('qtype_programmingtask_grprcs', ['qubaid' => $qa->get_usage_id(),
+                'questionattemptdbid' => $qa->get_database_id(), 'gradeprocessid' => $gradeprocessid,
+                'graderid' => $this->graderid]);
             if (!$DB->record_exists('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id()])) {
-                //This will already exist when this is a regrade
-                $DB->insert_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id(), 'slot' => $qa->get_slot()]);
+                // This will already exist when this is a regrade.
+                $DB->insert_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id(),
+                    'slot' => $qa->get_slot()]);
             }
         } catch (invalid_response_exception $ex) {
             error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
-            $returnState = question_state::$needsgrading;
+            $returnstate = question_state::$needsgrading;
         } finally {
             $fs = get_file_storage();
-            $success = $fs->delete_area_files($this->contextid, 'question', proforma_SUBMISSION_ZIP_FILEAREA . "_{$qa->get_slot()}", $qubaid);
+            $success = $fs->delete_area_files($this->contextid, 'question', PROFORMA_SUBMISSION_ZIP_FILEAREA .
+                    "_{$qa->get_slot()}", $qubaid);
             if (!$success) {
-                throw new invalid_state_exception("Couldn't delete submission.zip after sending it to grappa. QuestionID: {$this->id}, QubaID: $qubaid, Slot: {$qa->get_slot()}");
+                throw new invalid_state_exception("Couldn't delete submission.zip after sending it to grappa." .
+                        " QuestionID: {$this->id}, QubaID: $qubaid, Slot: {$qa->get_slot()}");
             }
         }
 
-        return $returnState;
+        return $returnstate;
     }
 
     /**
@@ -275,8 +289,8 @@ class qtype_programmingtask_question extends question_graded_automatically {
      */
     public function is_complete_response(array $response): bool {
         if ($this->enablefilesubmissions && isset($response['answerfiles'])) {
-            $question_file_saver = $response['answerfiles'];
-            if ($question_file_saver != '') {
+            $questionfilesaver = $response['answerfiles'];
+            if ($questionfilesaver != '') {
                 return true;
             }
         }
@@ -303,17 +317,18 @@ class qtype_programmingtask_question extends question_graded_automatically {
      */
     public function is_same_response(array $prevresponse, array $newresponse): bool {
         if ($this->enablefilesubmissions) {
-            //Can't really compare files here
+            // Can't really compare files here.
             return false;
         }
         if ($this->enablefreetextsubmissions) {
             for ($i = 0; $i < $this->ftsmaxnumfields; $i++) {
                 if (!isset($prevresponse["answertext$i"]) || !isset($prevresponse["answerfilename$i"])) {
-                    //If there wasn't an answer before it can't be the same
+                    // If there wasn't an answer before it can't be the same.
                     return false;
                 }
-                if ($prevresponse["answertext$i"] != $newresponse["answertext$i"] || $prevresponse["answerfilename$i"] != $newresponse["answerfilename$i"]) {
-                    //If filename or filecontent isn't the same it's not the same answer
+                if ($prevresponse["answertext$i"] != $newresponse["answertext$i"] ||
+                        $prevresponse["answerfilename$i"] != $newresponse["answerfilename$i"]) {
+                    // If filename or filecontent isn't the same it's not the same answer.
                     return false;
                 }
             }

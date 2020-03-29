@@ -31,7 +31,7 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
 
         $xml->startDocument('1.0', 'UTF-8');
         $xml->startElement('submission');
-        $xml->writeAttribute('xmlns', proforma_TASK_XML_NAMESPACES[0]);
+        $xml->writeAttribute('xmlns', PROFORMA_TASK_XML_NAMESPACES[0]);
         // TODO: Maybe add another namespace for grading hints if it differs from proforma_TASK_XML_NAMESPACES[0] because *in the
         // future* there *might* be incompatibilities.
 
@@ -45,7 +45,7 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
             $xml->endElement();
         }
 
-        if ($resultstructure == proforma_MERGED_FEEDBACK_TYPE) {
+        if ($resultstructure == PROFORMA_MERGED_FEEDBACK_TYPE) {
             $gradinghintshelper = new grading_hints_helper($gradinghints, $gradinghintsnamespace);
             if (!$gradinghintshelper->is_empty()) {
                 $maxscoregradinghints = $gradinghintshelper->calculate_max_score();

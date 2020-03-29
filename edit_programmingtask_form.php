@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -22,9 +21,9 @@
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-require_once('locallib.php');
-
 defined('MOODLE_INTERNAL') || die();
+
+require_once('locallib.php');
 
 /**
  * programmingtask question editing form defition.
@@ -34,9 +33,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class qtype_programmingtask_edit_form extends question_edit_form {
 
-    private $grader_select;
-    private $grader_options;
-    private $grader_errorlabel;
+    private $graderselect;
+    private $graderoptions;
+    private $gradererrorlabel;
 
     protected function definition() {
         global $COURSE, $PAGE;
@@ -45,17 +44,19 @@ class qtype_programmingtask_edit_form extends question_edit_form {
 
         $mform->addElement('header', 'taskfile', get_string('taskfile', 'qtype_programmingtask'));
 
-        $mform->addElement('filemanager', 'proformataskfileupload', get_string('proformataskfileupload', 'qtype_programmingtask'), null, array('subdirs' => 0, 'maxbytes' => $COURSE->maxbytes, 'maxfiles' => 1));
+        $mform->addElement('filemanager', 'proformataskfileupload', get_string('proformataskfileupload', 'qtype_programmingtask'),
+                null, array('subdirs' => 0, 'maxbytes' => $COURSE->maxbytes, 'maxfiles' => 1));
         $mform->addHelpButton('proformataskfileupload', 'proformataskfileupload', 'qtype_programmingtask');
         $mform->addRule('proformataskfileupload', get_string('proformataskfilerequired', 'qtype_programmingtask'), 'required');
 
-        $mform->addElement('button', 'loadproformataskfilebutton', get_string('loadproformataskfile', 'qtype_programmingtask'), array('id' => 'loadproformataskfilebutton'));
+        $mform->addElement('button', 'loadproformataskfilebutton', get_string('loadproformataskfile', 'qtype_programmingtask'),
+                array('id' => 'loadproformataskfilebutton'));
 
         $label = $mform->addElement('static', 'ajaxerrorlabel', '', '');
-        $this->setClassAttributeOfLabel($label, 'errorlabel');
+        $this->set_class_attribute_of_label($label, 'errorlabel');
 
         $label = $mform->addElement('static', 'ajaxwarninglabel', '', '');
-        $this->setClassAttributeOfLabel($label, 'warninglabel');
+        $this->set_class_attribute_of_label($label, 'warninglabel');
 
         parent::definition();
 
@@ -65,32 +66,36 @@ class qtype_programmingtask_edit_form extends question_edit_form {
     protected function definition_inner($mform) {
         global $DB;
 
-        $mform->addElement('editor', 'internaldescription', get_string('internaldescription', 'qtype_programmingtask'), array('rows' => 10), array('maxfiles' => 0,
+        $mform->addElement('editor', 'internaldescription', get_string('internaldescription', 'qtype_programmingtask'),
+                array('rows' => 10), array('maxfiles' => 0,
             'noclean' => true, 'context' => $this->context, 'subdirs' => true));
-        $mform->setType('internaldescription', PARAM_RAW); // no XSS prevention here, users must be trusted
+        $mform->setType('internaldescription', PARAM_RAW); // No XSS prevention here, users must be trusted.
 
         $graders = retrieve_graders_and_update_local_list();
-        $this->grader_options = array();
+        $this->graderoptions = array();
         foreach ($graders['graders'] as $name => $id) {
-            $this->grader_options[$id] = $name;
+            $this->graderoptions[$id] = $name;
         }
-        $this->grader_select = $mform->addElement('select', 'graderid', get_string('grader', 'qtype_programmingtask'), $this->grader_options);
+        $this->graderselect = $mform->addElement('select', 'graderid', get_string('grader', 'qtype_programmingtask'),
+                $this->graderoptions);
 
-        $this->grader_errorlabel = $mform->addElement('static', 'gradernotavailableerrorlabel', '', '');
-        $this->setClassAttributeOfLabel($this->grader_errorlabel, 'errorlabel');
+        $this->gradererrorlabel = $mform->addElement('static', 'gradernotavailableerrorlabel', '', '');
+        $this->set_class_attribute_of_label($this->gradererrorlabel, 'errorlabel');
 
         $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_programmingtask'), array("size" => '36'));
         $mform->setType('taskuuid', PARAM_TEXT);
         $mform->addRule('taskuuid', get_string('taskuuidrequired', 'qtype_programmingtask'), 'required');
 
-        $mform->addElement('advcheckbox', 'showstudscorecalcscheme', get_string('showstudscorecalcscheme', 'qtype_programmingtask'), ' ');
-
+        $mform->addElement('advcheckbox', 'showstudscorecalcscheme',
+                get_string('showstudscorecalcscheme', 'qtype_programmingtask'), ' ');
 
         $mform->addElement('header', 'submissionsettings', get_string('submissionsettings', 'qtype_programmingtask'));
 
-        $mform->addElement('advcheckbox', 'enablefilesubmissions', get_string('enablefilesubmissions', 'qtype_programmingtask'), ' ');
+        $mform->addElement('advcheckbox', 'enablefilesubmissions', get_string('enablefilesubmissions', 'qtype_programmingtask'),
+                ' ');
         $mform->setDefault('enablefilesubmissions', true);
-        $mform->addElement('advcheckbox', 'enablefreetextsubmissions', get_string('enablefreetextsubmissions', 'qtype_programmingtask'), ' ');
+        $mform->addElement('advcheckbox', 'enablefreetextsubmissions',
+                get_string('enablefreetextsubmissions', 'qtype_programmingtask'), ' ');
 
         $mform->addElement('text', 'ftsnuminitialfields', get_string('ftsnuminitialfields', 'qtype_programmingtask'));
         $mform->setType('ftsnuminitialfields', PARAM_INT);
@@ -103,37 +108,40 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         $mform->hideIf('ftsmaxnumfields', 'enablefreetextsubmissions');
 
         $defaultnamesettingsarray = array();
-        $defaultnamesettingsarray[] = $mform->createElement('radio', "ftsautogeneratefilenames", '', get_string('freetextinputautogeneratedname', 'qtype_programmingtask'), 1);
-        $defaultnamesettingsarray[] = $mform->createElement('radio', "ftsautogeneratefilenames", '', get_string('freetextinputstudentname', 'qtype_programmingtask'), 0);
-        $mform->addGroup($defaultnamesettingsarray, "ftsautogeneratefilenamesgroup", get_string('freetextinputnamesettingstandard', 'qtype_programmingtask'), array(' '), false);
+        $defaultnamesettingsarray[] = $mform->createElement('radio', "ftsautogeneratefilenames", '',
+                get_string('freetextinputautogeneratedname', 'qtype_programmingtask'), 1);
+        $defaultnamesettingsarray[] = $mform->createElement('radio', "ftsautogeneratefilenames", '',
+                get_string('freetextinputstudentname', 'qtype_programmingtask'), 0);
+        $mform->addGroup($defaultnamesettingsarray, "ftsautogeneratefilenamesgroup",
+                get_string('freetextinputnamesettingstandard', 'qtype_programmingtask'), array(' '), false);
         $mform->hideIf("ftsautogeneratefilenamesgroup", 'enablefreetextsubmissions');
 
-        $mform->addElement('select', 'ftsstandardlang', get_string('ftsstandardlang', 'qtype_programmingtask'), proforma_ACE_PROGLANGS);
+        $mform->addElement('select', 'ftsstandardlang', get_string('ftsstandardlang', 'qtype_programmingtask'),
+                PROFORMA_ACE_PROGLANGS);
         $mform->hideIf("ftsstandardlang", 'enablefreetextsubmissions');
 
-
-        $mform->addElement('advcheckbox', "enablecustomsettingsforfreetextinputfields", get_string('enablecustomsettingsforfreetextinputfields', 'qtype_programmingtask'), ' ');
+        $mform->addElement('advcheckbox', "enablecustomsettingsforfreetextinputfields",
+                get_string('enablecustomsettingsforfreetextinputfields', 'qtype_programmingtask'), ' ');
         $mform->hideIf("enablecustomsettingsforfreetextinputfields", 'enablefreetextsubmissions');
 
-        $proglangs = ['default' => get_string('defaultlang', 'qtype_programmingtask')] + proforma_ACE_PROGLANGS;
+        $proglangs = ['default' => get_string('defaultlang', 'qtype_programmingtask')] + PROFORMA_ACE_PROGLANGS;
 
         for ($i = 0; $i < get_config("qtype_programmingtask", "max_number_free_text_inputs"); $i++) {
-            $mform->addElement('advcheckbox', "enablecustomsettingsforfreetextinputfield$i", get_string('enablecustomsettingsforfreetextinputfield', 'qtype_programmingtask') . ($i + 1), ' ');
+            $mform->addElement('advcheckbox', "enablecustomsettingsforfreetextinputfield$i",
+                    get_string('enablecustomsettingsforfreetextinputfield', 'qtype_programmingtask') . ($i + 1), ' ');
             $mform->hideIf("enablecustomsettingsforfreetextinputfield$i", 'enablefreetextsubmissions');
             $mform->hideIf("enablecustomsettingsforfreetextinputfield$i", "enablecustomsettingsforfreetextinputfields");
-            $hideArr = [];
+            $hidearr = [];
             for ($j = 0; $j <= $i; $j++) {
-                $hideArr[] = $j;
+                $hidearr[] = $j;
             }
-            $mform->hideIf("enablecustomsettingsforfreetextinputfield$i", "ftsmaxnumfields", 'in', $hideArr);
-
-            /* if ($i != 0) {
-              $mform->hideIf("enablecustomsettingsforfreetextinputfield$i", "enablecustomsettingsforfreetextinputfield" . ($i - 1));
-              } */
+            $mform->hideIf("enablecustomsettingsforfreetextinputfield$i", "ftsmaxnumfields", 'in', $hidearr);
 
             $namesettingsarray = array();
-            $namesettingsarray[] = $mform->createElement('radio', "namesettingsforfreetextinput$i", '', get_string('freetextinputteachername', 'qtype_programmingtask'), 0);
-            $namesettingsarray[] = $mform->createElement('radio', "namesettingsforfreetextinput$i", '', get_string('freetextinputstudentname', 'qtype_programmingtask'), 1);
+            $namesettingsarray[] = $mform->createElement('radio', "namesettingsforfreetextinput$i", '',
+                    get_string('freetextinputteachername', 'qtype_programmingtask'), 0);
+            $namesettingsarray[] = $mform->createElement('radio', "namesettingsforfreetextinput$i", '',
+                    get_string('freetextinputstudentname', 'qtype_programmingtask'), 1);
             $mform->addGroup($namesettingsarray, "namesettingsforfreetextinputgroup$i", '', array(' '), false);
             $mform->hideIf("namesettingsforfreetextinputgroup$i", "enablecustomsettingsforfreetextinputfield$i");
             $mform->hideIf("namesettingsforfreetextinputgroup$i", 'enablefreetextsubmissions');
@@ -161,7 +169,8 @@ class qtype_programmingtask_edit_form extends question_edit_form {
 
         if (isset($question->id)) {
             $draftitemid = file_get_submitted_draft_itemid('proformataskfileupload');
-            file_prepare_draft_area($draftitemid, $this->context->id, 'question', proforma_TASKZIP_FILEAREA, $question->id, array('subdirs' => 0));
+            file_prepare_draft_area($draftitemid, $this->context->id, 'question', PROFORMA_TASKZIP_FILEAREA,
+                    $question->id, array('subdirs' => 0));
             $question->proformataskfileupload = $draftitemid;
         }
 
@@ -170,25 +179,26 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         }
 
         if (isset($question->graderid)) {
-            $is_current_grader_available = false;
-            foreach ($this->grader_options as $id => $name) {
+            $iscurrentgraderavailable = false;
+            foreach ($this->graderoptions as $id => $name) {
                 if ($id === $question->graderid) {
-                    $is_current_grader_available = true;
+                    $iscurrentgraderavailable = true;
                     break;
                 }
             }
-            if (!$is_current_grader_available) {
-                $gradername = $DB->get_field('qtype_programmingtask_gradrs', 'gradername', array("graderid" => $question->graderid));
-                $this->grader_select->addOption($gradername, $question->graderid);
-                $this->grader_errorlabel->setText(get_string('previousgradernotavailable', 'qtype_programmingtask'));
+            if (!$iscurrentgraderavailable) {
+                $gradername = $DB->get_field('qtype_programmingtask_gradrs', 'gradername',
+                        array("graderid" => $question->graderid));
+                $this->graderselect->addOption($gradername, $question->graderid);
+                $this->gradererrorlabel->setText(get_string('previousgradernotavailable', 'qtype_programmingtask'));
             }
-            $this->grader_select->setSelected($question->graderid);
+            $this->graderselect->setSelected($question->graderid);
         }
 
         if (isset($question->id)) {
-            $numCustomFts = $DB->count_records('qtype_programmingtask_fts', ['questionid' => $question->id]);
-        if ($numCustomFts != 0) {
-            $question->enablecustomsettingsforfreetextinputfields = 1;
+            $numcustomfts = $DB->count_records('qtype_programmingtask_fts', ['questionid' => $question->id]);
+            if ($numcustomfts != 0) {
+                $question->enablecustomsettingsforfreetextinputfields = 1;
                 $customftsfields = $DB->get_records('qtype_programmingtask_fts', ['questionid' => $question->id]);
                 foreach ($customftsfields as $unusedkey => $value) {
                     $indx = $value->inputindex;
@@ -214,7 +224,7 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         return 'programmingtask';
     }
 
-    private function setClassAttributeOfLabel(MoodleQuickForm_static $label, $classes) {
+    private function set_class_attribute_of_label(MoodleQuickForm_static $label, $classes) {
         $attribs = $label->getAttributes();
         if (!isset($attribs['class'])) {
             $attribs['class'] = $classes;
@@ -239,7 +249,6 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         if ($fromform['ftsnuminitialfields'] > $fromform['ftsmaxnumfields']) {
             $errors['ftsnuminitialfields'] = get_string('initialnumberfreetextfieldsgreaterthanmax', 'qtype_programmingtask');
         }
-
 
         return $errors;
     }

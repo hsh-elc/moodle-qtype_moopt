@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -51,7 +50,8 @@ class qtype_programmingtask extends question_type {
      */
     public function extra_question_fields() {
         return array("qtype_programmingtask_optns", "internaldescription", "graderid", "taskuuid", 'showstudscorecalcscheme',
-            'enablefilesubmissions', 'enablefreetextsubmissions', 'ftsnuminitialfields', 'ftsmaxnumfields', 'ftsautogeneratefilenames', 'ftsstandardlang');
+            'enablefilesubmissions', 'enablefreetextsubmissions', 'ftsnuminitialfields', 'ftsmaxnumfields',
+            'ftsautogeneratefilenames', 'ftsstandardlang');
     }
 
     /**
@@ -74,17 +74,17 @@ class qtype_programmingtask extends question_type {
 
         global $DB;
 
-        //Save the files contained in the task file
-        //First remove all old files and db entries
+        // Save the files contained in the task file
+        // First remove all old files and db entries.
         $DB->delete_records('qtype_programmingtask_files', array('questionid' => $question->id));
         $fs = get_file_storage();
-        $fs->delete_area_files($question->context->id, 'question', proforma_TASKZIP_FILEAREA, $question->id);
-        $fs->delete_area_files($question->context->id, 'question', proforma_ATTACHED_TASK_FILES_FILEAREA, $question->id);
-        $fs->delete_area_files($question->context->id, 'question', proforma_EMBEDDED_TASK_FILES_FILEAREA, $question->id);
-        $fs->delete_area_files($question->context->id, 'question', proforma_TASKXML_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, 'question', PROFORMA_TASKZIP_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, 'question', PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, 'question', PROFORMA_TASKXML_FILEAREA, $question->id);
         save_task_and_according_files($question);
 
-        //Store custom settings for free text input fields
+        // Store custom settings for free text input fields.
         $DB->delete_records('qtype_programmingtask_fts', array('questionid' => $question->id));
         if ($question->{'enablecustomsettingsforfreetextinputfields'}) {
             $maxfts = $question->ftsmaxnumfields;
@@ -109,10 +109,10 @@ class qtype_programmingtask extends question_type {
 
         $DB->delete_records('qtype_programmingtask_files', array('questionid' => $questionid));
         $fs = get_file_storage();
-        $fs->delete_area_files($contextid, 'question', proforma_TASKZIP_FILEAREA, $questionid);
-        $fs->delete_area_files($contextid, 'question', proforma_ATTACHED_TASK_FILES_FILEAREA, $questionid);
-        $fs->delete_area_files($contextid, 'question', proforma_EMBEDDED_TASK_FILES_FILEAREA, $questionid);
-        $fs->delete_area_files($contextid, 'question', proforma_TASKXML_FILEAREA, $question->id);
+        $fs->delete_area_files($contextid, 'question', PROFORMA_TASKZIP_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, 'question', PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, 'question', PROFORMA_TASKXML_FILEAREA, $question->id);
 
         parent::delete_question($questionid, $contextid);
     }

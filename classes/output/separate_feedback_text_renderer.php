@@ -166,14 +166,14 @@ class separate_feedback_text_renderer {
                         foreach ($files['embeddedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['id'] . '/' . $file['filename']);
                             $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
-                                            proforma_RESPONSE_FILE_AREA_EMBEDDED . $this->fileinfos['fileareasuffix'],
+                                            PROFORMA_RESPONSE_FILE_AREA_EMBEDDED . $this->fileinfos['fileareasuffix'],
                                             $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
                         foreach ($files['attachedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['filename']);
                             $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
-                                            proforma_RESPONSE_FILE_AREA . $this->fileinfos['fileareasuffix'],
+                                            PROFORMA_RESPONSE_FILE_AREA . $this->fileinfos['fileareasuffix'],
                                             $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
@@ -196,14 +196,14 @@ class separate_feedback_text_renderer {
                         foreach ($files['embeddedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['id'] . '/' . $file['filename']);
                             $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
-                                            proforma_RESPONSE_FILE_AREA_EMBEDDED . $this->fileinfos['fileareasuffix'],
+                                            PROFORMA_RESPONSE_FILE_AREA_EMBEDDED . $this->fileinfos['fileareasuffix'],
                                             $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
                         foreach ($files['attachedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['filename']);
                             $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
-                                            proforma_RESPONSE_FILE_AREA . $this->fileinfos['fileareasuffix'],
+                                            PROFORMA_RESPONSE_FILE_AREA . $this->fileinfos['fileareasuffix'],
                                             $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
