@@ -14,17 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
- * Plugin version and other meta-data are defined here.
- *
- * @package     qtype_programmingtask
- * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-defined('MOODLE_INTERNAL') || die();
+namespace qtype_programmingtask\privacy;
 
-$plugin->component = 'qtype_programmingtask';
-$plugin->release = '0.1.0';
-$plugin->version = 2020032900;
-$plugin->requires = 2018120300;
-$plugin->maturity = MATURITY_ALPHA;
+use core_privacy\local\metadata\collection;
+
+class provider implements \core_privacy\local\metadata\provider {
+
+    public static function get_metadata(collection $collection): collection {
+
+        $collection->add_external_location_link('grader_link', [], 'privacy:metadata:grader_link');
+
+        return $collection;
+    }
+
+}
