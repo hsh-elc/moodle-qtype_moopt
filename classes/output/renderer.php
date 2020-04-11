@@ -342,7 +342,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                     get_config("qtype_programmingtask",
                             "grappa_client_polling_interval") * 1000 /* to milliseconds */]);
                 $loader = '<div class="loader"></div>';
-                return html_writer::div(get_string('currentlybeeinggraded', 'qtype_programmingtask') . $loader, 'gradingstatus');
+                return html_writer::div(get_string('currentlybeinggraded', 'qtype_programmingtask') . $loader, 'gradingstatus');
             } else if ($qa->get_state() == question_state::$needsgrading && !has_capability('mod/quiz:grade', $PAGE->context)) {
                 // If a teacher is looking at this feedback and we did receive a valid response but it has an
                 // internal-error-attribute we still want to display this result.
