@@ -212,7 +212,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
         } catch (invalid_response_exception $ex) {
             // Not good but not severe either - just assume the task isn't cached and include it.
             $includetaskfile = true;
-            error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+            debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
         }
 
         // Get filename of task file if necessary but don't load it yet.
@@ -263,7 +263,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
                     'slot' => $qa->get_slot()]);
             }
         } catch (invalid_response_exception $ex) {
-            error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+            debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
             $returnstate = question_state::$needsgrading;
         } finally {
             $fs = get_file_storage();

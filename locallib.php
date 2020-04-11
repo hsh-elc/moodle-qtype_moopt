@@ -406,11 +406,11 @@ function internal_retrieve_grading_results($qubaid) {
             $response = $communicator->get_grading_result($record->graderid, $record->gradeprocessid);
         } catch (invalid_response_exception $ex) {
             // Here was a network error.
-            error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+            debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
 
             continue;
         } catch (Exception $e) {
-            error_log($e->getMessage());
+            debugging($e->getMessage());
             continue;
         }
         if ($response) {
@@ -550,27 +550,27 @@ function internal_retrieve_grading_results($qubaid) {
                             }
                         }
                     } else {
-                        error_log("Response didn't contain a response.xml file");
+                        debugging("Response didn't contain a response.xml file");
                     }
                 }
             } catch (\qtype_programmingtask\exceptions\grappa_exception $ex) {
                 // Something with the response we got was wrong - log it and set that the question needs manual grading.
                 $internalerror = true;
-                error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+                debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
             } catch (\Exception $ex) {
                 // Catch anything weird that might happend during processing of the response.
                 $internalerror = true;
-                error_log($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+                debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
             } catch (\Error $er) {
                 // Catch anything weird that might happend during processing of the response.
                 $internalerror = true;
-                error_log('Error while processing response from grader. Error code: ' . $er->getCode() . '. Message: ' .
+                debugging('Error while processing response from grader. Error code: ' . $er->getCode() . '. Message: ' .
                         $er->getMessage() . ')');
             }
 
             if (!$result || !isset($score) || $internalerror) {
                 if (!$internalerror) {
-                    error_log("Received invalid response from grader");
+                    debugging("Received invalid response from grader");
                 }
 
                 // Change the state to the question needing manual grading because automatic grading failed.
