@@ -59,7 +59,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
      *      meaning take all the raw submitted data belonging to this question.
      */
     public function get_expected_data() {
-        $expected = ['answerfiles' => question_attempt::PARAM_FILES];
+        $expected = ['answer' => question_attempt::PARAM_FILES];
         for ($i = 0; $i < get_config("qtype_programmingtask", "max_number_free_text_inputs"); $i++) {
             $expected["answertext$i"] = PARAM_RAW;
             $expected["answerfilename$i"] = PARAM_FILE;
@@ -156,7 +156,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
                 (substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) ===
                 PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) {
             return true;
-        } else if ($component == 'question' && $filearea == 'response_answerfiles') {
+        } else if ($component == 'question' && $filearea == 'response_answer') {
             return true;
         }
 
@@ -288,8 +288,8 @@ class qtype_programmingtask_question extends question_graded_automatically {
      * @return bool whether this response is a complete answer to this question.
      */
     public function is_complete_response(array $response): bool {
-        if ($this->enablefilesubmissions && isset($response['answerfiles'])) {
-            $questionfilesaver = $response['answerfiles'];
+        if ($this->enablefilesubmissions && isset($response['answer'])) {
+            $questionfilesaver = $response['answer'];
             if ($questionfilesaver != '') {
                 return true;
             }

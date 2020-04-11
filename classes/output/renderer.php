@@ -134,7 +134,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
 
         if ($qa->get_question()->enablefilesubmissions) {
 
-            $files = $qa->get_last_qt_files('answerfiles', $options->context->id);
+            $files = $qa->get_last_qt_files('answer', $options->context->id);
             if (!empty($files)) {
                 $output = array();
 
@@ -202,7 +202,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         if ($questionoptions->enablefilesubmissions) {
             $pickeroptions = new stdClass();
             $pickeroptions->itemid = $qa->prepare_response_files_draft_itemid(
-                    'answerfiles', $options->context->id);
+                    'answer', $options->context->id);
             $pickeroptions->context = $options->context;
 
             $fm = new form_filemanager($pickeroptions);
@@ -210,7 +210,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
 
             // This is moodles weird way to express which file manager is responsible for which response variable.
             $hidden = html_writer::empty_tag(
-                            'input', array('type' => 'hidden', 'name' => $qa->get_qt_field_name('answerfiles'),
+                            'input', array('type' => 'hidden', 'name' => $qa->get_qt_field_name('answer'),
                         'value' => $pickeroptions->itemid));
 
             $renderedarea .= $filesrenderer->render($fm) . $hidden;
