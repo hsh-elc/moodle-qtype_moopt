@@ -90,6 +90,7 @@ $string['reloadpage'] = 'Reload page?';
 $string['reload'] = 'Reload';
 $string['removelastanswertext'] = 'Remove last answer field';
 $string['retrievegradingresults'] = 'Retrieve grading results';
+$string['remove_leftover_responsefiles'] = 'Remove leftover response files';
 $string['score'] = 'Score';
 $string['scorecalculationscheme'] = 'Score calculation scheme';
 $string['submission'] = 'Submission';

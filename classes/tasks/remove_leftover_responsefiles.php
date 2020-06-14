@@ -14,25 +14,28 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace qtype_programmingtask\tasks;
+
 defined('MOODLE_INTERNAL') || die();
 
-$tasks = [
-    [
-        'classname' => 'qtype_programmingtask\tasks\retrieve_grading_results',
-        'blocking' => 0,
-        'minute' => '*',
-        'hour' => '*',
-        'day' => '*',
-        'month' => '*',
-        'dayofweek' => '*',
-    ],
-    [
-        'classname' => 'qtype_programmingtask\tasks\remove_leftover_responsefiles',
-        'blocking' => 0,
-        'minute' => '0',
-        'hour' => '3',
-        'day' => '*',
-        'month' => '*',
-        'dayofweek' => '*',
-    ],
-];
+
+class remove_leftover_responsefiles extends \core\task\scheduled_task {
+
+    public function get_name(): string {
+        return get_string('remove_leftover_responsefiles', 'qtype_programmingtask');
+    }
+
+    public function execute() {
+        global $DB;
+
+        $fileids = $DB->get_records_sql("SELECT file.id FROM {files} file WHERE filearea like '%responsefiles%' AND NOT EXISTS "
+                . "(SELECT quba.id FROM {question_usages} quba WHERE quba.id = file.itemid)");
+
+        $fs = get_file_storage();
+        foreach ($fileids as $record) {
+            $fs->get_file_by_id($record->id)->delete();
+        }
+
+    }
+
+}
