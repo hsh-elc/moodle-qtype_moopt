@@ -1,3 +1,8 @@
+# Installation #
+
+After downloading the plugin to the folder `moodle/question/type/` you need to rename the plugin folder itself to `programmingtask`.
+Example: If you used `git clone` to clone the repository you probably have the following hierarchy: `moodle/question/type/moodle-qtype_programmingtask/`. Rename this to `moodle/question/type/programmingtask/`.
+
 # Programmieraufgabe #
 
 
