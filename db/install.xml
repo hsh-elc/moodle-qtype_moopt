@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?> <XMLDB PATH="question/type/programmmingtask/db" VERSION="20190312" COMMENT="XMLDB file for Moodle qtype_programmingtask"     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd" >
+<?xml version="1.0" encoding="UTF-8" ?> <XMLDB PATH="question/type/programmingtask/db" VERSION="20190312" COMMENT="XMLDB file for Moodle qtype_programmingtask"     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd" >
     <TABLES>
 
         <TABLE NAME="qtype_programmingtask_optns" COMMENT="Options for programming task questions">
