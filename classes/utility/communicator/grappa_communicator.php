@@ -34,7 +34,7 @@ class grappa_communicator implements communicator_interface {
         list($gradersjson, $httpstatuscode) = $this->get_from_grappa($url);
 
         if ($httpstatuscode != 200) {
-            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL GET $url");
+            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL GET $url. Returned contents: '$gradersjson'");
         }
         return json_decode($gradersjson, true);
     }
@@ -53,18 +53,18 @@ class grappa_communicator implements communicator_interface {
     }
 
     public function enqueue_submission(string $graderid, bool $asynch, \stored_file $submissionfile) {
-        $url = "{$this->grappaurl}/{$this->lmsid}/gradeprocesses?graderid=$graderid&async=$asynch";
-        $params = array('submission' => $submissionfile);
-
-        list($responsejson, $httpstatuscode) = $this->post_to_grappa($url, $params);
+        $url = "{$this->grappaurl}/{$this->lmsid}/gradeprocesses?graderId=$graderid&async=$asynch";
+  
+        list($responsejson, $httpstatuscode) = $this->post_to_grappa($url, $submissionfile->get_content());
         if ($httpstatuscode != 201 /* = CREATED */) {
-            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL POST $url");
+            error_log($responsejson);
+            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL POST $url. Returned contents: '$responsejson'");
         }
         return json_decode($responsejson)->gradeProcessId;
     }
 
     public function get_grading_result(string $graderid, string $gradeprocessid) {
-        $url = "{$this->grappaurl}/$graderid/gradeprocesses/$gradeprocessid";
+        $url = "{$this->grappaurl}/{$this->lmsid}/gradeprocesses/$gradeprocessid";
         list($response, $httpstatuscode) = $this->get_from_grappa($url);
         if ($httpstatuscode == 202) {
             return false;
@@ -89,11 +89,8 @@ class grappa_communicator implements communicator_interface {
         if (!isset($options['CURLOPT_TIMEOUT'])) {
             $options['CURLOPT_TIMEOUT'] = $this->grappatimeout;
         }
-        /*
-         *
-         * TODO: AUTHENTICATION
-         *
-         */
+        $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
+
         $response = $curl->get($url, $params, $options);
 
         $info = $curl->get_info();
@@ -112,12 +109,8 @@ class grappa_communicator implements communicator_interface {
         if (!isset($options['CURLOPT_TIMEOUT'])) {
             $options['CURLOPT_TIMEOUT'] = $this->grappatimeout;
         }
+        $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
 
-        /*
-         *
-         * TODO: AUTHENTICATION
-         *
-         */
         $response = $curl->head($url, $options);
 
         $info = $curl->get_info();
@@ -131,17 +124,15 @@ class grappa_communicator implements communicator_interface {
         return array($response, $info['http_code']);
     }
 
-    private function post_to_grappa($url, $params = array(), $options = array()) {
+    private function post_to_grappa($url, $contents = '', $options = array()) {
         $curl = new \curl();
         if (!isset($options['CURLOPT_TIMEOUT'])) {
             $options['CURLOPT_TIMEOUT'] = $this->grappatimeout;
         }
-        /*
-         *
-         * TODO: AUTHENTICATION
-         *
-         */
-        $response = $curl->post($url, $params, $options);
+        $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
+        $curl->setHeader('Content-Type: application/octet-stream');
+
+        $response = $curl->post($url, $contents, $options);
 
         $info = $curl->get_info();
         $errno = $curl->get_errno();
@@ -168,8 +159,8 @@ class grappa_communicator implements communicator_interface {
         /*
          * TODO: Put both into some kind of config var?
          */
-        $this->lmsid = "moodle";
-        $this->lmspw = "foo";
+        $this->lmsid = "test";
+        $this->lmspw = "test";
     }
 
     protected static $instance = null;
@@ -182,6 +173,7 @@ class grappa_communicator implements communicator_interface {
     }
 
     protected function __clone() {
+        
     }
 
 }

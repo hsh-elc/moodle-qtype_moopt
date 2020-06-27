@@ -29,7 +29,7 @@ class grappa_exception extends \moodle_exception {
      * @param string $debuginfo some detailed information
      */
     public function __construct($debuginfo = null) {
-        parent::__construct('grappa', 'debug', '', null, $debuginfo);
+        parent::__construct('grappa', 'debug', '', $debuginfo, $debuginfo);
     }
 
 }
