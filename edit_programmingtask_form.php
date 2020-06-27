@@ -36,6 +36,7 @@ class qtype_programmingtask_edit_form extends question_edit_form {
     private $graderselect;
     private $graderoptions;
     private $gradererrorlabel;
+    private $availabeGraders;
 
     protected function definition() {
         global $COURSE, $PAGE;
@@ -71,9 +72,9 @@ class qtype_programmingtask_edit_form extends question_edit_form {
             'noclean' => true, 'context' => $this->context, 'subdirs' => true));
         $mform->setType('internaldescription', PARAM_RAW); // No XSS prevention here, users must be trusted.
 
-        $graders = retrieve_graders_and_update_local_list();
+        list($graders, $this->availabeGraders) = retrieve_graders_and_update_local_list();
         $this->graderoptions = array();
-        foreach ($graders['graders'] as $name => $id) {
+        foreach ($graders as $id => $name) {
             $this->graderoptions[$id] = $name;
         }
         $this->graderselect = $mform->addElement('select', 'graderid', get_string('grader', 'qtype_programmingtask'),
@@ -179,17 +180,9 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         }
 
         if (isset($question->graderid)) {
-            $iscurrentgraderavailable = false;
-            foreach ($this->graderoptions as $id => $name) {
-                if ($id === $question->graderid) {
-                    $iscurrentgraderavailable = true;
-                    break;
-                }
-            }
-            if (!$iscurrentgraderavailable) {
+            if (!in_array($question->graderid, $this->availabeGraders)) {
                 $gradername = $DB->get_field('qtype_programmingtask_gradrs', 'gradername',
                         array("graderid" => $question->graderid));
-                $this->graderselect->addOption($gradername, $question->graderid);
                 $this->gradererrorlabel->setText(get_string('previousgradernotavailable', 'qtype_programmingtask'));
             }
             $this->graderselect->setSelected($question->graderid);
