@@ -27,6 +27,7 @@ require_once(__DIR__ . '/../../locallib.php');
 
 use qtype_programmingtask\utility\proforma_xml\separate_feedback_handler;
 use qtype_programmingtask\output\separate_feedback_text_renderer;
+use qtype_programmingtask\utility\communicator\communicator_factory;
 
 /**
  * Generates the output for programmingtask questions.
@@ -49,7 +50,14 @@ class qtype_programmingtask_renderer extends qtype_renderer {
     public function formulation_and_controls(question_attempt $qa, question_display_options $options) {
         global $DB, $PAGE;
 
-        $o = parent::formulation_and_controls($qa, $options);
+        $o = "";
+        $onlinegraders = communicator_factory::get_instance()->get_graders();
+        $graderforthistask = $DB->get_record('qtype_programmingtask_optns', ['questionid' => $qa->get_question()->id], 'graderid')->graderid;
+        if (!isset($onlinegraders['graders'][$graderforthistask])) {
+            $o = '<div class="alertlabel">' . get_string('gradercurrentlynotavailable', 'qtype_programmingtask') . '</div>';
+        }
+
+        $o .= parent::formulation_and_controls($qa, $options);
 
         $question = $qa->get_question();
         $qubaid = $qa->get_usage_id();
@@ -482,4 +490,5 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         }
         return '';
     }
+
 }

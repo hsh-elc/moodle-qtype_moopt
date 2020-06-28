@@ -54,6 +54,7 @@ $string['ftsoverwrittenlang'] = 'Programming language';
 $string['ftspathinsubmissionfile'] = 'Path in the submission zip file for free text submissions';
 $string['ftsstandardlang'] = 'Programming language for freetext submissions';
 $string['grader'] = 'Grader';
+$string['gradercurrentlynotavailable'] = 'The grader for this task is currently not available. You can still submit your solution but you won\'t get a result. You will only get a result once the grader is available again and either you or a teacher resubmits your submission.';
 $string['gradersettings'] = 'Grader settings';
 $string['gradeprocessfinished'] = 'At least one grade process finished. Do you want to reload the page to display the results?';
 $string['grappa_url'] = 'Grappa-URL';

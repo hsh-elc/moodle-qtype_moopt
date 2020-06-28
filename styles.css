@@ -10,6 +10,13 @@
     background-color: #ffabab;
 }
 
+.alertlabel{
+    background-color:#ffff99;
+    color:#4d4d00;
+    margin:10px;
+    padding:10px;
+}
+
 .specificfeedback .gradingstatus{
     font-weight: bold;
     display: flex;
