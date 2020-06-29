@@ -54,7 +54,7 @@ class grappa_communicator implements communicator_interface {
 
     public function enqueue_submission(string $graderid, bool $asynch, \stored_file $submissionfile) {
         $url = "{$this->grappaurl}/{$this->lmsid}/gradeprocesses?graderId=$graderid&async=$asynch";
-  
+
         list($responsejson, $httpstatuscode) = $this->post_to_grappa($url, $submissionfile->get_content());
         if ($httpstatuscode != 201 /* = CREATED */) {
             error_log($responsejson);

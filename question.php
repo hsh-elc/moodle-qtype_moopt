@@ -199,6 +199,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
         // Get response files.
         $qubaid = $qa->get_usage_id();
         $files = array();   // Array for all files that end up in the ZIP file.
+
         foreach ($responsefiles as $file) {
             $files["submission/files/{$file->get_filename()}"] = $file;
         }
@@ -209,6 +210,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
 
         try {
             $includetaskfile = !$communicator->is_task_cached($this->taskuuid);
+            $includetaskfile = true;
         } catch (invalid_response_exception $ex) {
             // Not good but not severe either - just assume the task isn't cached and include it.
             $includetaskfile = true;

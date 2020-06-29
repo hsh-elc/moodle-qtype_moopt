@@ -423,25 +423,9 @@ function internal_retrieve_grading_results($qubaid) {
                     continue;
                 }
 
-                // Write response to file system.
-                $filerecord = array(
-                    'component' => 'question',
-                    'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$record->questionattemptdbid}",
-                    'itemid' => $qubaid,
-                    'contextid' => $qubarecord->contextid,
-                    'filepath' => "/",
-                    'filename' => 'response.zip');
-
-                $file = $fs->get_file($filerecord['contextid'], $filerecord['component'], $filerecord['filearea'],
-                        $filerecord['itemid'], $filerecord['filepath'], $filerecord['filename']);
-                if ($file) {
-                    // Delete old result.
-                    $file->delete();
-                }
                 // We take care of this grade process therefore we will delete it afterwards.
                 $finishedgradingprocesses[] = $record->id;
-                $file = $fs->create_file_from_string($filerecord, $response);
-                $zipper = get_file_packer('application/zip');
+
                 // Remove old extracted files in case this is a regrade.
                 $oldexractedfiles = array_merge(
                         $fs->get_directory_files($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
@@ -453,10 +437,46 @@ function internal_retrieve_grading_results($qubaid) {
                     $f->delete();
                 }
 
+                // Check if response is zip file or xml.
+                if (substr($response, 0, 2) == 'PK') {
+                    // ZIP file.
+                    // Write response to file system.
+                    $filerecord = array(
+                        'component' => 'question',
+                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$record->questionattemptdbid}",
+                        'itemid' => $qubaid,
+                        'contextid' => $qubarecord->contextid,
+                        'filepath' => "/",
+                        'filename' => 'response.zip');
+
+                    $file = $fs->get_file($filerecord['contextid'], $filerecord['component'], $filerecord['filearea'],
+                            $filerecord['itemid'], $filerecord['filepath'], $filerecord['filename']);
+                    if ($file) {
+                        // Delete old result.
+                        $file->delete();
+                    }
+
+                    $file = $fs->create_file_from_string($filerecord, $response);
+                    $zipper = get_file_packer('application/zip');
+
+                    $$couldsaveresponsetodisk = $file->extract_to_storage($zipper, $qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
+                            "_{$record->questionattemptdbid}", $qubaid, "/");
+                } else {
+                    // XML file.
+                    $filerecord = array(
+                        'component' => 'question',
+                        'filearea' => PROFORMA_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}",
+                        'itemid' => $qubaid,
+                        'contextid' => $qubarecord->contextid,
+                        'filepath' => "/",
+                        'filename' => 'response.xml');
+
+                    $$couldsaveresponsetodisk = $fs->create_file_from_string($filerecord, $response);
+                }
+
+
                 // Apply the grade from the response.
-                $result = $file->extract_to_storage($zipper, $qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
-                        "_{$record->questionattemptdbid}", $qubaid, "/");
-                if ($result) {
+                if ($$couldsaveresponsetodisk) {
                     $doc = new DOMDocument();
                     $responsexmlfile = $fs->get_file($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
                             "_{$record->questionattemptdbid}", $qubaid, "/", 'response.xml');
@@ -568,7 +588,7 @@ function internal_retrieve_grading_results($qubaid) {
                         $er->getMessage() . ')');
             }
 
-            if (!$result || !isset($score) || $internalerror) {
+            if (!$$couldsaveresponsetodisk || !isset($score) || $internalerror) {
                 if (!$internalerror) {
                     debugging("Received invalid response from grader");
                 }
@@ -616,13 +636,13 @@ function retrieve_graders_and_update_local_list() {
         $availableGraders[] = $id;
     }
     $DB->insert_records('qtype_programmingtask_gradrs', $records);
-    
+
     $allgradersrecords = $DB->get_records('qtype_programmingtask_gradrs');
     $allgraders = [];
-    foreach($allgradersrecords as $graderrecord){
+    foreach ($allgradersrecords as $graderrecord) {
         $allgraders[$graderrecord->graderid] = $graderrecord->gradername;
     }
-    
+
     return [$allgraders, $availableGraders];
 }
 
