@@ -443,7 +443,8 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                                 // Merged test feedback.
                                 $html .= html_writer::div($doc->getElementsByTagNameNS(
                                                         $namespace, "student-feedback")[0]->nodeValue, 'studentfeedback');
-                                if (has_capability('mod/quiz:grade', $PAGE->context)) {
+                                if (has_capability('mod/quiz:grade', $PAGE->context) && $doc->getElementsByTagNameNS(
+                                                            $namespace, "teacher-feedback")[0]) {
                                     $html .= '<hr/>';
                                     $html .= html_writer::div($doc->getElementsByTagNameNS(
                                                             $namespace, "teacher-feedback")[0]->nodeValue, 'teacherfeedback');
