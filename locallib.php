@@ -459,7 +459,7 @@ function internal_retrieve_grading_results($qubaid) {
                     $file = $fs->create_file_from_string($filerecord, $response);
                     $zipper = get_file_packer('application/zip');
 
-                    $$couldsaveresponsetodisk = $file->extract_to_storage($zipper, $qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
+                    $couldsaveresponsetodisk = $file->extract_to_storage($zipper, $qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
                             "_{$record->questionattemptdbid}", $qubaid, "/");
                 } else {
                     // XML file.
@@ -471,12 +471,12 @@ function internal_retrieve_grading_results($qubaid) {
                         'filepath' => "/",
                         'filename' => 'response.xml');
 
-                    $$couldsaveresponsetodisk = $fs->create_file_from_string($filerecord, $response);
+                    $couldsaveresponsetodisk = $fs->create_file_from_string($filerecord, $response);
                 }
 
 
                 // Apply the grade from the response.
-                if ($$couldsaveresponsetodisk) {
+                if ($couldsaveresponsetodisk) {
                     $doc = new DOMDocument();
                     $responsexmlfile = $fs->get_file($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
                             "_{$record->questionattemptdbid}", $qubaid, "/", 'response.xml');
@@ -588,7 +588,7 @@ function internal_retrieve_grading_results($qubaid) {
                         $er->getMessage() . ')');
             }
 
-            if (!$$couldsaveresponsetodisk || !isset($score) || $internalerror) {
+            if (!$couldsaveresponsetodisk || !isset($score) || $internalerror) {
                 if (!$internalerror) {
                     debugging("Received invalid response from grader");
                 }
