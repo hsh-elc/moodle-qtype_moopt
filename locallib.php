@@ -533,8 +533,14 @@ function internal_retrieve_grading_results($qubaid) {
                             if ($mtf->length == 1) {
                                 // Merged test feedback.
 
-                                $score = $mtf[0]->getElementsByTagNameNS($namespace, 'overall-result')[0]->getElementsByTagNameNS(
-                                                $namespace, 'score')[0]->nodeValue;
+                                $overallresult = $mtf[0]->getElementsByTagNameNS($namespace, 'overall-result')[0];
+
+                                if ($overallresult->hasAttribute('is-internal-error') &&
+                                        $overallresult->getAttribute('is-internal-error') == 'true') {
+                                    $internalerror = true;
+                                } else {
+                                    $score = $overallresult->getElementsByTagNameNS($namespace, 'score')[0]->nodeValue;
+                                }
                             } else {
                                 // Separate test feedback.
                                 $question = $quba->get_question($slot);
