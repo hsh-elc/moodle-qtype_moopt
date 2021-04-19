@@ -668,6 +668,7 @@ function detect_proforma_namespace(DOMDocument $doc) {
 
 function validate_proforma_file_against_schema(DOMDocument $doc, $namespace): array {
     $msgs = [];
+    $namespace = str_replace(":", "_", $namespace);
     $schema = file_get_contents(__DIR__ . "/res/proforma/xsd/$namespace.xsd");
     if (!$schema) {
         $msgs[] = "Invalid or unknown proforma namespace: $namespace<br/>Valid proforma namespaces are: " . implode(", ",
