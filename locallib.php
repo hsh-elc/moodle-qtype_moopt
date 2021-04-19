@@ -635,11 +635,14 @@ function retrieve_graders_and_update_local_list() {
     $graders = communicator_factory::get_instance()->get_graders();
     $records = array();
     $availableGraders = [];
-    foreach ($graders['graders'] as $id => $name) {
-        if (!$DB->record_exists('qtype_programmingtask_gradrs', array("graderid" => $id))) {
-            array_push($records, array("graderid" => $id, "gradername" => $name));
+    $realGraders = $graders['graders'];
+    foreach ($graders['graders'] as $grader) {
+        foreach ($grader as $id => $name) {
+            if (!$DB->record_exists('qtype_programmingtask_gradrs', array("graderid" => $id))) {
+                array_push($records, array("graderid" => $id, "gradername" => $name));
+            }
+            $availableGraders[] = $id;
         }
-        $availableGraders[] = $id;
     }
     $DB->insert_records('qtype_programmingtask_gradrs', $records);
 

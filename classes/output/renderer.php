@@ -53,9 +53,20 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         $o = "";
         $onlinegraders = communicator_factory::get_instance()->get_graders();
         $graderforthistask = $DB->get_record('qtype_programmingtask_optns', ['questionid' => $qa->get_question()->id], 'graderid')->graderid;
-        if (!isset($onlinegraders['graders'][$graderforthistask])) {
+        $found = false;
+        foreach($onlinegraders['graders'] as $grader) {
+            foreach($grader as $graderKey) {
+                if($graderKey === $graderforthistask) {
+                    $found = true;
+                    break 2;
+                }
+            }
+        }
+
+        if(!$found) {
             $o = '<div class="alertlabel">' . get_string('gradercurrentlynotavailable', 'qtype_programmingtask') . '</div>';
         }
+
 
         $o .= parent::formulation_and_controls($qa, $options);
 
