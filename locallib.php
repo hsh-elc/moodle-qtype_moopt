@@ -29,7 +29,7 @@ define('PROFORMA_RESPONSE_FILE_AREA_EMBEDDED', 'responsefilesembedded');
 define('PROFORMA_RETRIEVE_GRADING_RESULTS_LOCK_MAXLIFETIME', 10);
 
 // ProFormA task xml namespaces.
-define('PROFORMA_TASK_XML_NAMESPACES', [/* First namespace is default namespace. */'urn:proforma:v2.0.1', 'urn:proforma:v2.0']);
+define('PROFORMA_TASK_XML_NAMESPACES', [/* First namespace is default namespace. */'urn:proforma:v2.1']);
 
 define('PROFORMA_MERGED_FEEDBACK_TYPE', 'merged-test-feedback');
 define('PROFORMA_SEPARATE_FEEDBACK_TYPE', 'separate-test-feedback');
