@@ -201,11 +201,13 @@ class qtype_programmingtask_question extends question_graded_automatically {
         $files = array();   // Array for all files that end up in the ZIP file.
 
         foreach ($responsefiles as $file) {
-            $files["submission/files/{$file->get_filename()}"] = $file;
+            $files["submission/{$file->get_filename()}"] = $file;
         }
+
         foreach ($freetextanswers as $filename => $filecontent) {
             $mangledname = mangle_pathname($filename);
-            $files["submission/freetext/$mangledname"] = [$filecontent];            // Syntax to use a string as file contents.
+            $files["submission/$mangledname"] = [$filecontent]; // Syntax to use a string as
+            // file contents.
         }
 
         try {
