@@ -58,13 +58,13 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
 
         $xml->startElement('files');
         foreach ($files as $filename => $file) {
-            $isstoredfile = $file instanceof stored_file;
             // Remove leading 'submission/' directory path from the file name, since all submission file pathes
             // are declared relative to the 'submission/' directory
             $submissiondir = 'submission/';
             $filenamerelativetosubmissiondir = substr($filename, 0, strlen($submissiondir)) == $submissiondir ?
                 $filenamerelativetosubmissiondir = substr($filename, strlen($submissiondir)) : $filename;
 
+            $isstoredfile = $file instanceof \stored_file;
             $xml->startElement('file');
             $xml->writeAttribute('mimetype', $isstoredfile ? $file->get_mimetype() : 'text/*');
             if (!$isstoredfile || preg_match($this::MIME_TYPE_TEXT_PATTERN, $file->get_mimetype())) {
