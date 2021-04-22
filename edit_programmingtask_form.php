@@ -149,7 +149,7 @@ class qtype_programmingtask_edit_form extends question_edit_form {
             $mform->hideIf("namesettingsforfreetextinputgroup$i", "enablecustomsettingsforfreetextinputfields");
 
             $mform->addElement('text', "freetextinputfieldname$i", '');
-            $mform->setType("freetextinputfieldname$i", PARAM_FILE);
+            $mform->setType("freetextinputfieldname$i", PARAM_PATH);
             $mform->setDefault("freetextinputfieldname$i", "File" . ($i + 1) . ".txt");
             $mform->hideIf("freetextinputfieldname$i", "namesettingsforfreetextinput$i", 'neq', 0);
             $mform->hideIf("freetextinputfieldname$i", "enablecustomsettingsforfreetextinputfield$i");
