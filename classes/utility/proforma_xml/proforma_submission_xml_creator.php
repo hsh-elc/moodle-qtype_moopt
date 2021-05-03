@@ -101,7 +101,7 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
             // Only use this node if it contains not only whitespace.
             $text = preg_replace('/\s+/', '', $elem->textContent);
             if (strlen($text) != 0) {
-                $this->xmlwriter->text($elem->nodeValue);
+                $this->xmlwriter->text($elem->textContent);
             }
             return;
         }
