@@ -184,6 +184,133 @@ class qtype_programmingtask_question extends question_graded_automatically {
         throw new coding_exception("This method isn't supported for programming tasks. See grade_response_asynch instead.");
     }
 
+
+
+
+
+
+
+
+    // move this func further down
+    public function extract_submission_zip(array $submissionzip) {
+        global $USER;
+        $usercontext = context_user::instance($USER->id);
+
+        $fs = get_file_storage();
+
+        //$fs->
+
+        // Check if there is only the file we want.
+        $area = file_get_draft_area_info('answer', "/");
+        if ($area['filecount'] == 0) {
+            return false;
+        } else if ($area['filecount'] > 1 || $area['foldercount'] != 0) {
+            throw new invalid_parameter_exception(
+                'Only one file is allowed to be in this draft area: A ProFormA-Task as either ZIP or XML file.');
+        }
+//
+//        // Get name of the file.
+//        $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftareaid);
+//        // Get_area_files returns an associative array where the keys are some kind of hash value.
+//        $keys = array_keys($files);
+//        // Index 1 because index 0 is the current directory it seems.
+//        $filename = $files[$keys[1]]->get_filename();
+//
+//        $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, "/", $filename);
+//
+//        // Check file type (it's really only checking the file extension but that is good enough here).
+//        $fileinfo = pathinfo($filename);
+//        $filetype = '';
+//        if (array_key_exists('extension', $fileinfo)) {
+//            $filetype = strtolower($fileinfo['extension']);
+//        }
+//        if ($filetype != 'zip') {
+//            throw new invalid_parameter_exception('Supplied file must be a zip file.');
+//        }
+//
+//        // Unzip file - basically copied from draftfiles_ajax.php.
+//        $zipper = get_file_packer('application/zip');
+//
+//        // Find unused name for directory to extract the archive.
+//        $temppath = $fs->get_unused_dirname($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($filename,
+//                PATHINFO_FILENAME) . '/');
+//        $donotremovedirs = array();
+//        $doremovedirs = array($temppath);
+//        // Extract archive and move all files from $temppath to $filepath.
+//        if ($file->extract_to_storage($zipper, $usercontext->id, 'user', 'draft', $draftareaid, $temppath, $USER->id)) {
+//            $extractedfiles = $fs->get_directory_files($usercontext->id, 'user', 'draft', $draftareaid, $temppath, true);
+//            $xtemppath = preg_quote($temppath, '|');
+//            foreach ($extractedfiles as $exfile) {
+//                $realpath = preg_replace('|^' . $xtemppath . '|', '/', $exfile->get_filepath());
+//                if (!$exfile->is_directory()) {
+//                    // Set the source to the extracted file to indicate that it came from archive.
+//                    $exfile->set_source(serialize((object) array('source' => '/')));
+//                }
+//                if (!$fs->file_exists($usercontext->id, 'user', 'draft', $draftareaid, $realpath, $exfile->get_filename())) {
+//                    // File or directory did not exist, just move it.
+//                    $exfile->rename($realpath, $exfile->get_filename());
+//                } else if (!$exfile->is_directory()) {
+//                    // File already existed, overwrite it.
+//                    repository::overwrite_existing_draftfile($draftareaid, $realpath, $exfile->get_filename(), $exfile->get_filepath(),
+//                        $exfile->get_filename());
+//                } else {
+//                    // Directory already existed, remove temporary dir but make sure we don't remove the existing dir.
+//                    $doremovedirs[] = $exfile->get_filepath();
+//                    $donotremovedirs[] = $realpath;
+//                }
+//            }
+//        } else {
+//            return null;
+//        }
+//        // Remove remaining temporary directories.
+//        foreach (array_diff($doremovedirs, $donotremovedirs) as $filepath) {
+//            $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, $filepath, '.');
+//            if ($file) {
+//                $file->delete();
+//            }
+//        }
+//
+//        return $filename;
+
+
+
+
+
+
+
+
+
+
+//        $files = array();
+//        $zipper = get_file_packer('application/zip');
+//        $zipfile = $zipper->archive_to_storage($files, $this->contextid, 'question', PROFORMA_SUBMISSION_ZIP_FILEAREA .
+//            "_{$qa->get_slot()}", $qubaid, '/', 'submission.zip');
+//        if (!$zipfile) {
+//            throw new invalid_state_exception('Couldn\'t create submission.zip file.');
+//        }
+
+
+//        if (!isset($question->proformataskfileupload)) {
+//            return;
+//        }
+//        $draftareaid = $question->proformataskfileupload;
+//
+//        $usercontext = context_user::instance($USER->id);
+//
+//        $filename = unzip_task_file_in_draft_area($draftareaid, $usercontext);
+//        if (!$filename) {
+//            // Seems like no task file was submitted.
+//            return false;
+//        }
+//
+//        // Copy all extracted files to the corresponding file area.
+//        file_save_draft_area_files($draftareaid, $question->context->id, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA,
+//            $question->id, array('subdirs' => true));
+//
+//        // $fs->delete_area_files($question->context->id, 'question', PROFORMA_TASKZIP_FILEAREA, $question->id);
+//        //
+    }
+
     /**
      * Sends the response to grappa for grading.
      * @param array $qa
@@ -195,6 +322,8 @@ class qtype_programmingtask_question extends question_graded_automatically {
         global $DB;
         $communicator = communicator_factory::get_instance();
         $fs = get_file_storage();
+
+        //$this->extract_submission_zip($responsefiles);
 
         // Get response files.
         $qubaid = $qa->get_usage_id();

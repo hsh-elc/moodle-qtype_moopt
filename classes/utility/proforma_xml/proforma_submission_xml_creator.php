@@ -115,7 +115,7 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
                 $this->write_dom_element($child);
             }
         } else {
-            throw new invalid_state_exception("Grading hints contain an unexpected node type");
+            throw new \invalid_state_exception("Grading hints contain an unexpected node type");
         }
         $this->xmlwriter->endElement();
     }
