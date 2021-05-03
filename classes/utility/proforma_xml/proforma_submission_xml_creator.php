@@ -97,13 +97,20 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
                 $this->xmlwriter->text($elem->nodeValue);
             }
             return;
+        } else if ($elem->nodeType == XML_CDATA_SECTION_NODE) {
+            // Only use this node if it contains not only whitespace.
+            $text = preg_replace('/\s+/', '', $elem->textContent);
+            if (strlen($text) != 0) {
+                $this->xmlwriter->text($elem->nodeValue);
+            }
+            return;
         }
 
         $this->xmlwriter->startElement($elem->localName);
         foreach ($elem->attributes as $attrib) {
             $this->xmlwriter->writeAttribute($attrib->nodeName, $attrib->nodeValue);
         }
-        if ($elem->nodeType == XML_ELEMENT_NODE) {
+        if ($elem->nodeType == XML_ELEMENT_NODE || $elem->nodeType == XML_CDATA_SECTION_NODE) {
             foreach ($elem->childNodes as $child) {
                 $this->write_dom_element($child);
             }
