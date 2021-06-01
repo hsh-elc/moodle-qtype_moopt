@@ -21,6 +21,7 @@ define(['jquery', 'core/ajax',
                 extractInformation: function () {
                     var fileManager = $("#id_proformataskfileupload").parent();
                     var itemId = fileManager.find("[name='proformataskfileupload']")[0].value;
+                    fileManager.find
 
                     ajax.call([
                         {
@@ -39,6 +40,8 @@ define(['jquery', 'core/ajax',
                                 editorEditor.setContents('id_questiontext', result.description);
                                 editorEditor.setContents('id_internaldescription', result.internaldescription);
                                 editorEditor.setContentsOfText('id_taskuuid', result.taskuuid);
+                                editorEditor.setContentsOfText('id_defaultmark', result.maxscoregradinghints);
+
                                 var warnings = '';
                                 if (typeof result.moodleValidationWarnings !== 'undefined') {
                                     if (typeof result.moodleValidationProformaNamespace !== 'undefined') {

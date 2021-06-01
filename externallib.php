@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+use qtype_programmingtask\utility\proforma_xml\grading_hints_helper;
+
 defined('MOODLE_INTERNAL') || die;
 
 require_once($CFG->libdir . "/externallib.php");
@@ -104,6 +106,12 @@ class qtype_programmingtask_external extends external_api {
                 $returnval['taskuuid'] = $task->getAttribute('uuid');
                 break;
             }
+
+            // Pre-calculate the max score in the grading hints to use as the default/max mark
+            $gradinghints = $doc->getElementsByTagNameNS($namespace, 'grading-hints')[0];
+            $gradinghintshelper = new grading_hints_helper($gradinghints, $namespace);
+            $maxscoregradinghints = $gradinghintshelper->calculate_max_score();
+            $returnval['maxscoregradinghints'] = $maxscoregradinghints;
         }
 
         // Do a little bit of cleanup and remove everything from the file area we extracted.
