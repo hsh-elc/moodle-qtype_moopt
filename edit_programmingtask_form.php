@@ -243,6 +243,13 @@ class qtype_programmingtask_edit_form extends question_edit_form {
             $errors['ftsnuminitialfields'] = get_string('initialnumberfreetextfieldsgreaterthanmax', 'qtype_programmingtask');
         }
 
+        $pluginsettingsmaxnumfields = get_config("qtype_programmingtask","max_number_free_text_inputs");
+        if ($fromform['ftsmaxnumfields'] > $pluginsettingsmaxnumfields) {
+            $errors['ftsmaxnumfields'] = 'The range must be ['.$fromform['ftsnuminitialfields'].','.$pluginsettingsmaxnumfields.']';
+            get_string('ftsmaxnumfieldslegalrange','qtype_programmingtask',
+                ['beg' => $fromform['ftsnuminitialfields'], 'end' => $pluginsettingsmaxnumfields]);
+        }
+
         return $errors;
     }
 
