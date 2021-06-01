@@ -103,6 +103,8 @@ class separate_feedback_handler {
             $gradinghintshelper = new grading_hints_helper($this->gradinghints, $this->namespacegradinghints);
             $this->maxscoregradinghints = $gradinghintshelper->calculate_max_score();
             if (abs($this->maxscoregradinghints - $this->maxscorelms) > 1e-5) {
+                // - scorecompensationfactor is the scaling value for all student and max scores
+                // - maxscorelms is the question's default mark
                 $this->scorecompensationfactor = $this->maxscorelms / $this->maxscoregradinghints;
             }
         }
@@ -247,6 +249,7 @@ class separate_feedback_handler {
         $detailedfeedback->set_accumulator_function($function);
         $counter = 0;
         $internalerrorinchildren = false;
+
         foreach ($elem->getElementsByTagNameNS($this->namespacegradinghints, 'test-ref') as $testref) {
             $detfeed = new separate_feedback_text_node($detailedfeedback->get_id() . '_' . $counter++);
             $detailedfeedback->add_child($detfeed);
@@ -325,7 +328,17 @@ class separate_feedback_handler {
     private function get_weighted_score_testref(\DOMElement $elem, separate_feedback_text_node $detailedfeedbacknode,
             $scalescoretolms = true) {
         $refid = $elem->getAttribute('ref');
+
+        if(!isset($this->testresults[$refid])) {
+            throw new \Exception("Missing test-response: The response file does not contain a test-response with ID '".$refid."'.");
+        }
+
         if ($elem->hasAttribute('sub-ref')) {
+            if(!isset($this->testresults[$refid][$elem->getAttribute('sub-ref')])) {
+                // TODO: get_string
+                $errormsg = "Missing subtest-response: The response file does not contain a subtest-response with ID '" . $elem->getAttribute('sub-ref') . "' in test-response with ID '" . $refid . "'.";
+                throw new \Exception($errormsg);
+            }
             $testresult = $this->testresults[$refid][$elem->getAttribute('sub-ref')];
         } else {
             $testresult = $this->testresults[$refid];
@@ -334,6 +347,7 @@ class separate_feedback_handler {
                         " subresults specified in the grading hints. According to the specification this is invalid behaviour");
             }
         }
+
         $result = $testresult->getElementsByTagNameNS($this->namespacefeedback, 'result')[0];
         $score = $result->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
         $weight = 1;
