@@ -41,6 +41,10 @@ class qtype_programmingtask extends question_type {
     }
 
     /**
+     * TODO: fix this description. The table that's being talked about is
+     * actually the programming task's edit form, with the table probably being the <table>
+     * structure that the mutable fields are displayed in
+     *
      * If your question type has a table that extends the question table, and
      * you want the base class to automatically save, backup and restore the extra fields,
      * override this method to return an array wherer the first element is the table name,
@@ -63,7 +67,6 @@ class qtype_programmingtask extends question_type {
      *      it is not a standard question object.
      */
     public function save_question_options($question) {
-
         if (!isset($question->internaldescription['text'])) {
             $question->internaldescription = '';
         } else {
@@ -88,6 +91,12 @@ class qtype_programmingtask extends question_type {
         $DB->delete_records('qtype_programmingtask_fts', array('questionid' => $question->id));
         if ($question->{'enablecustomsettingsforfreetextinputfields'}) {
             $maxfts = $question->ftsmaxnumfields;
+            // make sure this user-entered max num does not exceed the
+            // original plugin setting from when it was installed and first-time configured
+            // (necessary precautions in terms of moodle form api are already in place though)
+            if($maxfts > (int)get_config("qtype_programmingtask","max_number_free_text_inputs"))
+                throw new \coding_exception("Assertion error: user-entered max free text input fields cannot be greater than the plugin's max number setting.");
+
             for ($i = 0; $i < $maxfts; $i++) {
                 if ($question->{"enablecustomsettingsforfreetextinputfield$i"}) {
                     $data = new stdClass();
