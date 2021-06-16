@@ -41,7 +41,7 @@ define(['jquery', 'core/ajax',
                                 editorEditor.setContents('id_internaldescription', result.internaldescription);
                                 editorEditor.setContentsOfText('id_taskuuid', result.taskuuid);
                                 editorEditor.setContentsOfText('id_defaultmark', result.maxscoregradinghints);
-                                editorEditor.setContents('id_generalfeedback', result.filestogeneralfeedback);
+                                editorEditor.setContents('id_generalfeedback', result.filesdisplayedingeneralfeedback);
 
                                 var warnings = '';
                                 if (typeof result.moodleValidationWarnings !== 'undefined') {
