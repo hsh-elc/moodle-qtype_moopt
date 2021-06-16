@@ -204,6 +204,31 @@ function create_domdocument_from_task_xml($usercontext, $draftareid, $zipfilenam
     return $doc;
 }
 
+/**
+ * Get the text content of a file -- attached or embedded(), from the task.zip
+ *
+ * @param $usercontext
+ * @param $draftareid
+ * @param $zipfilename
+ * @param $filepath
+ * @param $filename
+ * @return string
+ * @throws invalid_parameter_exception
+ */
+function get_text_content_from_file($usercontext, $draftareid, $zipfilename, $filepath, $filename) {
+    $fs = get_file_storage();
+    $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareid, $filepath, $filename);
+    if (!$file) {
+        remove_all_files_from_draft_area($draftareid, $usercontext, $zipfilename);
+        throw new invalid_parameter_exception('Supplied zip file doesn\'t contain file '. $filepath . $filename . '.');
+    }
+
+    // TODO: make sure the mimetype is plain text
+    // even task.xmls may contain mistakes (eg PDF )
+
+    return $file->get_content();
+}
+
 function save_task_and_according_files($question) {
     global $USER, $DB;
 
@@ -214,8 +239,8 @@ function save_task_and_according_files($question) {
 
     $usercontext = context_user::instance($USER->id);
 
-    $filename = unzip_task_file_in_draft_area($draftareaid, $usercontext);
-    if (!$filename) {
+    $taskfilename = unzip_task_file_in_draft_area($draftareaid, $usercontext);
+    if (!$taskfilename) {
         // Seems like no task file was submitted.
         return false;
     }
@@ -224,7 +249,7 @@ function save_task_and_according_files($question) {
     file_save_draft_area_files($draftareaid, $question->context->id, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA,
             $question->id, array('subdirs' => true));
 
-    $doc = create_domdocument_from_task_xml($usercontext, $draftareaid, $filename);
+    $doc = create_domdocument_from_task_xml($usercontext, $draftareaid, $taskfilename);
     $namespace = detect_proforma_namespace($doc);
 
     $filesfordb = array();
@@ -277,7 +302,24 @@ function save_task_and_according_files($question) {
                 $record->questionid = $question->id;
                 $record->fileid = $file->attributes->getNamedItem('id')->nodeValue;
                 $record->usedbygrader = $file->attributes->getNamedItem('used-by-grader')->nodeValue == 'true' ? 1 : 0;
-                $record->visibletostudents = $file->attributes->getNamedItem('visible')->nodeValue == 'true' ? 1 : 0;
+                // TODO: temporary hack, needs a proper enumeration. This will require a plugin uninstall or upgrade script
+                $visablestr = $file->attributes->getNamedItem('visible')->nodeValue;
+                $visableint = 0;
+                switch($visablestr) {
+                    case 'no':
+                        $visableint = 0;
+                        break;
+                    case 'yes':
+                        $visableint = 1;
+                        break;
+                    case 'delayed':
+                        $visableint = 2;
+                        break;
+                    default:
+                        throw new \Exception("Unkonwn file->visible value");
+                }
+                $record->visibletostudents = $visableint;
+
                 $record->usagebylms = $file->attributes->getNamedItem('usage-by-lms') != null ?
                         $file->attributes->getNamedItem('usage-by-lms')->nodeValue : 'download';
                 $record->filepath = $pathinfo['dirname'] . '/';
@@ -318,14 +360,14 @@ function save_task_and_according_files($question) {
     $filesfordb[] = $record;
 
     // Now move the task zip file to the designated area.
-    $file = $fs->get_file($question->context->id, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id, '/', $filename);
+    $file = $fs->get_file($question->context->id, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id, '/', $taskfilename);
     $newfilerecord = array(
         'component' => 'question',
         'filearea' => PROFORMA_TASKZIP_FILEAREA,
         'itemid' => $question->id,
         'contextid' => $question->context->id,
         'filepath' => '/',
-        'filename' => $filename);
+        'filename' => $taskfilename);
     $fs->create_file_from_storedfile($newfilerecord, $file);
     $file->delete();
 
@@ -336,7 +378,7 @@ function save_task_and_according_files($question) {
     $record->visibletostudents = 0;
     $record->usagebylms = 'download';
     $record->filepath = '/';
-    $record->filename = $filename;
+    $record->filename = $taskfilename;
     $record->filearea = PROFORMA_TASKZIP_FILEAREA;
     $filesfordb[] = $record;
 
@@ -344,7 +386,7 @@ function save_task_and_according_files($question) {
     $DB->insert_records('qtype_programmingtask_files', $filesfordb);
 
     // Do a little bit of cleanup and remove everything from the file area we extracted.
-    remove_all_files_from_draft_area($draftareaid, $usercontext, $filename);
+    remove_all_files_from_draft_area($draftareaid, $usercontext, $taskfilename);
 }
 
 /**

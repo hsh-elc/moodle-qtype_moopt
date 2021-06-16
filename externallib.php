@@ -57,13 +57,13 @@ class qtype_programmingtask_external extends external_api {
         $usercontext = context_user::instance($USER->id);
         self::validate_context($usercontext);
 
-        $filename = unzip_task_file_in_draft_area($draftid, $usercontext);
+        $taskfilename = unzip_task_file_in_draft_area($draftid, $usercontext);
 
-        if ($filename == null) {
+        if ($taskfilename == null) {
             return ['error' => 'Error extracting zip file'];
         }
 
-        $doc = create_domdocument_from_task_xml($usercontext, $draftid, $filename);
+        $doc = create_domdocument_from_task_xml($usercontext, $draftid, $taskfilename);
         $namespace = detect_proforma_namespace($doc);
         $returnval = array();
 
@@ -112,10 +112,48 @@ class qtype_programmingtask_external extends external_api {
             $gradinghintshelper = new grading_hints_helper($gradinghints, $namespace);
             $maxscoregradinghints = $gradinghintshelper->calculate_max_score();
             $returnval['maxscoregradinghints'] = $maxscoregradinghints;
+
+            // Fill in the question's general feedback
+            // Look for files that have their 'visible' attribute set to 'delayed' and the
+            // 'usage-by-lms' attribute set to 'display'. Display these files in the
+            // question's general feedback.
+            $filesdisplayedingeneralfeedback = '';
+            foreach ($doc->getElementsByTagNameNS($namespace, 'file') as $file) {
+                $filediv = '';
+                foreach ($file->childNodes as $child) {
+                    if($file->attributes->getNamedItem('visible')->nodeValue == 'delayed' &&
+                        $file->attributes->getNamedItem('usage-by-lms') != null &&
+                        $file->attributes->getNamedItem('usage-by-lms')->nodeValue == 'display') {
+
+                        $filecontent = '';
+
+                        if($child->localName == 'embedded-txt-file') {
+//                            $filepath = pathinfo('/' . $file->attributes->getNamedItem('id')->nodeValue . '/' .
+//                                $child->attributes->getNamedItem('filename')->nodeValue);
+                            $filecontent = $child->nodeValue;
+                        } else if ($child->localName == 'attached-txt-file') {
+                            $pathinfo = pathinfo('/' . $child->nodeValue);
+                            $filecontent = get_text_content_from_file($usercontext, $draftid, $taskfilename,
+                                $pathinfo['dirname'] . '/', $pathinfo['basename']);
+                        }
+
+                        if(!empty($filecontent)) {
+                            $filediv = html_writer::start_div('delayeddisplayedfile', ['style' => 'overflow: auto;']);
+                            $filediv .= $filecontent;
+                            $filediv .= html_writer::end_div('delayeddisplayedfile');
+                        }
+                    }
+                }
+                if(!empty($filediv)) {
+                    $filesdisplayedingeneralfeedback .= $filediv;
+//                    $filesdisplayedingeneralfeedback .= '<p />';
+                }
+            }
+            $returnval['filesdisplayedingeneralfeedback'] = $filesdisplayedingeneralfeedback;
         }
 
         // Do a little bit of cleanup and remove everything from the file area we extracted.
-        remove_all_files_from_draft_area($draftid, $usercontext, $filename);
+        remove_all_files_from_draft_area($draftid, $usercontext, $taskfilename);
 
         return $returnval;
     }

@@ -37,6 +37,8 @@ use qtype_programmingtask\utility\communicator\communicator_factory;
  */
 class qtype_programmingtask_renderer extends qtype_renderer {
 
+    public $generalfeedbacktemp;
+
     /**
      * Generates the display of the formulation part of the question. This is the
      * area that contains the quetsion text, and the controls for students to
@@ -49,6 +51,15 @@ class qtype_programmingtask_renderer extends qtype_renderer {
      */
     public function formulation_and_controls(question_attempt $qa, question_display_options $options) {
         global $DB, $PAGE;
+
+        // Temporarly hide the generalfeedback until the grader returns a response file
+        // Since the general feedback may contain the solution to the question,
+        // hiding the general feedback is neccessary for the fellowing reason:
+        // A grader may return a Proforma response file with the is-internal-error attribute set to true, allowing
+        // the student to redo their attempt -- by then the student will already have seen the correct solution in the
+        // feedback.
+        $this->generalfeedbacktemp = $qa->get_question()->generalfeedback;
+        $qa->get_question()->generalfeedback = '<p />';
 
         $o = "";
         $onlinegraders = communicator_factory::get_instance()->get_graders();
@@ -96,7 +107,15 @@ class qtype_programmingtask_renderer extends qtype_renderer {
             $o .= html_writer::tag('div', $internaldescription, array('class' => 'internaldescription'));
         }
 
-        $downloadlinks = $this->render_download_links($qa, $options);
+//        // Display score calculation scheme on the task submission page.
+//        // Do so for teachers and if students are allowed to see the scheme
+//        if(has_capability('mod/quiz:grade', $options->context) ||
+//            $qa->get_question()->showstudscorecalcscheme) {
+//            $schema = $this->render_score_calculation_scheme($question, $qa);
+//            $o .= html_writer::tag('div', $schema, array('class' => 'scorecalculationschema'));
+//        }
+
+        $downloadlinks = $this->render_downloadable_files($qa, $options);
         $o .= html_writer::tag('div', $downloadlinks, array('class' => 'downloadlinks'));
 
         return $o;
@@ -109,7 +128,8 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         return $o;
     }
 
-    private function render_download_links(question_attempt $qa, question_display_options $options) {
+
+    private function render_downloadable_files(question_attempt $qa, question_display_options $options) {
         global $DB;
 
         $question = $qa->get_question();
@@ -120,15 +140,17 @@ class qtype_programmingtask_renderer extends qtype_renderer {
 
         $files = $DB->get_records('qtype_programmingtask_files', array('questionid' => $questionid));
         $anythingtodisplay = false;
-        if (count($files) != 0) {
+        if (count($files) != 0) { // TODO: this check should happen before these render methods are called
             $downloadurls = '';
             $downloadurls .= $this->output->heading(get_string('providedfiles', 'qtype_programmingtask'), 3);
             $downloadurls .= html_writer::start_div('providedfiles');
             $downloadurls .= '<ul>';
             foreach ($files as $file) {
-                if ($file->visibletostudents == 0 && !has_capability('mod/quiz:grade', $options->context)) {
+                // TODO: fix these magic numbers (2 means delayed)
+                if ($file->usagebylms == 'display' || ($file->visibletostudents == 0 && !has_capability('mod/quiz:grade', $options->context))) {
                     continue;
                 }
+
                 $anythingtodisplay = true;
                 $url = moodle_url::make_pluginfile_url($question->contextid, 'question', $file->filearea,
                                 "$qubaid/$slot/$questionid", $file->filepath, $file->filename, in_array($file->usagebylms,
@@ -146,6 +168,15 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         return $o;
     }
 
+    /**
+     * Renders student-submitted files for download.
+     *
+     * @param question_attempt $qa
+     * @param question_display_options $options
+     * @return string
+     * @throws coding_exception
+     * @throws dml_exception
+     */
     private function render_files_read_only(question_attempt $qa, question_display_options $options) {
         global $DB, $PAGE;
 
@@ -461,6 +492,10 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                                                             $namespace, "teacher-feedback")[0]->nodeValue, 'teacherfeedback');
                                 }
                             }
+
+                            // Restore the (hidden) general feedback now that the grader has returned a
+                            // response file (is-internal-error=false) indicating that everything is fine
+                            $qa->get_question()->generalfeedback = $this->generalfeedbacktemp;
                         } else {
                             $html = html_writer::div('The response contains an invalid response.xml file', 'gradingstatus');
                         }
@@ -493,6 +528,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                     $url = moodle_url::make_pluginfile_url($responsefileinfos['contextid'], $responsefileinfos['component'],
                                     $responsefileinfos['filearea'], $responsefileinfos['itemid'], $responsefileinfos['filepath'],
                                     $responsefileinfos['filename'], true);
+                    // TODO: put following string in lang
                     $html .= "<a href='$url' style='display:block;text-align:right;'>" .
                             " <span style='font-family: FontAwesome; display:inline-block;" .
                             "margin-right: 5px'>&#xf019;</span> Download complete 'response.zip' file</a>";
