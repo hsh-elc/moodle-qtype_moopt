@@ -41,6 +41,7 @@ define(['jquery', 'core/ajax',
                                 editorEditor.setContents('id_internaldescription', result.internaldescription);
                                 editorEditor.setContentsOfText('id_taskuuid', result.taskuuid);
                                 editorEditor.setContentsOfText('id_defaultmark', result.maxscoregradinghints);
+                                editorEditor.setContents('id_generalfeedback', result.filestogeneralfeedback);
 
                                 var warnings = '';
                                 if (typeof result.moodleValidationWarnings !== 'undefined') {
@@ -57,6 +58,15 @@ define(['jquery', 'core/ajax',
 
                                 }
                                 $("#id_error_ajaxwarninglabel").parent().children().first().html(warnings);
+
+                                // kind of a weird bug fix: extremely large texts require to have their
+                                // text field focused/clicked upon for the text value to be written after
+                                // the texts are extracted from the task.zip.
+                                // the fix is to automatically do that focusing
+                                $("#id_questiontexteditable").focus();
+                                $("#id_internaldescriptioneditable").focus();
+                                $("#id_generalfeedbackeditable").focus();
+                                $("#id_name").focus();
                             },
                             fail: function (errorObject) {
                                 console.log(errorObject);
