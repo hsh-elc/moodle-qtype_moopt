@@ -74,7 +74,7 @@ class qtype_programmingtask_edit_form extends question_edit_form {
 
         list($graders, $this->availabeGraders) = retrieve_graders_and_update_local_list();
         $this->graderoptions = array();
-        foreach ($this->availabeGraders as $id => $name) {
+        foreach ($graders as $id => $name) {
             $this->graderoptions[$id] = $name;
         }
         $this->graderselect = $mform->addElement('select', 'graderid', get_string('grader', 'qtype_programmingtask'),
