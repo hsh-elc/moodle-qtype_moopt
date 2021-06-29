@@ -171,6 +171,10 @@ class qtype_programmingtask_external extends external_api {
     public static function retrieve_grading_results($qubaid) {
         global $USER, $SESSION, $DB;
 
+        // Do some param validation.
+        $params = self::validate_parameters(self::retrieve_grading_results_parameters(), array('qubaid' => $qubaid));
+        $qubaid = $params['qubaid'];
+
         // Check if calling user is teacher.
         $qubarecord = $DB->get_record('question_usages', ['id' => $qubaid]);
         $contextrecord = $DB->get_record('context', ['id' => $qubarecord->contextid]);
@@ -185,10 +189,6 @@ class qtype_programmingtask_external extends external_api {
             // Only allow a request every n seconds from the same user.
             return false;
         }
-
-        // Do some param validation.
-        $params = self::validate_parameters(self::retrieve_grading_results_parameters(), array('qubaid' => $qubaid));
-        $qubaid = $params['qubaid'];
 
         // Check if the question usage given by the qubaid belongs to the requesting user.
         if (!$isteacher) {
