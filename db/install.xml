@@ -59,10 +59,10 @@
         <TABLE NAME="qtype_programmingtask_grprcs" COMMENT="Infos about currently active grading processes.">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="qubaid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="Question usage id of the question"/>
-                <FIELD NAME="questionattemptdbid" TYPE="int" LENGTH="10" NOTNULL="true" COMMENT="database id of the question attempt"/>
-                <FIELD NAME="gradeprocessid" TYPE="char" LENGTH="36" NOTNULL="true" COMMENT="id of the grade process"/>
-                <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" comment="the id of the grader that is grading the response"/>
+                <FIELD NAME="qubaid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Question usage id of the question"/>
+                <FIELD NAME="questionattemptdbid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="database id of the question attempt"/>
+                <FIELD NAME="gradeprocessid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false" COMMENT="id of the grade process"/>
+                <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="the id of the grader that is grading the response"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -73,8 +73,8 @@
         <TABLE NAME="qtype_programmingtask_qaslts" COMMENT="Association between question attempts and their initial slots.">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="questionattemptdbid" TYPE="int" LENGTH="10" NOTNULL="true"/>
-                <FIELD NAME="slot" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="questionattemptdbid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="slot" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -90,7 +90,7 @@
                 <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
                 <FIELD NAME="inputindex" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
                 <FIELD NAME="presetfilename" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" DEFAULT="1"/>
-                <FIELD NAME="filename" TYPE="char" LENGTH="256" SEQUENCE="false" DEFAULT=""/>
+                <FIELD NAME="filename" TYPE="char" LENGTH="256" NOTNULL="false" SEQUENCE="false" DEFAULT=""/>
                 <FIELD NAME="ftslang" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" DEFAULT="default"/>
             </FIELDS>
             <KEYS>
