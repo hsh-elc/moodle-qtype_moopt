@@ -44,18 +44,18 @@ define(['jquery', 'core/ajax',
                                 editorEditor.setContents('id_generalfeedback', result.filesdisplayedingeneralfeedback);
 
                                 var warnings = '';
+                                if (typeof result.moodleValidationProformaNamespace !== 'undefined') {
+                                    warnings += '<p>Detected ProFormA-version ' + result.moodleValidationProformaNamespace + '</p>';
+                                }
+                                if (typeof result.moodleValidationWarningInvalidNamespace !== 'undefined') {
+                                    warnings += '<p>' + result.moodleValidationWarningInvalidNamespace + '</p>';
+                                }
                                 if (typeof result.moodleValidationWarnings !== 'undefined') {
-                                    if (typeof result.moodleValidationProformaNamespace !== 'undefined') {
-                                        warnings = '<p>Detected ProFormA-version ' + result.moodleValidationProformaNamespace +
-                                                '. Found the following problems during validation but still continued:</p><ul>';
-                                        result.moodleValidationWarnings.forEach(function (e) {
-                                            warnings += '<li>' + e + '</li>';
-                                        });
-                                        warnings += '</ul>';
-                                    } else {
-                                        warnings = '<p>' + result.moodleValidationWarnings + '</p>';
-                                    }
-
+                                    warnings += '<p>Found the following problems during validation but still continued:</p><ul>';
+                                    result.moodleValidationWarnings.forEach(function (e) {
+                                        warnings += '<li>' + e.msg + '</li>';
+                                    });
+                                    warnings += '</ul>';
                                 }
                                 $("#id_error_ajaxwarninglabel").parent().children().first().html(warnings);
 

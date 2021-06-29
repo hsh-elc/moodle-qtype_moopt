@@ -32,11 +32,23 @@ class qtype_programmingtask_external extends external_api {
     }
 
     public static function extract_task_infos_from_draft_file_returns() {
-        new external_single_structure(
+        return new external_single_structure(
                 array(
-            'title' => new external_value(PARAM_TEXT, 'title of the task'),
-            'description' => new external_value(PARAM_RAW, 'description of the task'),
-            'internaldescription' => new external_value(PARAM_RAW, 'internal description of the task')
+            'error' => new external_value(PARAM_TEXT, 'error message', VALUE_OPTIONAL),
+            'title' => new external_value(PARAM_TEXT, 'title of the task', VALUE_OPTIONAL),
+            'description' => new external_value(PARAM_RAW, 'description of the task', VALUE_OPTIONAL),
+            'internaldescription' => new external_value(PARAM_RAW, 'internal description of the task', VALUE_OPTIONAL),
+            'taskuuid' => new external_value(PARAM_RAW, 'task\'s uuid', VALUE_OPTIONAL),
+            'maxscoregradinghints' => new external_value(PARAM_FLOAT, 'maximum score', VALUE_OPTIONAL),
+            'filesdisplayedingeneralfeedback' => new external_value(PARAM_RAW, 'general feedback', VALUE_OPTIONAL),
+            'moodleValidationProformaNamespace' => new external_value(PARAM_TEXT, 'detected namespace', VALUE_OPTIONAL),
+            'moodleValidationWarningInvalidNamespace' => new external_value(PARAM_TEXT, 'warning message in case of invalid XML namespace', VALUE_OPTIONAL),
+            'moodleValidationWarnings' => new external_multiple_structure(
+                    new external_single_structure(
+                        array(
+                            'msg' => new external_value(PARAM_TEXT, 'warning message')
+                        )
+                    ), 'XML validation warning messages', VALUE_OPTIONAL)
                 )
         );
     }
@@ -69,14 +81,18 @@ class qtype_programmingtask_external extends external_api {
 
         if ($namespace == null) {
 
-            $returnval['moodleValidationWarnings'] = get_string('invalidproformanamespace', 'qtype_programmingtask',
+            $returnval['moodleValidationWarningInvalidNamespace'] = get_string('invalidproformanamespace', 'qtype_programmingtask',
                     implode(", ", PROFORMA_TASK_XML_NAMESPACES));
         } else {
 
             $validationerrors = validate_proforma_file_against_schema($doc, $namespace);
             if (!empty($validationerrors)) {
                 $returnval['moodleValidationProformaNamespace'] = $namespace;
-                $returnval['moodleValidationWarnings'] = $validationerrors;
+                $msgarr = array();
+                foreach ($validationerrors as $msg) {
+                    array_push($msgarr, array('msg' => $msg));
+                }
+                $returnval['moodleValidationWarnings'] = $msgarr;
             }
 
             foreach ($doc->getElementsByTagNameNS($namespace, 'description') as $des) {
