@@ -713,15 +713,16 @@ function validate_proforma_file_against_schema(DOMDocument $doc, $namespace): ar
     $namespace = str_replace(":", "_", $namespace);
     $schema = file_get_contents(__DIR__ . "/res/proforma/xsd/$namespace.xsd");
     if (!$schema) {
-        $msgs[] = "Invalid or unknown proforma namespace: $namespace<br/>Valid proforma namespaces are: " . implode(", ",
-                        PROFORMA_TASK_XML_NAMESPACES);
+        $msgs[] = get_string('proformanamespaceinvalidorunknown', 'qtype_programmingtask', $namespace) . '<br/>' 
+                . get_string('proformanamespacesvalid', 'qtype_programmingtask', implode(", ", PROFORMA_TASK_XML_NAMESPACES));
+        return $msgs;
     }
 
     libxml_use_internal_errors(true);
     if (!$doc->schemaValidateSource($schema)) {
         $errors = libxml_get_errors();
         foreach ($errors as $error) {
-            $msgs[] = "{$error->message} (Code {$error->code}) on line {$error->line}";
+            $msgs[] = get_string('xmlvalidationerrormsg', 'qtype_programmingtask', ['message' => $error->message, 'code' => $error->code, 'line' => $error->line ]);
         }
         libxml_clear_errors();
     }
@@ -746,9 +747,9 @@ function check_if_task_file_is_valid($draftareaid) {
     // Check if there is only the file we want.
     $area = file_get_draft_area_info($draftareaid, "/");
     if ($area['filecount'] == 0) {
-        return 'You need to supply a valid ProFormA task file.';
+        return get_string('proformataskfilerequired', 'qtype_programmingtask');
     } else if ($area['filecount'] > 1 || $area['foldercount'] != 0) {
-        return 'Only one file is allowed to be in this draft area: A ProFormA-Task as either ZIP or XML file.';
+        return get_string('singleproformataskfilerequired', 'qtype_programmingtask');
     }
 
     // Get name of the file.
@@ -767,7 +768,7 @@ function check_if_task_file_is_valid($draftareaid) {
         $filetype = strtolower($fileinfo['extension']);
     }
     if ($filetype != 'zip') {
-        return 'Supplied file must be a zip file.';
+        return get_string('taskfilezipexpected', 'qtype_programmingtask');
     }
 
     // Unzip file - basically copied from draftfiles_ajax.php.
@@ -795,26 +796,30 @@ function check_if_task_file_is_valid($draftareaid) {
                 '/', '.')->delete();
 
         if ($taskfilecontents == null) {
-            return "Supplied zip file doesn't contain a task.xml file";
+            return get_string('taskziplackstaskxml', 'qtype_programmingtask');
         }
 
         // TODO: Uncomment this to enable validation of task.xml file itself. Currently commented out because most task files
         // don't validate against the schema.
         /*
-          $doc = new DOMDocument();
-          $doc->loadXML($taskFileContents);
-          $namespace = detect_proforma_namespace($doc);
-          if (!empty(($errors = validate_proforma_file_against_schema($doc, $namespace)))) {
-          $ret = "<p>Detected ProFormA-version $namespace. Found the following problems during validation".
-          " of task.xml file:</p><ul>";
-          foreach ($errors as $er) {
-          $ret .= '<li>' . $er . '</li>';
-          }
-          $ret .= '</ul>';
-          return $ret;
-          } */
+        $doc = new DOMDocument();
+        $doc->loadXML($taskfilecontents);
+        $namespace = detect_proforma_namespace($doc);
+        if ($namespace == null) {
+            return "<p>" . get_string('invalidproformanamespace', 'qtype_programmingtask',
+                    implode(", ", PROFORMA_TASK_XML_NAMESPACES)) . "</p>";
+        }
+        if (!empty(($errors = validate_proforma_file_against_schema($doc, $namespace)))) {
+            $ret = "<p>" . get_string('proformavalidationerrorintro', 'qtype_programmingtask', $namespace) . "</p><ul>";
+            foreach ($errors as $er) {
+                $ret .= '<li>' . $er . '</li>';
+            }
+            $ret .= '</ul>';
+            return $ret;
+        }
+        */
     } else {
-        return 'Supplied zip file is not a valid zip file';
+        return get_string('suppliedzipinvalid', 'qtype_programmingtask');
     }
 
     return null;

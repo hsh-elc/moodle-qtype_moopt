@@ -65,8 +65,6 @@ class qtype_programmingtask_edit_form extends question_edit_form {
     }
 
     protected function definition_inner($mform) {
-        global $DB;
-
         $mform->addElement('editor', 'internaldescription', get_string('internaldescription', 'qtype_programmingtask'),
                 array('rows' => 10), array('maxfiles' => 0,
             'noclean' => true, 'context' => $this->context, 'subdirs' => true));
@@ -245,8 +243,7 @@ class qtype_programmingtask_edit_form extends question_edit_form {
 
         $pluginsettingsmaxnumfields = get_config("qtype_programmingtask","max_number_free_text_inputs");
         if ($fromform['ftsmaxnumfields'] > $pluginsettingsmaxnumfields) {
-            $errors['ftsmaxnumfields'] = 'The range must be ['.$fromform['ftsnuminitialfields'].','.$pluginsettingsmaxnumfields.']';
-            get_string('ftsmaxnumfieldslegalrange','qtype_programmingtask',
+            $errors['ftsmaxnumfields'] = get_string('ftsmaxnumfieldslegalrange','qtype_programmingtask',
                 ['beg' => $fromform['ftsnuminitialfields'], 'end' => $pluginsettingsmaxnumfields]);
         }
 

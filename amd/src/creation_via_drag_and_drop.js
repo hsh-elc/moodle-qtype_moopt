@@ -32,6 +32,7 @@ define(['jquery', 'core/ajax',
                                 if (typeof result.error !== 'undefined') {
                                     $("#id_error_ajaxerrorlabel").parent().children().first().
                                             html('<div>' + result.error + '</div>');
+                                    $("#id_error_ajaxwarninglabel").parent().children().first().html('');
                                     return;
                                 }
 
@@ -73,6 +74,7 @@ define(['jquery', 'core/ajax',
                                 $("#id_error_ajaxerrorlabel").parent().children().first().
                                         html('<div>' + errorObject.debuginfo + '</div><div> For more information see browser '
                                                 + 'console.</div>');
+                                $("#id_error_ajaxwarninglabel").parent().children().first().html('');
                             }
                         }
                     ]);
