@@ -516,7 +516,7 @@ class separate_feedback_handler {
     private function get_nullify_combine_value(\DOMElement $elem): float {
         $refid = $elem->getAttribute('ref');
         $combine = $this->gradinghintscombines[$refid];
-        $score = $this->calculate_from_children($combine,
+        list($score, $maxscore) = $this->calculate_from_children($combine,
                 new separate_feedback_text_node('dummy') /* This is just a dummy object */, false);
         return $score;
     }
