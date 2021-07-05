@@ -70,20 +70,6 @@
             </KEYS>
         </TABLE>
 
-        <TABLE NAME="qtype_programmingtask_qaslts" COMMENT="Association between question attempts and their initial slots.">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="questionattemptdbid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="slot" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-            </KEYS>
-            <INDEXES>
-                <INDEX NAME="questionattemptdbid" UNIQUE="true" FIELDS="questionattemptdbid"/>
-            </INDEXES>
-        </TABLE>
-
         <TABLE NAME="qtype_programmingtask_fts" COMMENT="This table keeps information about custom options for free text input fields.">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>

@@ -17,14 +17,45 @@
 defined('MOODLE_INTERNAL') || die();
 
 // Name of file areas.
-define('PROFORMA_TASKZIP_FILEAREA', 'taskfile');
-define('PROFORMA_TASKXML_FILEAREA', 'taskxmlfile');
-define('PROFORMA_ATTACHED_TASK_FILES_FILEAREA', 'attachedtaskfiles');
-define('PROFORMA_EMBEDDED_TASK_FILES_FILEAREA', 'embeddedtaskfiles');
+
+// The following four file areas store files that are attached to a question.
+// All these four file areas store files with the following key values:
+// - component: question
+// - context: a context of level 50 (=course)
+// - filearea: <key>, 
+//             where <key> is one of the four labels
+// - itemid: <q-id>, i. e. the database id of the question
+// - filepath: for PROFORMA_TASKZIP_FILEAREA and PROFORMA_TASKXML_FILEAREA this is "/".
+//             for PROFORMA_ATTACHED_TASK_FILES_FILEAREA this is the path inside the zip file
+//             for PROFORMA_EMBEDDED_TASK_FILES_FILEAREA this is "/<file-id>/", where <file-id> denotes the ProFormA file id of the embedded file
+// - filename: the filename inside the task.zip  (or the name of the zip file in case of PROFORMA_TASKZIP_FILEAREA)
+define('PROFORMA_TASKZIP_FILEAREA', 'taskfile'); // the task.zip file
+define('PROFORMA_TASKXML_FILEAREA', 'taskxmlfile'); // the task.xml file
+define('PROFORMA_ATTACHED_TASK_FILES_FILEAREA', 'attachedtaskfiles'); // files attached in a task.zip file
+define('PROFORMA_EMBEDDED_TASK_FILES_FILEAREA', 'embeddedtaskfiles'); // files embedded in a task.xml file
+
+
 define('PROFORMA_SUBMISSION_ZIP_FILEAREA', 'submissionzip');
+
+// The following file area is used for a response.zip file only. Contents of the zip file will
+// go to PROFORMA_RESPONSE_FILE_AREA and PROFORMA_RESPONSE_FILE_AREA_EMBEDDED.
 define('PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE', 'responsefilesresponsefile');
+
+// The following two file areas store files that are attached to a response.
 define('PROFORMA_RESPONSE_FILE_AREA', 'responsefiles');
 define('PROFORMA_RESPONSE_FILE_AREA_EMBEDDED', 'responsefilesembedded');
+
+// All of the above PROFORMA_RESPONSE_FILE_AREA* file areas store files
+// with the following key values:
+// - component: question
+// - context: a context of level 70 (=module)
+// - filearea: <key>_<qa-id>, 
+//             where <key> is one of the labels responsefilesresponsefile, responsefiles or responsefilesembedded
+//             and <qa-id> is the database id of a mdl_question_attempt
+// - itemid: <quba-id>, i. e. the database id of a mdl_question_usages
+// - filepath: the path inside a response.zip file  (or / in case of responsefilesresponsefile)
+// - filename: the filename inside the response.zip  (or the name of the zip file in case of responsefilesresponsefile)
+
 
 define('PROFORMA_RETRIEVE_GRADING_RESULTS_LOCK_MAXLIFETIME', 10);
 
@@ -75,7 +106,8 @@ require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
 use qtype_programmingtask\utility\communicator\communicator_factory;
 use qtype_programmingtask\utility\proforma_xml\separate_feedback_handler;
 
-/** Unzips the task zip file in the given draft area into the area
+/*
+ * Unzips the task zip file in the given draft area into the area
  *
  * @param type $draftareaid
  * @param type $usercontext
@@ -160,7 +192,8 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     return $filename;
 }
 
-/* * Removes all files and directories from the given draft area except a file with the given file name
+/*
+ * Removes all files and directories from the given draft area except a file with the given file name
  *
  * @param type $draftareaid
  * @param type $user_context
@@ -178,26 +211,27 @@ function remove_all_files_from_draft_area($draftareaid, $usercontext, $excludedf
     }
 }
 
-/* * Creates a DOMDocument object from the task.xml file in the given file area and returns it.
+/**
+ * Creates a DOMDocument object from the task.xml file in the given file area and returns it.
  *
  * @param type $user_context
- * @param type $draftareid
+ * @param type $draftareaid
  * @param type $zipfilename
  * @return \DOMDocument
  * @throws invalid_parameter_exception
  */
 
-function create_domdocument_from_task_xml($usercontext, $draftareid, $zipfilename) {
+function create_domdocument_from_task_xml($usercontext, $draftareaid, $zipfilename) {
     $fs = get_file_storage();
-    $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareid, "/", 'task.xml');
+    $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, "/", 'task.xml');
     if (!$file) {
-        remove_all_files_from_draft_area($draftareid, $usercontext, $zipfilename);
+        remove_all_files_from_draft_area($draftareaid, $usercontext, $zipfilename);
         throw new invalid_parameter_exception('Supplied zip file doesn\'t contain task.xml file.');
     }
 
     $doc = new DOMDocument();
     if (!$doc->loadXML($file->get_content())) {
-        remove_all_files_from_draft_area($draftareid, $usercontext, $zipfilename);
+        remove_all_files_from_draft_area($draftareaid, $usercontext, $zipfilename);
         throw new invalid_parameter_exception('Error parsing the supplied task.xml file. See server log for details.');
     }
 
@@ -208,18 +242,18 @@ function create_domdocument_from_task_xml($usercontext, $draftareid, $zipfilenam
  * Get the text content of a file -- attached or embedded(), from the task.zip
  *
  * @param $usercontext
- * @param $draftareid
+ * @param $draftareaid
  * @param $zipfilename
  * @param $filepath
  * @param $filename
  * @return string
  * @throws invalid_parameter_exception
  */
-function get_text_content_from_file($usercontext, $draftareid, $zipfilename, $filepath, $filename) {
+function get_text_content_from_file($usercontext, $draftareaid, $zipfilename, $filepath, $filename) {
     $fs = get_file_storage();
-    $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareid, $filepath, $filename);
+    $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, $filepath, $filename);
     if (!$file) {
-        remove_all_files_from_draft_area($draftareid, $usercontext, $zipfilename);
+        remove_all_files_from_draft_area($draftareaid, $usercontext, $zipfilename);
         throw new invalid_parameter_exception('Supplied zip file doesn\'t contain file '. $filepath . $filename . '.');
     }
 
@@ -441,9 +475,6 @@ function internal_retrieve_grading_results($qubaid) {
 
         $quba = question_engine::load_questions_usage_by_activity($qubaid);
         $slot = $DB->get_record('question_attempts', ['id' => $record->questionattemptdbid], 'slot')->slot;
-        $initialslot = $DB->get_record('qtype_programmingtask_qaslts',
-                        ['questionattemptdbid' => $record->questionattemptdbid], 'slot')->slot;
-
         try {
             $response = $communicator->get_grading_result($record->graderid, $record->gradeprocessid);
         } catch (invalid_response_exception $ex) {
@@ -472,6 +503,8 @@ function internal_retrieve_grading_results($qubaid) {
                 $oldexractedfiles = array_merge(
                         $fs->get_directory_files($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
                                 "_{$record->questionattemptdbid}", $qubaid, "/", true, true),
+                        $fs->get_directory_files($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE .
+                                "_{$record->questionattemptdbid}", $qubaid, "/", true, true),
                         $fs->get_directory_files($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA_EMBEDDED .
                                 "_{$record->questionattemptdbid}", $qubaid, "/", true, true)
                 );
@@ -490,13 +523,6 @@ function internal_retrieve_grading_results($qubaid) {
                         'contextid' => $qubarecord->contextid,
                         'filepath' => "/",
                         'filename' => 'response.zip');
-
-                    $file = $fs->get_file($filerecord['contextid'], $filerecord['component'], $filerecord['filearea'],
-                            $filerecord['itemid'], $filerecord['filepath'], $filerecord['filename']);
-                    if ($file) {
-                        // Delete old result.
-                        $file->delete();
-                    }
 
                     $file = $fs->create_file_from_string($filerecord, $response);
                     $zipper = get_file_packer('application/zip');

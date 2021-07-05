@@ -390,11 +390,6 @@ class qtype_programmingtask_question extends question_graded_automatically {
             $DB->insert_record('qtype_programmingtask_grprcs', ['qubaid' => $qa->get_usage_id(),
                 'questionattemptdbid' => $qa->get_database_id(), 'gradeprocessid' => $gradeprocessid,
                 'graderid' => $this->graderid]);
-            if (!$DB->record_exists('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id()])) {
-                // This will already exist when this is a regrade.
-                $DB->insert_record('qtype_programmingtask_qaslts', ['questionattemptdbid' => $qa->get_database_id(),
-                    'slot' => $qa->get_slot()]);
-            }
         } catch (invalid_response_exception $ex) {
             debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
             $returnstate = question_state::$needsgrading;

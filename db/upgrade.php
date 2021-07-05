@@ -124,19 +124,6 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2019091800, 'qtype', 'programmingtask');
     }
 
-    if ($oldversion < 2019101301) {
-        $qaslotstable = new xmldb_table('qtype_programmingtask_qaslts');
-        $qaslotstable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, true));
-        $qaslotstable->addField(new xmldb_field('questionattemptdbid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
-        $qaslotstable->addField(new xmldb_field('slot', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
-        $qaslotstable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id')));
-        $qaslotstable->addIndex(new xmldb_index('questionattemptdbid', XMLDB_INDEX_UNIQUE, ['questionattemptdbid']));
-        $dbman->create_table($qaslotstable);
-
-        // ProForma savepoint reached.
-        upgrade_plugin_savepoint(true, 2019101301, 'qtype', 'programmingtask');
-    }
-
     if ($oldversion < 2019110400) {
         $table = new xmldb_table('qtype_programmingtask_optns');
         $dbman->add_field($table, new xmldb_field('showstudscorecalcscheme', XMLDB_TYPE_INTEGER, '1', null,
