@@ -89,7 +89,7 @@ class qtype_programmingtask extends question_type {
 
         // Store custom settings for free text input fields.
         $DB->delete_records('qtype_programmingtask_fts', array('questionid' => $question->id));
-        if ($question->{'enablecustomsettingsforfreetextinputfields'}) {
+        if ($question->{'enablefreetextsubmissions'} && $question->{'enablecustomsettingsforfreetextinputfields'}) {
             $maxfts = $question->ftsmaxnumfields;
             // make sure this user-entered max num does not exceed the
             // original plugin setting from when it was installed and first-time configured
