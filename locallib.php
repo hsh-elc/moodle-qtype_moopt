@@ -697,32 +697,6 @@ function internal_retrieve_grading_results($qubaid) {
     return !empty($finishedgradingprocesses);
 }
 
-function retrieve_graders_and_update_local_list() {
-    global $DB;
-
-    $graders = communicator_factory::get_instance()->get_graders();
-    $records = array();
-    $availableGraders = [];
-    $realGraders = $graders['graders'];
-    foreach ($graders['graders'] as $grader) {
-        foreach ($grader as $id => $name) {
-            if (!$DB->record_exists('qtype_programmingtask_gradrs', array("graderid" => $id))) {
-                array_push($records, array("graderid" => $id, "gradername" => $name));
-            }
-            $availableGraders[] = $id;
-        }
-    }
-    $DB->insert_records('qtype_programmingtask_gradrs', $records);
-
-    $allgradersrecords = $DB->get_records('qtype_programmingtask_gradrs');
-    $allgraders = [];
-    foreach ($allgradersrecords as $graderrecord) {
-        $allgraders[$graderrecord->graderid] = $graderrecord->gradername;
-    }
-
-    return [$allgraders, $availableGraders];
-}
-
 function detect_proforma_namespace(DOMDocument $doc) {
     foreach (PROFORMA_TASK_XML_NAMESPACES as $namespace) {
         if ($doc->getElementsByTagNameNS($namespace, "task")->length != 0 ||

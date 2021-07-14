@@ -76,16 +76,8 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
 
     if ($oldversion < 2019052601) {
 
-        $gradertable = new xmldb_table('qtype_programmingtask_gradrs');
-        $gradertable->addField(new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
-        $gradertable->addField(new xmldb_field('gradername', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
-        $gradertable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('graderid'), null, null));
-        $dbman->create_table($gradertable);
-
         $table = new xmldb_table('qtype_programmingtask_optns');
         $dbman->add_field($table, new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
-        $dbman->add_key($table, new xmldb_key('graderid', XMLDB_KEY_FOREIGN, array('graderid'),
-                        'qtype_programmingtask_gradrs', 'graderid'));
 
         // ProForma savepoint reached.
         upgrade_plugin_savepoint(true, 2019052601, 'qtype', 'programmingtask');
@@ -107,21 +99,10 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         $gradertable->addField(new xmldb_field('gradeprocessid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL));
         $gradertable->addField(new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
         $gradertable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id')));
-        $gradertable->addKey(new xmldb_key('graderid', XMLDB_KEY_FOREIGN, array('graderid'),
-                        'qtype_programmingtask_gradrs', 'graderid'));
         $dbman->create_table($gradertable);
 
         // ProForma savepoint reached.
         upgrade_plugin_savepoint(true, 2019080301, 'qtype', 'programmingtask');
-    }
-
-    if ($oldversion < 2019091800) {
-        $table = new xmldb_table('qtype_programmingtask_gradrs');
-        $dbman->add_field($table, new xmldb_field('lmsid', XMLDB_TYPE_CHAR, '64', null));
-        $dbman->add_field($table, new xmldb_field('lmspw', XMLDB_TYPE_CHAR, '64', null));
-
-        // ProForma savepoint reached.
-        upgrade_plugin_savepoint(true, 2019091800, 'qtype', 'programmingtask');
     }
 
     if ($oldversion < 2019110400) {

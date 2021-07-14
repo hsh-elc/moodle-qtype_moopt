@@ -25,6 +25,8 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once('locallib.php');
 
+use qtype_programmingtask\utility\communicator\communicator_factory;
+
 /**
  * programmingtask question editing form defition.
  *
@@ -34,9 +36,8 @@ require_once('locallib.php');
 class qtype_programmingtask_edit_form extends question_edit_form {
 
     private $graderselect;
-    private $graderoptions;
     private $gradererrorlabel;
-    private $availabeGraders;
+    private $availableGraders;
 
     protected function definition() {
         global $COURSE, $PAGE;
@@ -70,13 +71,14 @@ class qtype_programmingtask_edit_form extends question_edit_form {
             'noclean' => true, 'context' => $this->context, 'subdirs' => true));
         $mform->setType('internaldescription', PARAM_RAW); // No XSS prevention here, users must be trusted.
 
-        list($graders, $this->availabeGraders) = retrieve_graders_and_update_local_list();
-        $this->graderoptions = array();
-        foreach ($graders as $id => $name) {
-            $this->graderoptions[$id] = $name;
+        $graders = communicator_factory::get_instance()->get_graders()['graders'];
+        $this->availableGraders = array();
+        foreach ($graders as $grader) {
+            $k = key($grader);
+            $this->availableGraders[$k] = $grader[$k];
         }
         $this->graderselect = $mform->addElement('select', 'graderid', get_string('grader', 'qtype_programmingtask'),
-                $this->graderoptions);
+            $this->availableGraders);
 
         $this->gradererrorlabel = $mform->addElement('static', 'gradernotavailableerrorlabel', '', '');
         $this->set_class_attribute_of_label($this->gradererrorlabel, 'errorlabel');
@@ -178,10 +180,8 @@ class qtype_programmingtask_edit_form extends question_edit_form {
         }
 
         if (isset($question->graderid)) {
-            if (!in_array($question->graderid, $this->availabeGraders)) {
-                $gradername = $DB->get_field('qtype_programmingtask_gradrs', 'gradername',
-                        array("graderid" => $question->graderid));
-                $this->gradererrorlabel->setText(get_string('previousgradernotavailable', 'qtype_programmingtask'));
+            if (!array_key_exists($question->graderid, $this->availableGraders)) {
+                $this->gradererrorlabel->setText(get_string('previousgradernotavailable', 'qtype_programmingtask', ['grader' => $question->graderid]));
             }
             $this->graderselect->setSelected($question->graderid);
         }

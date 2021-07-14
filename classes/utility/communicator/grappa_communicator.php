@@ -156,11 +156,8 @@ class grappa_communicator implements communicator_interface {
     protected function __construct() {
         $this->grappaurl = get_config("qtype_programmingtask", "grappa_url");
         $this->grappatimeout = get_config("qtype_programmingtask", "grappa_timeout");
-        /*
-         * TODO: Put both into some kind of config var?
-         */
-        $this->lmsid = "test";
-        $this->lmspw = "test";
+        $this->lmsid = get_config("qtype_programmingtask", "lms_id");
+        $this->lmspw = get_config("qtype_programmingtask", "lms_password");
     }
 
     protected static $instance = null;

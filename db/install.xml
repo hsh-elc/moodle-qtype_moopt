@@ -1,89 +1,74 @@
-<?xml version="1.0" encoding="UTF-8" ?> <XMLDB PATH="question/type/programmingtask/db" VERSION="20190312" COMMENT="XMLDB file for Moodle qtype_programmingtask"     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd" >
-    <TABLES>
-
-        <TABLE NAME="qtype_programmingtask_optns" COMMENT="Options for programming task questions">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
-                <FIELD NAME="internaldescription" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The internal description of the assignment."/>
-                <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="taskuuid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="showstudscorecalcscheme" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="enablefilesubmissions" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" DEFAULT="0"/>
-                <FIELD NAME="enablefreetextsubmissions" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" DEFAULT="0"/>
-                <FIELD NAME="ftsnuminitialfields" TYPE="int" LENGTH="8" NOTNULL="false" SEQUENCE="false" DEFAULT="0"/>
-                <FIELD NAME="ftsmaxnumfields" TYPE="int" LENGTH="8" NOTNULL="false" SEQUENCE="false" DEFAULT="0"/>
-                <FIELD NAME="ftsautogeneratefilenames" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" DEFAULT="1"/>
-                <FIELD NAME="ftsstandardlang" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" DEFAULT="txt"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-                <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
-                <KEY NAME="graderid" TYPE="foreign" FIELDS="graderid" REFTABLE="qtype_programmingtask_gradrs" REFFIELDS="graderid"/>
-            </KEYS>
-        </TABLE>
-
-        <TABLE NAME="qtype_programmingtask_files" COMMENT="This table keeps information about the files that are contained in a question.">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
-                <FIELD NAME="fileid" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="usedbygrader" TYPE="int" LENGTH="2" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="visibletostudents" TYPE="int" LENGTH="2" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="usagebylms" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="download" SEQUENCE="false"/>
-                <FIELD NAME="filepath" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="filearea" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-                <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
-            </KEYS>
-            <INDEXES>
-                <INDEX NAME="fileid" UNIQUE="false" FIELDS="fileid"/>
-            </INDEXES>
-        </TABLE>
-
-        <TABLE NAME="qtype_programmingtask_gradrs" COMMENT="Contains infos about the graders.">
-            <FIELDS>
-                <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="gradername" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="lmsid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="lmspw" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="graderid"/>
-            </KEYS>
-        </TABLE>
-        
-        <TABLE NAME="qtype_programmingtask_grprcs" COMMENT="Infos about currently active grading processes.">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="qubaid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Question usage id of the question"/>
-                <FIELD NAME="questionattemptdbid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="database id of the question attempt"/>
-                <FIELD NAME="gradeprocessid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false" COMMENT="id of the grade process"/>
-                <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="the id of the grader that is grading the response"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-                <KEY NAME="graderid" TYPE="foreign" FIELDS="graderid" REFTABLE="qtype_programmingtask_gradrs" REFFIELDS="graderid"/>
-            </KEYS>
-        </TABLE>
-
-        <TABLE NAME="qtype_programmingtask_fts" COMMENT="This table keeps information about custom options for free text input fields.">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-                <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
-                <FIELD NAME="inputindex" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-                <FIELD NAME="presetfilename" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" DEFAULT="1"/>
-                <FIELD NAME="filename" TYPE="char" LENGTH="256" NOTNULL="false" SEQUENCE="false" DEFAULT=""/>
-                <FIELD NAME="ftslang" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" DEFAULT="default"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-                <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
-            </KEYS>
-        </TABLE>
-
-    </TABLES>
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="question/type/programmingtask/db" VERSION="20210713" COMMENT="XMLDB file for Moodle qtype_programmingtask"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="qtype_programmingtask_optns" COMMENT="Options for programming task questions">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
+        <FIELD NAME="internaldescription" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The internal description of the assignment."/>
+        <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="taskuuid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="showstudscorecalcscheme" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="enablefilesubmissions" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="enablefreetextsubmissions" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="ftsnuminitialfields" TYPE="int" LENGTH="8" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="ftsmaxnumfields" TYPE="int" LENGTH="8" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="ftsautogeneratefilenames" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="ftsstandardlang" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="txt" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="qtype_programmingtask_files" COMMENT="This table keeps information about the files that are contained in a question.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
+        <FIELD NAME="fileid" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="usedbygrader" TYPE="int" LENGTH="2" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="visibletostudents" TYPE="int" LENGTH="2" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="usagebylms" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="download" SEQUENCE="false"/>
+        <FIELD NAME="filepath" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="filearea" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="fileid" UNIQUE="false" FIELDS="fileid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="qtype_programmingtask_grprcs" COMMENT="Infos about currently active grading processes.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="qubaid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Question usage id of the question"/>
+        <FIELD NAME="questionattemptdbid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="database id of the question attempt"/>
+        <FIELD NAME="gradeprocessid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false" COMMENT="id of the grade process"/>
+        <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="the id of the grader that is grading the response"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="qtype_programmingtask_fts" COMMENT="This table keeps information about custom options for free text input fields.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
+        <FIELD NAME="inputindex" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="presetfilename" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="filename" TYPE="char" LENGTH="256" NOTNULL="false" DEFAULT="" SEQUENCE="false"/>
+        <FIELD NAME="ftslang" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="default" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+  </TABLES>
 </XMLDB>

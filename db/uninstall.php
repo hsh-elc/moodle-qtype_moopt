@@ -37,7 +37,6 @@ function xmldb_qtype_programmingtask_uninstall() {
 
     $success = $success && $dbman->drop_table(new xmldb_table('qtype_programmingtask_optns'));
     $success = $success && $dbman->drop_table(new xmldb_table('qtype_programmingtask_files'));
-    $success = $success && $dbman->drop_table(new xmldb_table('qtype_programmingtask_gradrs'));
     $success = $success && $dbman->drop_table(new xmldb_table('qtype_programmingtask_grprcs'));
     $success = $success && $dbman->drop_table(new xmldb_table('qtype_programmingtask_fts'));
 

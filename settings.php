@@ -33,6 +33,10 @@ if ($ADMIN->fulltree) {
 
     $settings->add(new admin_setting_configtext("qtype_programmingtask/grappa_url", new lang_string('grappa_url',
                             'qtype_programmingtask'), "", '', PARAM_URL));
+    $settings->add(new admin_setting_configtext("qtype_programmingtask/lms_id", new lang_string('lmsid',
+        'qtype_programmingtask'), "", '', PARAM_TEXT));
+    $settings->add(new admin_setting_configpasswordunmask('qtype_programmingtask/lms_password',
+        new lang_string('lmspassword','qtype_programmingtask'), '', ''));
     $settings->add(new admin_setting_configduration("qtype_programmingtask/grappa_timeout",
                     new lang_string('timeout', 'qtype_programmingtask'), "", 10, 1));
     $settings->add(new admin_setting_configduration("qtype_programmingtask/grappa_client_polling_interval",
@@ -52,7 +56,3 @@ if ($ADMIN->fulltree) {
 $ADMIN->add('qtypeprogrammingtaskfolder', $settings);
 // Tell core we already added the settings structure.
 $settings = null;
-
-$ADMIN->add('qtypeprogrammingtaskfolder', new admin_externalpage('qtypeprogrammingtaskgradersettings',
-                get_string('gradersettings', 'qtype_programmingtask'), $CFG->wwwroot .
-                '/question/type/programmingtask/gradersettings.php'));
