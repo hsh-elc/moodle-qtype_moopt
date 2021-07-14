@@ -31,26 +31,29 @@ $settings = new admin_settingpage($section, get_string('commonsettings', 'qtype_
 
 if ($ADMIN->fulltree) {
 
-    $settings->add(new admin_setting_configtext("qtype_programmingtask/grappa_url", new lang_string('grappa_url',
-                            'qtype_programmingtask'), "", '', PARAM_URL));
     $settings->add(new admin_setting_configtext("qtype_programmingtask/lms_id", new lang_string('lmsid',
         'qtype_programmingtask'), "", '', PARAM_TEXT));
     $settings->add(new admin_setting_configpasswordunmask('qtype_programmingtask/lms_password',
         new lang_string('lmspassword','qtype_programmingtask'), '', ''));
-    $settings->add(new admin_setting_configduration("qtype_programmingtask/grappa_timeout",
-                    new lang_string('timeout', 'qtype_programmingtask'), "", 10, 1));
-    $settings->add(new admin_setting_configduration("qtype_programmingtask/grappa_client_polling_interval",
-                    new lang_string('client_polling_interval', 'qtype_programmingtask'), "", 5, 1));
-    $settings->add(new admin_setting_configtext("qtype_programmingtask/max_number_free_text_inputs",
-                    new lang_string('ftsmaxnumfields', 'qtype_programmingtask'), "", 10, PARAM_INT));
 
     $communicators = [];
     foreach (qtype_programmingtask\utility\communicator\communicator_factory::$implementations as $c) {
         $communicators[$c] = $c;
     }
     $settings->add(new admin_setting_configselect("qtype_programmingtask/communicator",
-                    new lang_string('chose_communicator', 'qtype_programmingtask'), "",
-                    qtype_programmingtask\utility\communicator\communicator_factory::$implementations[0], $communicators));
+        new lang_string('chose_communicator', 'qtype_programmingtask'), "",
+        qtype_programmingtask\utility\communicator\communicator_factory::$implementations[0], $communicators));
+
+    $settings->add(new admin_setting_configtext("qtype_programmingtask/service_url", new lang_string('service_url',
+                            'qtype_programmingtask'), "", '', PARAM_URL));
+    $settings->add(new admin_setting_configduration("qtype_programmingtask/service_timeout",
+                    new lang_string('timeout', 'qtype_programmingtask'), "", 10, 1));
+    $settings->add(new admin_setting_configduration("qtype_programmingtask/service_client_polling_interval",
+                    new lang_string('client_polling_interval', 'qtype_programmingtask'), "", 5, 1));
+    $settings->add(new admin_setting_configtext("qtype_programmingtask/max_number_free_text_inputs",
+                    new lang_string('ftsmaxnumfields', 'qtype_programmingtask'), "", 10, PARAM_INT));
+
+
 }
 
 $ADMIN->add('qtypeprogrammingtaskfolder', $settings);

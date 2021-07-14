@@ -200,7 +200,7 @@ class qtype_programmingtask_external extends external_api {
 
         $lastaccess = $SESSION->last_retrieve_grading_results ?? microtime(true);
         $SESSION->last_retrieve_grading_results = microtime(true);
-        if (microtime(true) - $lastaccess < get_config("qtype_programmingtask", "grappa_client_polling_interval") *
+        if (microtime(true) - $lastaccess < get_config("qtype_programmingtask", "service_client_polling_interval") *
                 0.9 && !$isteacher) {
             // Only allow a request every n seconds from the same user.
             return false;

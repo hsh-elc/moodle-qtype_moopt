@@ -24,13 +24,13 @@ require_once($CFG->libdir . '/filelib.php');
 
 class grappa_communicator implements communicator_interface {
 
-    private $grappaurl;
-    private $grappatimeout;
+    private $serviceurl;
+    private $servicetimeout;
     private $lmsid;
     private $lmspw;
 
     public function get_graders(): array {
-        $url = "{$this->grappaurl}/graders";
+        $url = "{$this->serviceurl}/graders";
         list($gradersjson, $httpstatuscode) = $this->get_from_grappa($url);
 
         if ($httpstatuscode != 200) {
@@ -40,7 +40,7 @@ class grappa_communicator implements communicator_interface {
     }
 
     public function is_task_cached($uuid): bool {
-        $url = "{$this->grappaurl}/tasks/$uuid";
+        $url = "{$this->serviceurl}/tasks/$uuid";
         list(, $httpstatuscode) = $this->head_from_grappa($url);
 
         if ($httpstatuscode == 200) {
@@ -53,7 +53,7 @@ class grappa_communicator implements communicator_interface {
     }
 
     public function enqueue_submission(string $graderid, bool $asynch, \stored_file $submissionfile) {
-        $url = "{$this->grappaurl}/{$this->lmsid}/gradeprocesses?graderId=$graderid&async=$asynch";
+        $url = "{$this->serviceurl}/{$this->lmsid}/gradeprocesses?graderId=$graderid&async=$asynch";
 
         list($responsejson, $httpstatuscode) = $this->post_to_grappa($url, $submissionfile->get_content());
         if ($httpstatuscode != 201 /* = CREATED */) {
@@ -64,7 +64,7 @@ class grappa_communicator implements communicator_interface {
     }
 
     public function get_grading_result(string $graderid, string $gradeprocessid) {
-        $url = "{$this->grappaurl}/{$this->lmsid}/gradeprocesses/$gradeprocessid";
+        $url = "{$this->serviceurl}/{$this->lmsid}/gradeprocesses/$gradeprocessid";
         list($response, $httpstatuscode) = $this->get_from_grappa($url);
         if ($httpstatuscode == 202) {
             return false;
@@ -87,7 +87,7 @@ class grappa_communicator implements communicator_interface {
     private function get_from_grappa($url, $params = array(), $options = array()) {
         $curl = new \curl();
         if (!isset($options['CURLOPT_TIMEOUT'])) {
-            $options['CURLOPT_TIMEOUT'] = $this->grappatimeout;
+            $options['CURLOPT_TIMEOUT'] = $this->servicetimeout;
         }
         $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
 
@@ -107,7 +107,7 @@ class grappa_communicator implements communicator_interface {
     private function head_from_grappa($url, $options = array()) {
         $curl = new \curl();
         if (!isset($options['CURLOPT_TIMEOUT'])) {
-            $options['CURLOPT_TIMEOUT'] = $this->grappatimeout;
+            $options['CURLOPT_TIMEOUT'] = $this->servicetimeout;
         }
         $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
 
@@ -127,7 +127,7 @@ class grappa_communicator implements communicator_interface {
     private function post_to_grappa($url, $contents = '', $options = array()) {
         $curl = new \curl();
         if (!isset($options['CURLOPT_TIMEOUT'])) {
-            $options['CURLOPT_TIMEOUT'] = $this->grappatimeout;
+            $options['CURLOPT_TIMEOUT'] = $this->servicetimeout;
         }
         $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
         $curl->setHeader('Content-Type: application/octet-stream');
@@ -154,8 +154,8 @@ class grappa_communicator implements communicator_interface {
      */
 
     protected function __construct() {
-        $this->grappaurl = get_config("qtype_programmingtask", "grappa_url");
-        $this->grappatimeout = get_config("qtype_programmingtask", "grappa_timeout");
+        $this->serviceurl = get_config("qtype_programmingtask", "service_url");
+        $this->servicetimeout = get_config("qtype_programmingtask", "service_timeout");
         $this->lmsid = get_config("qtype_programmingtask", "lms_id");
         $this->lmspw = get_config("qtype_programmingtask", "lms_password");
     }
