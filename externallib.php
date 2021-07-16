@@ -125,7 +125,8 @@ class qtype_programmingtask_external extends external_api {
 
             // Pre-calculate the max score in the grading hints to use as the default/max mark
             $gradinghints = $doc->getElementsByTagNameNS($namespace, 'grading-hints')[0];
-            $gradinghintshelper = new grading_hints_helper($gradinghints, $namespace);
+            $tests = $doc->getElementsByTagNameNS($namespace, 'tests')[0];
+            $gradinghintshelper = new grading_hints_helper($gradinghints, $tests, $namespace);
             $maxscoregradinghints = $gradinghintshelper->calculate_max_score();
             $returnval['maxscoregradinghints'] = $maxscoregradinghints;
 

@@ -24,11 +24,13 @@ namespace qtype_programmingtask\utility\proforma_xml;
 class grading_hints_helper {
 
     private $gradinghints;
+    private $testselement;
     private $namespace;
     private $gradinghintscombines;
 
-    public function __construct($gradinghints, $namespace) {
+    public function __construct($gradinghints, $testselement, $namespace) {
         $this->gradinghints = $gradinghints;
+        $this->testselement = $testselement;
         $this->namespace = $namespace;
         if ($this->gradinghints != null) {
             foreach ($this->gradinghints->getElementsByTagNameNS($namespace, "combine") as $combine) {
@@ -38,7 +40,10 @@ class grading_hints_helper {
     }
 
     public function calculate_max_score() {
-        return $this->calculate_max_score_internal($this->gradinghints->getElementsByTagNameNS($this->namespace, "root")[0]);
+        if ($this->gradinghints != null) {
+            return $this->calculate_max_score_internal($this->gradinghints->getElementsByTagNameNS($this->namespace, "root")[0]);
+        }
+        return 1.0;
     }
 
     private function calculate_max_score_internal(\DOMElement $elem) {
@@ -62,28 +67,50 @@ class grading_hints_helper {
                 };
                 break;
         }
-        foreach ($elem->getElementsByTagNameNS($this->namespace, 'test-ref') as $testref) {
-
-            $weight = 1;
-            if ($testref->hasAttribute('weight')) {
-                $weight = $testref->getAttribute('weight');
+        
+        $testrefs = $elem->getElementsByTagNameNS($this->namespace, "test-ref");
+        $combinerefs = $elem->getElementsByTagNameNS($this->namespace, "combine-ref");
+        
+        if ($testrefs->length == 0 && $combinerefs->length == 0) {
+            // root node with no children by default accumulates all test results.
+            if ($elem->localName == "root") {
+				
+				$counttests = $this->testselement->getElementsByTagNameNS($this->namespace, "test")->count();
+				if ($counttests == 0) {
+					// there should be tests, but if we don't have any, we assume a maximum score of 1
+					$value= 1.0;
+				} else {
+					for ($i = 0; $i < $counttests; $i++) {
+						$value = $mergefunc($value, 1.0);
+					}
+				}
             }
 
-            $value = $mergefunc($value, $weight);
-        }
-        foreach ($elem->getElementsByTagNameNS($this->namespace, 'combine-ref') as $combineref) {
+        } else {
 
-            $refid = $combineref->getAttribute('ref');
-            $combine = $this->gradinghintscombines[$refid];
-            $maxscore = $this->calculate_max_score_internal($combine);
-            $weight = 1;
-            if ($combineref->hasAttribute('weight')) {
-                $weight = $combineref->getAttribute('weight');
+            foreach ($testrefs as $testref) {
+
+                $weight = 1;
+                if ($testref->hasAttribute('weight')) {
+                    $weight = $testref->getAttribute('weight');
+                }
+
+                $value = $mergefunc($value, $weight);
             }
+            foreach ($combinerefs as $combineref) {
 
-            $value = $mergefunc($value, $maxscore * $weight);
+                $refid = $combineref->getAttribute('ref');
+                $combine = $this->gradinghintscombines[$refid];
+                $maxscore = $this->calculate_max_score_internal($combine);
+                $weight = 1;
+                if ($combineref->hasAttribute('weight')) {
+                    $weight = $combineref->getAttribute('weight');
+                }
+
+                $value = $mergefunc($value, $maxscore * $weight);
+            }
         }
-
+        
         return $value;
     }
 

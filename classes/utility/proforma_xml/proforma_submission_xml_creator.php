@@ -24,7 +24,7 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
 
     public function create_submission_xml(bool $includetask, string $taskfilenameoruuid, array $files, string $resultformat,
             string $resultstructure, $studentfeedbacklevel, $teacherfeedbacklevel,
-            $gradinghints, $gradinghintsnamespace, $maxscorelms): string {
+            $gradinghints, $tests, $gradinghintsnamespace, $maxscorelms): string {
         $this->init_xml_writer_for_document();
 
         $xml = $this->xmlwriter;
@@ -46,7 +46,7 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
         }
 
         if ($resultstructure == PROFORMA_MERGED_FEEDBACK_TYPE) {
-            $gradinghintshelper = new grading_hints_helper($gradinghints, $gradinghintsnamespace);
+            $gradinghintshelper = new grading_hints_helper($gradinghints, $tests, $gradinghintsnamespace);
             if (!$gradinghintshelper->is_empty()) {
                 $maxscoregradinghints = $gradinghintshelper->calculate_max_score();
                 if (abs($maxscoregradinghints - $maxscorelms) > 1E-5) {

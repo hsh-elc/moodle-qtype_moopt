@@ -100,7 +100,7 @@ class separate_feedback_handler {
         }
 
         if ($this->gradinghintsroot != null && $this->has_children($this->gradinghintsroot)) {
-            $gradinghintshelper = new grading_hints_helper($this->gradinghints, $this->namespacegradinghints);
+            $gradinghintshelper = new grading_hints_helper($this->gradinghints, $this->testselement, $this->namespacegradinghints);
             $this->maxscoregradinghints = $gradinghintshelper->calculate_max_score();
             if (abs($this->maxscoregradinghints - $this->maxscorelms) > 1e-5) {
                 // - scorecompensationfactor is the scaling value for all student and max scores

@@ -361,12 +361,13 @@ class qtype_programmingtask_question extends question_graded_automatically {
         $taskdoc->loadXML($taskxmlfile->get_content());
         $taskxmlnamespace = detect_proforma_namespace($taskdoc);
         $gradinghints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
+        $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
 
         // Create the submission.xml file.
         $submissionxmlcreator = new proforma_submission_xml_creator();
         $submissionxml = $submissionxmlcreator->create_submission_xml($includetaskfile, $includetaskfile ?
                 $taskfilename : $this->taskuuid, $files, 'zip', PROFORMA_MERGED_FEEDBACK_TYPE, 'info', 'debug',
-                $gradinghints, $taskxmlnamespace, $qa->get_max_mark());
+                $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark());
 
         // Load task file and add it to the files that go into the zip file.
         if ($includetaskfile) {
