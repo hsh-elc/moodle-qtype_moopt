@@ -56,8 +56,7 @@ function xmldb_qtype_programmingtask_upgrade($oldversion) {
         $filestable->addField(new xmldb_field('questionid', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
         $filestable->addField(new xmldb_field('fileid', XMLDB_TYPE_CHAR, 255, null, XMLDB_NOTNULL, null, null));
         $filestable->addField(new xmldb_field('usedbygrader', XMLDB_TYPE_INTEGER, 2, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
-        $filestable->addField(new xmldb_field('visibletostudents', XMLDB_TYPE_INTEGER, 2,
-                        XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
+        $filestable->addField(new xmldb_field('visibletostudents', XMLDB_TYPE_CHAR, 64, null, XMLDB_NOTNULL, null, 'no'));
         $filestable->addField(new xmldb_field('usagebylms', XMLDB_TYPE_CHAR, 64, null, XMLDB_NOTNULL, null, 'download'));
         $filestable->addField(new xmldb_field('filepath', XMLDB_TYPE_TEXT, 'medium', null, XMLDB_NOTNULL, null, null));
         $filestable->addField(new xmldb_field('filename', XMLDB_TYPE_CHAR, 255, null, XMLDB_NOTNULL, null, null));

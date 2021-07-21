@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="question/type/programmingtask/db" VERSION="20210713" COMMENT="XMLDB file for Moodle qtype_programmingtask"
+<XMLDB PATH="question/type/programmingtask/db" VERSION="20210721" COMMENT="XMLDB file for Moodle qtype_programmingtask"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd"
 >
@@ -30,7 +30,7 @@
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
         <FIELD NAME="fileid" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="usedbygrader" TYPE="int" LENGTH="2" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="visibletostudents" TYPE="int" LENGTH="2" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="visibletostudents" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="no" SEQUENCE="false"/>
         <FIELD NAME="usagebylms" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="download" SEQUENCE="false"/>
         <FIELD NAME="filepath" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>

@@ -141,7 +141,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
             }
             // Here $records[0] doesn't work because $records is an associative array with the keys being the ids of the record.
             $firstelem = reset($records);
-            $onlyteacher = $firstelem->visibletostudents == 0 ? true : false;
+            $onlyteacher = $firstelem->visibletostudents == 'no' ? true : false;
 
             $contextrecord = $DB->get_record('context', ['id' => $question->contextid]);
             $context = context_course::instance($contextrecord->instanceid);

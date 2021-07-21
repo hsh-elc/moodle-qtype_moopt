@@ -146,8 +146,10 @@ class qtype_programmingtask_renderer extends qtype_renderer {
             $downloadurls .= html_writer::start_div('providedfiles');
             $downloadurls .= '<ul>';
             foreach ($files as $file) {
-                // TODO: fix these magic numbers (2 means delayed)
-                if ($file->usagebylms == 'display' || ($file->visibletostudents == 0 && !has_capability('mod/quiz:grade', $options->context))) {
+                // skip files that are
+                // - not configured to be downloadable (usagebylms)
+                // - not visible to students
+                if ($file->usagebylms == 'display' || ($file->visibletostudents == 'no' && !has_capability('mod/quiz:grade', $options->context))) {
                     continue;
                 }
 

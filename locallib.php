@@ -318,7 +318,7 @@ function save_task_and_according_files($question) {
                 $record->questionid = $question->id;
                 $record->fileid = $file->attributes->getNamedItem('id')->nodeValue;
                 $record->usedbygrader = $file->attributes->getNamedItem('used-by-grader')->nodeValue == 'true' ? 1 : 0;
-                $record->visibletostudents = $file->attributes->getNamedItem('visible')->nodeValue == 'true' ? 1 : 0;
+                $record->visibletostudents = $file->attributes->getNamedItem('visible')->nodeValue;
                 $record->usagebylms = $file->attributes->getNamedItem('usage-by-lms') != null ?
                         $file->attributes->getNamedItem('usage-by-lms')->nodeValue : 'download';
                 $record->filepath = '/' . $file->attributes->getNamedItem('id')->nodeValue . '/';
@@ -336,24 +336,7 @@ function save_task_and_according_files($question) {
                 $record->questionid = $question->id;
                 $record->fileid = $file->attributes->getNamedItem('id')->nodeValue;
                 $record->usedbygrader = $file->attributes->getNamedItem('used-by-grader')->nodeValue == 'true' ? 1 : 0;
-                // TODO: temporary hack, needs a proper enumeration. This will require a plugin uninstall or upgrade script
-                $visablestr = $file->attributes->getNamedItem('visible')->nodeValue;
-                $visableint = 0;
-                switch($visablestr) {
-                    case 'no':
-                        $visableint = 0;
-                        break;
-                    case 'yes':
-                        $visableint = 1;
-                        break;
-                    case 'delayed':
-                        $visableint = 2;
-                        break;
-                    default:
-                        throw new \Exception("Unkonwn file->visible value");
-                }
-                $record->visibletostudents = $visableint;
-
+                $record->visibletostudents = $file->attributes->getNamedItem('visible')->nodeValue;
                 $record->usagebylms = $file->attributes->getNamedItem('usage-by-lms') != null ?
                         $file->attributes->getNamedItem('usage-by-lms')->nodeValue : 'download';
                 $record->filepath = $pathinfo['dirname'] . '/';
@@ -386,7 +369,7 @@ function save_task_and_according_files($question) {
     $record->questionid = $question->id;
     $record->fileid = 'taskxml';
     $record->usedbygrader = 0;
-    $record->visibletostudents = 0;
+    $record->visibletostudents = 'no';
     $record->usagebylms = 'download';
     $record->filepath = '/';
     $record->filename = 'task.xml';
@@ -409,7 +392,7 @@ function save_task_and_according_files($question) {
     $record->questionid = $question->id;
     $record->fileid = 'task';
     $record->usedbygrader = 0;
-    $record->visibletostudents = 0;
+    $record->visibletostudents = 'no';
     $record->usagebylms = 'download';
     $record->filepath = '/';
     $record->filename = $taskfilename;
