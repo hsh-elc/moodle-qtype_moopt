@@ -105,6 +105,9 @@ class qtype_programmingtask_external extends external_api {
             foreach ($doc->getElementsByTagNameNS($namespace, 'title') as $des) {
                 if ($des->parentNode->localName == 'task') {
                     $returnval['title'] = $des->nodeValue;
+                    // prepend title as heading to description:
+                    $heading = html_writer::tag('h3', $des->nodeValue);
+                    $returnval['description'] = $heading . $returnval['description'];
                     break;
                 }
             }
