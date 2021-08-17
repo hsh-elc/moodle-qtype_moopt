@@ -16,7 +16,7 @@
 
 namespace qtype_programmingtask\utility\proforma_xml;
 
-use qtype_programmingtask\exceptions\grappa_exception;
+use qtype_programmingtask\exceptions\service_communicator_exception;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -202,7 +202,7 @@ class separate_feedback_handler {
                 // According to the specification there musst not be a subresult that is not specified in the grading hints.
                 // If we are here  we don't have any grading hints at all
                 // hence there musst not be any subresult.
-                throw new grappa_exception("Grader returned subresult(s) for test result with id '$key' but there were no" .
+                throw new service_communicator_exception("Grader returned subresult(s) for test result with id '$key' but there were no" .
                         " subresults specified in the grading hints. According to the specification this is invalid behaviour." .
                         " In fact there are no grading hints in the task at all.");
             } else {
@@ -343,7 +343,7 @@ class separate_feedback_handler {
         } else {
             $testresult = $this->testresults[$refid];
             if (is_array($testresult)) {
-                throw new grappa_exception("Grader returned subresult(s) for test result with id '$refid' but there were no" .
+                throw new service_communicator_exception("Grader returned subresult(s) for test result with id '$refid' but there were no" .
                         " subresults specified in the grading hints. According to the specification this is invalid behaviour");
             }
         }

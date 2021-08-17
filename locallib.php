@@ -105,6 +105,7 @@ require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
 
 use qtype_programmingtask\utility\communicator\communicator_factory;
 use qtype_programmingtask\utility\proforma_xml\separate_feedback_handler;
+use qtype_programmingtask\exceptions\resource_not_found_exception;
 
 /*
  * Unzips the task zip file in the given draft area into the area
@@ -457,28 +458,46 @@ function internal_retrieve_grading_results($qubaid) {
     foreach ($records as $record) {
 
         $quba = question_engine::load_questions_usage_by_activity($qubaid);
+        $qubarecord = $DB->get_record('question_usages', ['id' => $qubaid]);
+        if (!$qubarecord) {
+            // The quba got deleted for whatever reason - just ignore this entry.
+            // It can be safely deleted at the end of this function because the result has already been fetched.
+            continue;
+        }
         $slot = $DB->get_record('question_attempts', ['id' => $record->questionattemptdbid], 'slot')->slot;
         try {
             $response = $communicator->get_grading_result($record->graderid, $record->gradeprocessid);
-        } catch (invalid_response_exception $ex) {
-            // Here was a network error.
-            debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
-
-            continue;
-        } catch (Exception $e) {
+        } catch (resource_not_found_exception $e) {
+            // A grading result does not exist and won't ever exist for this grade process id.
+            // The service communicator returned a HTTP 404 NotFound when polling for a
+            // grading result. This case is different from a queued submission for which a grading result does
+            // not exist yet (in which case the service communicator would just return a HTTP 202 Accepted).
+            // With 404, something went wrong with either the service communicator or grader.
+            // Print this error message. However, printing it will not be visible to anybody
+            // if debug output is disabled (which is usually the case for productive usage).
+            // Another place too look for the cause of error is the service connector's log files.
             debugging($e->getMessage());
-            continue;
+
+            // In any case, we cannot ignore this particular question attempt anymore, because
+            // the polling will be stuck in this state indefinitely (e.g. polling for a result that does
+            // not exist (HTTP 404) over and over agian).
+            // That's why we set this question attempt's state to needing manual grading, delete the grade
+            // process record, thus ending the polling.
+            //
+            // Once the error has been resolved, a teacher may either start a re-grade, or manually
+            // delete the question attempt.
+            $quba->process_action($slot, ['-graderunavailable' => 1, 'gradeprocessdbid' => $record->id]);
+            question_engine::save_questions_usage_by_activity($quba);
+            $finishedgradingprocesses[] = $record->id;
+        } catch (Throwable $e) {
+            // Treat network errors, authorization errors etc differently, do not abbandon the automatic
+            // polling for a grading result, since these types of errors are easily fixable.
+            debugging($e->getMessage());
         }
-        if ($response) {
+
+        if($response) {
             $internalerror = false;
             try {
-                $qubarecord = $DB->get_record('question_usages', ['id' => $qubaid]);
-                if (!$qubarecord) {
-                    // The quba got deleted for whatever reason - just ignore this entry.
-                    // It can be safely deleted at the end of this function because the result has already been fetched.
-                    continue;
-                }
-
                 // We take care of this grade process therefore we will delete it afterwards.
                 $finishedgradingprocesses[] = $record->id;
 
@@ -630,7 +649,7 @@ function internal_retrieve_grading_results($qubaid) {
                         debugging("Response didn't contain a response.xml file");
                     }
                 }
-            } catch (\qtype_programmingtask\exceptions\grappa_exception $ex) {
+            } catch (\qtype_programmingtask\exceptions\service_communicator_exception $ex) {
                 // Something with the response we got was wrong - log it and set that the question needs manual grading.
                 $internalerror = true;
                 debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');

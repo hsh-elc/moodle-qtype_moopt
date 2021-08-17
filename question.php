@@ -341,7 +341,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
 
         try {
             $includetaskfile = !$communicator->is_task_cached($this->taskuuid);
-            $includetaskfile = true;
+            $includetaskfile = true; // TODO: remove this and test the caching mechanism
         } catch (invalid_response_exception $ex) {
             // Not good but not severe either - just assume the task isn't cached and include it.
             $includetaskfile = true;

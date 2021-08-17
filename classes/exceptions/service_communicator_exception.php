@@ -20,16 +20,16 @@ defined('MOODLE_INTERNAL') || die();
 
 /**
  * Exception indicating an error or an unexpected response
- *  returned from grappa
+ *  returned from the service communicator
  */
-class grappa_exception extends \moodle_exception {
+class service_communicator_exception extends \moodle_exception {
 
     /**
      * Constructor
      * @param string $debuginfo some detailed information
      */
     public function __construct($debuginfo = null) {
-        parent::__construct('grappa', 'debug', '', $debuginfo, $debuginfo);
+        parent::__construct('service communicator', 'debug', '', $debuginfo, $debuginfo);
     }
 
 }

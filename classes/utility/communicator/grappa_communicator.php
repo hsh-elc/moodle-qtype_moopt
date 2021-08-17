@@ -18,7 +18,8 @@ namespace qtype_programmingtask\utility\communicator;
 
 defined('MOODLE_INTERNAL') || die();
 
-use qtype_programmingtask\exceptions\grappa_exception;
+use qtype_programmingtask\exceptions\resource_not_found_exception;
+use qtype_programmingtask\exceptions\service_communicator_exception;
 
 require_once($CFG->libdir . '/filelib.php');
 
@@ -34,7 +35,7 @@ class grappa_communicator implements communicator_interface {
         list($gradersjson, $httpstatuscode) = $this->get_from_grappa($url);
 
         if ($httpstatuscode != 200) {
-            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL GET $url. Returned contents: '$gradersjson'");
+            throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL GET $url. Returned contents: '$gradersjson'");
         }
         return json_decode($gradersjson, true);
     }
@@ -48,7 +49,7 @@ class grappa_communicator implements communicator_interface {
         } else if ($httpstatuscode == 404) {
             return false;
         } else {
-            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL HEAD $url");
+            throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL HEAD $url");
         }
     }
 
@@ -58,7 +59,7 @@ class grappa_communicator implements communicator_interface {
         list($responsejson, $httpstatuscode) = $this->post_to_grappa($url, $submissionfile->get_content());
         if ($httpstatuscode != 201 /* = CREATED */) {
             error_log($responsejson);
-            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL POST $url. Returned contents: '$responsejson'");
+            throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL POST $url. Returned contents: '$responsejson'");
         }
         return json_decode($responsejson)->gradeProcessId;
     }
@@ -70,8 +71,10 @@ class grappa_communicator implements communicator_interface {
             return false;
         } else if ($httpstatuscode == 200) {
             return $response;
+        } else if($httpstatuscode == 404) {
+            throw new resource_not_found_exception("A grading result does not exist for grade process id $gradeprocessid");
         } else {
-            throw new grappa_exception("Received HTTP status code $httpstatuscode when accessing URL POST $url");
+            throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL POST $url");
         }
     }
 

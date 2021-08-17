@@ -526,7 +526,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                         } else {
                             $html = html_writer::div('The response contains an invalid response.xml file', 'gradingstatus');
                         }
-                    } catch (\qtype_programmingtask\exceptions\grappa_exception $ex) {
+                    } catch (\qtype_programmingtask\exceptions\service_communicator_exception $ex) {
                         // We did get a xml-valid response but something was still wrong. Display that message.
                         $html = html_writer::div($ex->getMessage(), 'gradingstatus');
                     } catch (\exception $ex) {
