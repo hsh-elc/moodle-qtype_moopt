@@ -23,6 +23,9 @@ use qtype_programmingtask\exceptions\service_communicator_exception;
 
 require_once($CFG->libdir . '/filelib.php');
 
+/**
+ * class to communicate with grappa
+ */
 class grappa_communicator implements communicator_interface {
 
     private $serviceurl;
@@ -30,6 +33,10 @@ class grappa_communicator implements communicator_interface {
     private $lmsid;
     private $lmspw;
 
+    /**
+     * @throws \invalid_response_exception
+     * @throws grappa_exception
+     */
     public function get_graders(): array {
         $url = "{$this->serviceurl}/graders";
         list($gradersjson, $httpstatuscode) = $this->get_from_grappa($url);
@@ -40,6 +47,10 @@ class grappa_communicator implements communicator_interface {
         return json_decode($gradersjson, true);
     }
 
+    /**
+     * @throws \invalid_response_exception
+     * @throws grappa_exception
+     */
     public function is_task_cached($uuid): bool {
         $url = "{$this->serviceurl}/tasks/$uuid";
         list(, $httpstatuscode) = $this->head_from_grappa($url);
@@ -53,6 +64,10 @@ class grappa_communicator implements communicator_interface {
         }
     }
 
+    /**
+     * @throws \invalid_response_exception
+     * @throws grappa_exception
+     */
     public function enqueue_submission(string $graderid, bool $asynch, \stored_file $submissionfile) {
         $url = "{$this->serviceurl}/{$this->lmsid}/gradeprocesses?graderId=$graderid&async=$asynch";
 
@@ -64,6 +79,10 @@ class grappa_communicator implements communicator_interface {
         return json_decode($responsejson)->gradeProcessId;
     }
 
+    /**
+     * @throws grappa_exception
+     * @throws \invalid_response_exception
+     */
     public function get_grading_result(string $graderid, string $gradeprocessid) {
         $url = "{$this->serviceurl}/{$this->lmsid}/gradeprocesses/$gradeprocessid";
         list($response, $httpstatuscode) = $this->get_from_grappa($url);
@@ -74,7 +93,7 @@ class grappa_communicator implements communicator_interface {
         } else if($httpstatuscode == 404) {
             throw new resource_not_found_exception("A grading result does not exist for grade process id $gradeprocessid");
         } else {
-            throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL POST $url");
+            throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL GET $url");
         }
     }
 
@@ -133,7 +152,7 @@ class grappa_communicator implements communicator_interface {
             $options['CURLOPT_TIMEOUT'] = $this->servicetimeout;
         }
         $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
-        $curl->setHeader('Content-Type: application/octet-stream');
+        $curl->setHeader('Content-Type: application/octet-stream'); // content-type for a zip-file
 
         $response = $curl->post($url, $contents, $options);
 

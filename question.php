@@ -46,6 +46,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
     public $ftsmaxnumfields;
     public $ftsautogeneratefilenames;
     public $ftsstandardlang;
+    public $submission_proforma_restrictions_message;
 
     /**
      * What data may be included in the form submission when a student submits
@@ -328,15 +329,17 @@ class qtype_programmingtask_question extends question_graded_automatically {
         // Get response files.
         $qubaid = $qa->get_usage_id();
         $files = array();   // Array for all files that end up in the ZIP file.
+        $submissionfiles = array(); // Array for all submission files, is needed for to check the proforma_submission_restrictions
 
         foreach ($responsefiles as $file) {
             $files["submission/{$file->get_filename()}"] = $file;
+            $submissionfiles[$file->get_filename()] = $file;
         }
 
         foreach ($freetextanswers as $filename => $filecontent) {
             $mangledname = mangle_pathname($filename);
-            $files["submission/$mangledname"] = [$filecontent]; // Syntax to use a string as
-            // file contents.
+            $files["submission/$mangledname"] = [$filecontent]; // Syntax to use a string as file contents.
+            $submissionfiles[$mangledname] = [$filecontent];
         }
 
         try {
@@ -363,11 +366,18 @@ class qtype_programmingtask_question extends question_graded_automatically {
         $gradinghints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
         $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
 
+        $submission_proforma_restrictions_message = check_proforma_submission_restrictions($taskdoc, $submissionfiles);
+        if (count($submission_proforma_restrictions_message) > 1){
+            //Submission Restrictions violated, the submission is invalid, don't grade it
+            return question_state::$invalid;
+        }
+
         // Create the submission.xml file.
         $submissionxmlcreator = new proforma_submission_xml_creator();
-        $submissionxml = $submissionxmlcreator->create_submission_xml($includetaskfile, $includetaskfile ?
-                $taskfilename : $this->taskuuid, $files, 'zip', PROFORMA_MERGED_FEEDBACK_TYPE, 'info', 'debug',
-                $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark());
+        $submissionxml = $submissionxmlcreator->create_submission_xml($includetaskfile,
+            ($includetaskfile ? $taskfilename : $this->taskuuid), $files, 'zip',
+            PROFORMA_MERGED_FEEDBACK_TYPE, 'info', 'debug',
+            $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark());
 
         // Load task file and add it to the files that go into the zip file.
         if ($includetaskfile) {

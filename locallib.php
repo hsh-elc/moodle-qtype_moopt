@@ -835,3 +835,66 @@ function mangle_pathname($filename) {
     $filename = ltrim($filename, '/');                  // No leading slash.
     return $filename;
 }
+//checks if a given submissionfile violates the restrictions defined
+//in the specific task.xml file
+function check_proforma_submission_restrictions($taskdoc, $submissionfiles) : array {
+    global $DB;
+    $returnval = array();
+
+    $taskxmlnamespace = detect_proforma_namespace($taskdoc);
+    $submissionrestrictions = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'submission-restrictions')[0];
+    if ($submissionrestrictions->hasAttribute('max-size')){
+        $sum = 0;
+        foreach($submissionfiles as $file) {
+            $sum += $DB->get_record(files, ['id' => $file->get_id()], 'filesize')->filesize;
+        }
+        if($sum > $submissionrestrictions->getAttribute('max-size')) {
+            $returnval['maxfilesizeforthistask'] = "$submissionrestrictions->getAttribute('max-size') bytes";
+            $returnval['filesizesubmitted'] = "$sum bytes";
+        }
+    }
+    foreach($taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'file-restriction') as $filerestriction) {
+        switch($filerestriction->getAttribute('use')){
+            case 'required':
+                if (!does_key_exist_in_array($submissionfiles ,$filerestriction->nodeValue)) {
+                    if (empty($returnval["requiredfilemissing"])) {
+                        $returnval["requiredfilemissing"] = array();
+                    }
+                    $returnval["requiredfilemissing"][] = $filerestriction->nodeValue;
+                }
+                break;
+            case 'optional':
+                //TODO: See what you can do here
+                break;
+            case 'prohibited':
+                if (does_key_exist_in_array($submissionfiles ,$filerestriction->nodeValue)) {
+                    if (empty($returnval["prohibitedfileexists"])) {
+                        $returnval["prohibitedfileexists"] = array();
+                    }
+                    $returnval["prohibitedfileexists"][] = $filerestriction->nodeValue;
+                }
+                break;
+            default:
+                //TODO: See what you can do here
+                break;
+        }
+    }
+    $description = "";
+    foreach($submissionrestrictions->childNodes as $child) {
+        if ($child->localName === 'description') {
+            $description = $child->nodeValue;
+            break;
+        }
+    }
+    $returnval["generaldescription"] = $description;
+    return $returnval;
+}
+
+function does_key_exist_in_array($array, $key) {
+    foreach($array as $arrkey => $element) {
+        if ($arrkey === $key) {
+            return true;
+        }
+    }
+    return false;
+}

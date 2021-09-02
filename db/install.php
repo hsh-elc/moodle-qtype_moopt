@@ -30,5 +30,5 @@ defined('MOODLE_INTERNAL') || die();
  */
 function xmldb_qtype_programmingtask_install() {
 
-    return true;
+    return true; //currently there is no custom code to be run
 }

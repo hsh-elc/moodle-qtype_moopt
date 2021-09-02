@@ -387,6 +387,10 @@ class qtype_programmingtask_renderer extends qtype_renderer {
      */
     protected function specific_feedback(question_attempt $qa) {
         global $PAGE, $DB;
+        if ($qa->get_state() == question_state::$invalid) {
+            //$qa->get_question()->generalfeedback = $this->generalfeedbacktemp;
+            return $this->render_proforma_submission_restriction($qa);
+        }
         if ($qa->get_state()->is_finished()) {
 
             $PAGE->requires->js_call_amd('qtype_programmingtask/change_display_name_of_redo_button', 'init');
@@ -586,4 +590,41 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         return '';
     }
 
+    protected function render_proforma_submission_restriction(question_attempt $qa) {
+        $o = "<div><h4>Submission Restrictions</h4>";
+        $o .= "<span>Your submission violated some restrictions, because of this, your submission will not be graded.</span>";
+        $msg = $qa->get_question()->submission_proforma_restrictions_message;
+        if($msg['generaldescription'] != "") {
+            $o .= "<div><h3>General Description</h3>";
+            $o .= "<span>{$msg['generaldescription']}</span></div>";
+        }
+        if(!empty($msg['maxfilesizeforthistask'])) {
+            $o .= "<div><h3>Filesize</h3>";
+            $o .= "<span>The sum of your submitted files exceeded the maximum filesize a submission could have.</span>";
+            $o .= "<span>The maximum filesize that is allowed for this task: {$msg['maxfilesizeforthistask']}</span>";
+            $o .= "<span>The size of your files in total: {$msg['filesizesubmitted']}</span></div>";
+        }
+        if (!empty($msg['requiredfilemissing'])) {
+            $o .= "<div><h3>Files missing</h3>";
+            $o .= "<span>There are file(s) missing that are expected to be submitted:</span><ul>";
+            foreach($msg['requiredfilemissing'] as $arr) {
+                foreach($arr as $missingfilename) {
+                    $o .= "<li>$missingfilename</li>";
+                }
+            }
+            $o .= "</ul></div>";
+        }
+        if(!empty($msg['prohibitedfileexists'])) {
+            $o .= "<div><h3>Prohibited files</h3>";
+            $o .= "<span>You submitted file(s) that are not allowed to be submitted:</span><ul>";
+            foreach($msg['prohibitedfileexists'] as $arr) {
+                foreach($arr as $prohibitedfilename) {
+                    $o .= "<li>$prohibitedfilename</li>";
+                }
+            }
+            $o .= "</ul></div>";
+        }
+        $o .= "</div>";
+        return $o;
+    }
 }
