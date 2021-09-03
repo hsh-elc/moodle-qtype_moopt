@@ -835,9 +835,15 @@ function mangle_pathname($filename) {
     $filename = ltrim($filename, '/');                  // No leading slash.
     return $filename;
 }
-//checks if a given submissionfile violates the restrictions defined
-//in the specific task.xml file
-function check_proforma_submission_restrictions($taskdoc, $submissionfiles) : array {
+
+/**
+ * Checks if the file-restrictions of the specific task.xml file are violated by the submission of a student
+ *
+ * @param DOMDocument $taskdoc the content of the task.xml file as a DOMDocument
+ * @param array $submissionfiles the files that belong to the submission as an array
+ * @return array an array that contains the messages
+ */
+function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $submissionfiles) : array {
     global $DB;
     $returnval = array();
 
@@ -854,9 +860,16 @@ function check_proforma_submission_restrictions($taskdoc, $submissionfiles) : ar
         }
     }
     foreach($taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'file-restriction') as $filerestriction) {
+        $format = "standard";
+        if ($filerestriction->hasAttribute('pattern-format')) {
+            $format = $filerestriction->getAttribute('pattern-format');
+        }
+        if ($format === 'posix-ere') {
+            continue;   //posix-ere cant be checked correctly at the moment so just skip it
+        }
         switch($filerestriction->getAttribute('use')){
             case 'required':
-                if (!does_key_exist_in_array($submissionfiles ,$filerestriction->nodeValue)) {
+                if (!does_key_exist_in_array($submissionfiles ,$filerestriction->nodeValue, $format)) {
                     if (empty($returnval["requiredfilemissing"])) {
                         $returnval["requiredfilemissing"] = array();
                     }
@@ -864,10 +877,10 @@ function check_proforma_submission_restrictions($taskdoc, $submissionfiles) : ar
                 }
                 break;
             case 'optional':
-                //TODO: See what you can do here
+                // No actions required here
                 break;
             case 'prohibited':
-                if (does_key_exist_in_array($submissionfiles ,$filerestriction->nodeValue)) {
+                if (does_key_exist_in_array($submissionfiles ,$filerestriction->nodeValue, $format)) {
                     if (empty($returnval["prohibitedfileexists"])) {
                         $returnval["prohibitedfileexists"] = array();
                     }
@@ -890,10 +903,25 @@ function check_proforma_submission_restrictions($taskdoc, $submissionfiles) : ar
     return $returnval;
 }
 
-function does_key_exist_in_array($array, $key) {
+function does_key_exist_in_array($array, $key, $format) {
     foreach($array as $arrkey => $element) {
-        if ($arrkey === $key) {
-            return true;
+        switch($format) {
+            case 'standard':
+                if ($arrkey === $key) {
+                    return true;
+                }
+                break;
+            case 'none':
+                if (preg_match($key, $arrkey)) {
+                    return true;
+                }
+                break;
+            case 'posix-ere':
+                //TODO: Find out how to check posix-ere format in php
+                break;
+            default:
+                //TODO: See what you can do here
+                break;
         }
     }
     return false;

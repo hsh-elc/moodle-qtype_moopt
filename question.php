@@ -46,7 +46,6 @@ class qtype_programmingtask_question extends question_graded_automatically {
     public $ftsmaxnumfields;
     public $ftsautogeneratefilenames;
     public $ftsstandardlang;
-    public $submission_proforma_restrictions_message;
 
     /**
      * What data may be included in the form submission when a student submits
@@ -367,7 +366,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
         $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
 
         $submission_proforma_restrictions_message = check_proforma_submission_restrictions($taskdoc, $submissionfiles);
-        if (count($submission_proforma_restrictions_message) > 1){
+        if (count($submission_proforma_restrictions_message) > 1) {
             //Submission Restrictions violated, the submission is invalid, don't grade it
             return question_state::$invalid;
         }

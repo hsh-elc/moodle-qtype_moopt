@@ -387,8 +387,8 @@ class qtype_programmingtask_renderer extends qtype_renderer {
      */
     protected function specific_feedback(question_attempt $qa) {
         global $PAGE, $DB;
+
         if ($qa->get_state() == question_state::$invalid) {
-            //$qa->get_question()->generalfeedback = $this->generalfeedbacktemp;
             return $this->render_proforma_submission_restriction($qa);
         }
         if ($qa->get_state()->is_finished()) {
@@ -593,7 +593,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
     protected function render_proforma_submission_restriction(question_attempt $qa) {
         $o = "<div><h4>Submission Restrictions</h4>";
         $o .= "<span>Your submission violated some restrictions, because of this, your submission will not be graded.</span>";
-        $msg = $qa->get_question()->submission_proforma_restrictions_message;
+        $msg = null;  //TODO: find out how to access the message of the question
         if($msg['generaldescription'] != "") {
             $o .= "<div><h3>General Description</h3>";
             $o .= "<span>{$msg['generaldescription']}</span></div>";
