@@ -216,8 +216,8 @@ define(['jquery'], function ($) {
             require(['core/str'], function (str) {
                 // Get langString text via AJAX.
                 var
-                        s = str.get_string(langString, 'qtype_programmingtask'),
-                        fallback = str.get_string('ui_fallback', 'qtype_programmingtask');
+                        s = str.get_string(langString, 'qtype_moopt'),
+                        fallback = str.get_string('ui_fallback', 'qtype_moopt');
                 $.when(s, fallback).done(function (s, fallback) {
                     errorDiv.html(s + '<br>' + fallback);
                 });
@@ -247,7 +247,7 @@ define(['jquery'], function ($) {
             this.uiInstance = null;
         } else {
             this.isLoading = true;
-            require(['qtype_programmingtask/ui_' + this.uiname],
+            require(['qtype_moopt/ui_' + this.uiname],
                     function (ui) {
                         var uiInstance, loadFailDiv, jqLoadFailDiv, h, w;
 

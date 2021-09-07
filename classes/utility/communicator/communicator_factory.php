@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace qtype_programmingtask\utility\communicator;
+namespace qtype_moopt\utility\communicator;
 
 class communicator_factory {
 
     public static $implementations = ['grappa'];
 
     public static function get_instance(): communicator_interface {
-        $communicator = get_config("qtype_programmingtask", "communicator");
+        $communicator = get_config("qtype_moopt", "communicator");
         switch ($communicator) {
             case 'grappa':
                 return grappa_communicator::get_instance();

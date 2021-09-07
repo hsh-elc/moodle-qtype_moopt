@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-use qtype_programmingtask\utility\proforma_xml\grading_hints_helper;
+use qtype_moopt\utility\proforma_xml\grading_hints_helper;
 
 defined('MOODLE_INTERNAL') || die;
 
 require_once($CFG->libdir . "/externallib.php");
-require_once("$CFG->dirroot/question/type/programmingtask/locallib.php");
+require_once("$CFG->dirroot/question/type/moopt/locallib.php");
 
-class qtype_programmingtask_external extends external_api {
+class qtype_moopt_external extends external_api {
 
     public static function extract_task_infos_from_draft_file_parameters() {
         return new external_function_parameters(
@@ -81,7 +81,7 @@ class qtype_programmingtask_external extends external_api {
 
         if ($namespace == null) {
 
-            $returnval['moodleValidationWarningInvalidNamespace'] = get_string('invalidproformanamespace', 'qtype_programmingtask',
+            $returnval['moodleValidationWarningInvalidNamespace'] = get_string('invalidproformanamespace', 'qtype_moopt',
                     implode(", ", PROFORMA_TASK_XML_NAMESPACES));
         } else {
 
@@ -204,7 +204,7 @@ class qtype_programmingtask_external extends external_api {
 
         $lastaccess = $SESSION->last_retrieve_grading_results ?? microtime(true);
         $SESSION->last_retrieve_grading_results = microtime(true);
-        if (microtime(true) - $lastaccess < get_config("qtype_programmingtask", "service_client_polling_interval") *
+        if (microtime(true) - $lastaccess < get_config("qtype_moopt", "service_client_polling_interval") *
                 0.9 && !$isteacher) {
             // Only allow a request every n seconds from the same user.
             return false;

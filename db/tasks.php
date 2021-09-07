@@ -18,7 +18,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $tasks = [
     [
-        'classname' => 'qtype_programmingtask\tasks\retrieve_grading_results',
+        'classname' => 'qtype_moopt\tasks\retrieve_grading_results',
         'blocking' => 0,
         'minute' => '*',
         'hour' => '*',
@@ -27,7 +27,7 @@ $tasks = [
         'dayofweek' => '*',
     ],
     [
-        'classname' => 'qtype_programmingtask\tasks\remove_leftover_responsefiles',
+        'classname' => 'qtype_moopt\tasks\remove_leftover_responsefiles',
         'blocking' => 0,
         'minute' => '0',
         'hour' => '3',

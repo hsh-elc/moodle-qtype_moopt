@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 
-namespace qtype_programmingtask\output;
+namespace qtype_moopt\output;
 
-use qtype_programmingtask\utility\proforma_xml\separate_feedback_text_node;
+use qtype_moopt\utility\proforma_xml\separate_feedback_text_node;
 
 /**
  * Description of separate_feedback_text_renderer
@@ -98,7 +98,7 @@ class separate_feedback_text_renderer {
             }
         }
         if ($node->is_nullified()) {
-            $heading .= ' (' . get_string('hasbeennullified', 'qtype_programmingtask') . ')';
+            $heading .= ' (' . get_string('hasbeennullified', 'qtype_moopt') . ')';
         }
         $heading .= '</div>';
         return $heading;
@@ -109,11 +109,11 @@ class separate_feedback_text_renderer {
         $content = '';
         if ($node->get_description() != null || ($node->get_internal_description() != null && $this->displayteachercontent)) {
             if ($node->get_description() != null) {
-                $content .= "<div><h4>" . get_string('testdescription', 'qtype_programmingtask') .
+                $content .= "<div><h4>" . get_string('testdescription', 'qtype_moopt') .
                         "</h4><i><p>{$node->get_description()}</p></i></div>";
             }
             if ($this->displayteachercontent && $node->get_internal_description() != null) {
-                $content .= "<div><h4>" . get_string('internaldescription', 'qtype_programmingtask') .
+                $content .= "<div><h4>" . get_string('internaldescription', 'qtype_moopt') .
                         "</h4><i><p>{$node->get_internal_description()}</p></i></div>";
             }
         }
@@ -125,16 +125,16 @@ class separate_feedback_text_renderer {
                 foreach ($node->get_children() as $child) {
                     $subscores[] = round($child->get_score(), 2);
                 }
-                $scorecalc = '<small>' . get_string('scorecalculationscheme', 'qtype_programmingtask') . ': ' .
+                $scorecalc = '<small>' . get_string('scorecalculationscheme', 'qtype_moopt') . ': ' .
                         round($node->get_score(), 2) . ' = ';
                 switch ($node->get_accumulator_function()) {
                     case 'min':
-                        $scorecalc .= get_string('minimum', 'qtype_programmingtask') . ' {';
+                        $scorecalc .= get_string('minimum', 'qtype_moopt') . ' {';
                         $scorecalc .= implode(', ', $subscores);
                         $scorecalc .= '}';
                         break;
                     case 'max':
-                        $scorecalc .= get_string('maximum', 'qtype_programmingtask') . ' {';
+                        $scorecalc .= get_string('maximum', 'qtype_moopt') . ' {';
                         $scorecalc .= implode(', ', $subscores);
                         $scorecalc .= '}';
                         break;
@@ -154,7 +154,7 @@ class separate_feedback_text_renderer {
             return $content;
         } else {
             if (!empty($node->get_student_feedback())) {
-                $content .= '<div><h4>' . get_string('feedback', 'qtype_programmingtask') . '</h4>';
+                $content .= '<div><h4>' . get_string('feedback', 'qtype_moopt') . '</h4>';
                 foreach ($node->get_student_feedback() as $studfeed) {
                     if ($studfeed['title'] != null) {
                         $content .= "<p><strong>{$studfeed['title']}</strong></p>";
@@ -162,7 +162,7 @@ class separate_feedback_text_renderer {
                     $content .= "<p>{$studfeed['content']}</p>";
                     $files = $studfeed['files'];
                     if (!empty($files['embeddedFiles'] || !empty($files['attachedFiles']))) {
-                        $content .= '<p>' . get_string('files', 'qtype_programmingtask') . ':<br/><ul>';
+                        $content .= '<p>' . get_string('files', 'qtype_moopt') . ':<br/><ul>';
                         foreach ($files['embeddedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['id'] . '/' . $file['filename']);
                             $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
@@ -183,7 +183,7 @@ class separate_feedback_text_renderer {
                 $content .= '</div>';
             }
             if (!empty($node->get_teacher_feedback()) && $this->displayteachercontent) {
-                $content .= '<div><h4>' . get_string('teacherfeedback', 'qtype_programmingtask') . '</h4>';
+                $content .= '<div><h4>' . get_string('teacherfeedback', 'qtype_moopt') . '</h4>';
                 foreach ($node->get_teacher_feedback() as $teacherfeed) {
                     $content .= '<p>';
                     if ($teacherfeed['title'] != null) {
@@ -192,7 +192,7 @@ class separate_feedback_text_renderer {
                     $content .= "<p>{$teacherfeed['content']}</p>";
                     $files = $teacherfeed['files'];
                     if (!empty($files['embeddedFiles'] || !empty($files['attachedFiles']))) {
-                        $content .= '<p>' . get_string('files', 'qtype_programmingtask') . ':<br/><ul>';
+                        $content .= '<p>' . get_string('files', 'qtype_moopt') . ':<br/><ul>';
                         foreach ($files['embeddedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['id'] . '/' . $file['filename']);
                             $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
@@ -214,7 +214,7 @@ class separate_feedback_text_renderer {
             }
 
             if ($content == '') {
-                $content = '<div><i>' . get_string('nofeedback', 'qtype_programmingtask') . '</i></div>';
+                $content = '<div><i>' . get_string('nofeedback', 'qtype_moopt') . '</i></div>';
             }
 
             return $content;

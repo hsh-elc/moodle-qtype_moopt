@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace qtype_programmingtask\utility\communicator;
+namespace qtype_moopt\utility\communicator;
 
 defined('MOODLE_INTERNAL') || die();
 
-use qtype_programmingtask\exceptions\resource_not_found_exception;
-use qtype_programmingtask\exceptions\service_communicator_exception;
+use qtype_moopt\exceptions\resource_not_found_exception;
+use qtype_moopt\exceptions\service_communicator_exception;
 
 require_once($CFG->libdir . '/filelib.php');
 
@@ -157,10 +157,10 @@ class grappa_communicator implements communicator_interface {
      */
 
     protected function __construct() {
-        $this->serviceurl = get_config("qtype_programmingtask", "service_url");
-        $this->servicetimeout = get_config("qtype_programmingtask", "service_timeout");
-        $this->lmsid = get_config("qtype_programmingtask", "lms_id");
-        $this->lmspw = get_config("qtype_programmingtask", "lms_password");
+        $this->serviceurl = get_config("qtype_moopt", "service_url");
+        $this->servicetimeout = get_config("qtype_moopt", "service_timeout");
+        $this->lmsid = get_config("qtype_moopt", "lms_id");
+        $this->lmspw = get_config("qtype_moopt", "lms_password");
     }
 
     protected static $instance = null;

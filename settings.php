@@ -17,45 +17,45 @@
 /**
  * Plugin administration pages are defined here.
  *
- * @package     qtype_programmingtask
+ * @package     qtype_moopt
  * @category    admin
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
 
-$ADMIN->add('qtypesettings', new admin_category('qtypeprogrammingtaskfolder',
-                new lang_string('pluginname', 'qtype_programmingtask')));
+$ADMIN->add('qtypesettings', new admin_category('qtypemooptfolder',
+                new lang_string('pluginname', 'qtype_moopt')));
 
-$settings = new admin_settingpage($section, get_string('commonsettings', 'qtype_programmingtask'), 'moodle/site:config');
+$settings = new admin_settingpage($section, get_string('commonsettings', 'qtype_moopt'), 'moodle/site:config');
 
 if ($ADMIN->fulltree) {
 
-    $settings->add(new admin_setting_configtext("qtype_programmingtask/lms_id", new lang_string('lmsid',
-        'qtype_programmingtask'), "", '', PARAM_TEXT));
-    $settings->add(new admin_setting_configpasswordunmask('qtype_programmingtask/lms_password',
-        new lang_string('lmspassword','qtype_programmingtask'), '', ''));
+    $settings->add(new admin_setting_configtext("qtype_moopt/lms_id", new lang_string('lmsid',
+        'qtype_moopt'), "", '', PARAM_TEXT));
+    $settings->add(new admin_setting_configpasswordunmask('qtype_moopt/lms_password',
+        new lang_string('lmspassword','qtype_moopt'), '', ''));
 
     $communicators = [];
-    foreach (qtype_programmingtask\utility\communicator\communicator_factory::$implementations as $c) {
+    foreach (qtype_moopt\utility\communicator\communicator_factory::$implementations as $c) {
         $communicators[$c] = $c;
     }
-    $settings->add(new admin_setting_configselect("qtype_programmingtask/communicator",
-        new lang_string('chose_communicator', 'qtype_programmingtask'), "",
-        qtype_programmingtask\utility\communicator\communicator_factory::$implementations[0], $communicators));
+    $settings->add(new admin_setting_configselect("qtype_moopt/communicator",
+        new lang_string('chose_communicator', 'qtype_moopt'), "",
+        qtype_moopt\utility\communicator\communicator_factory::$implementations[0], $communicators));
 
-    $settings->add(new admin_setting_configtext("qtype_programmingtask/service_url", new lang_string('service_url',
-                            'qtype_programmingtask'), "", '', PARAM_URL));
-    $settings->add(new admin_setting_configduration("qtype_programmingtask/service_timeout",
-                    new lang_string('timeout', 'qtype_programmingtask'), "", 10, 1));
-    $settings->add(new admin_setting_configduration("qtype_programmingtask/service_client_polling_interval",
-                    new lang_string('client_polling_interval', 'qtype_programmingtask'), "", 5, 1));
-    $settings->add(new admin_setting_configtext("qtype_programmingtask/max_number_free_text_inputs",
-                    new lang_string('ftsmaxnumfields', 'qtype_programmingtask'), "", 10, PARAM_INT));
+    $settings->add(new admin_setting_configtext("qtype_moopt/service_url", new lang_string('service_url',
+                            'qtype_moopt'), "", '', PARAM_URL));
+    $settings->add(new admin_setting_configduration("qtype_moopt/service_timeout",
+                    new lang_string('timeout', 'qtype_moopt'), "", 10, 1));
+    $settings->add(new admin_setting_configduration("qtype_moopt/service_client_polling_interval",
+                    new lang_string('client_polling_interval', 'qtype_moopt'), "", 5, 1));
+    $settings->add(new admin_setting_configtext("qtype_moopt/max_number_free_text_inputs",
+                    new lang_string('ftsmaxnumfields', 'qtype_moopt'), "", 10, PARAM_INT));
 
 
 }
 
-$ADMIN->add('qtypeprogrammingtaskfolder', $settings);
+$ADMIN->add('qtypemooptfolder', $settings);
 // Tell core we already added the settings structure.
 $settings = null;

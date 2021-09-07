@@ -103,9 +103,9 @@ require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
 
-use qtype_programmingtask\utility\communicator\communicator_factory;
-use qtype_programmingtask\utility\proforma_xml\separate_feedback_handler;
-use qtype_programmingtask\exceptions\resource_not_found_exception;
+use qtype_moopt\utility\communicator\communicator_factory;
+use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
+use qtype_moopt\exceptions\resource_not_found_exception;
 
 /*
  * Unzips the task zip file in the given draft area into the area
@@ -401,7 +401,7 @@ function save_task_and_according_files($question) {
     $filesfordb[] = $record;
 
     // Save all records in database.
-    $DB->insert_records('qtype_programmingtask_files', $filesfordb);
+    $DB->insert_records('qtype_moopt_files', $filesfordb);
 
     // Do a little bit of cleanup and remove everything from the file area we extracted.
     remove_all_files_from_draft_area($draftareaid, $usercontext, $taskfilename);
@@ -420,7 +420,7 @@ function retrieve_grading_results($qubaid) {
      * the same time
      * and try to access the same qubaid which can lead to unwanted behaviour. Hence use the locking api.
      */
-    $locktype = "qtype_programmingtask_retrieve_grading_results";
+    $locktype = "qtype_moopt_retrieve_grading_results";
     $ressource = "qubaid:$qubaid";
     $lockfactory = \core\lock\lock_config::get_lock_factory($locktype);
     $lock = $lockfactory->get_lock($ressource, 0, PROFORMA_RETRIEVE_GRADING_RESULTS_LOCK_MAXLIFETIME);
@@ -448,7 +448,7 @@ function internal_retrieve_grading_results($qubaid) {
     $fs = get_file_storage();
 
     $finishedgradingprocesses = [];
-    $records = $DB->get_records('qtype_programmingtask_grprcs', ['qubaid' => $qubaid]);
+    $records = $DB->get_records('qtype_moopt_gradeprocesses', ['qubaid' => $qubaid]);
 
     if (empty($records)) {
         // Most likely the systems cron job retrieved the result a couple of seconds ago.
@@ -469,21 +469,20 @@ function internal_retrieve_grading_results($qubaid) {
             $response = $communicator->get_grading_result($record->graderid, $record->gradeprocessid);
         } catch (resource_not_found_exception $e) {
             // A grading result does not exist and won't ever exist for this grade process id.
-            // The service communicator returned a HTTP 404 NotFound when polling for a
+            // The middleware or grader returned a HTTP 404 NotFound when polling for a
             // grading result. This case is different from a queued submission for which a grading result does
-            // not exist yet (in which case the service communicator would just return a HTTP 202 Accepted).
-            // With 404, something went wrong with either the service communicator or grader.
+            // not yet exist (in which case the middleware/grader would just return a HTTP 202 Accepted).
+            // With 404, something went wrong with either the middleware or grader.
             // Print this error message. However, printing it will not be visible to anybody
             // if debug output is disabled (which is usually the case for productive usage).
-            // Another place too look for the cause of error is the service connector's log files.
+            // Another place too look for the cause of error is the middleware's log files.
             debugging($e->getMessage());
 
             // In any case, we cannot ignore this particular question attempt anymore, because
-            // the polling will be stuck in this state indefinitely (e.g. polling for a result that does
+            // the polling will be stuck in this state indefinitely (i.e. polling for a result that does
             // not exist (HTTP 404) over and over agian).
-            // That's why we set this question attempt's state to needing manual grading, delete the grade
-            // process record, thus ending the polling.
-            //
+            // That's why we set this question attempt's state to needing manual grading and delete the grade
+            // process record from the database, thus ending the automatic polling.
             // Once the error has been resolved, a teacher may either start a re-grade, or manually
             // delete the question attempt.
             $quba->process_action($slot, ['-graderunavailable' => 1, 'gradeprocessdbid' => $record->id]);
@@ -649,7 +648,7 @@ function internal_retrieve_grading_results($qubaid) {
                         debugging("Response didn't contain a response.xml file");
                     }
                 }
-            } catch (\qtype_programmingtask\exceptions\service_communicator_exception $ex) {
+            } catch (\qtype_moopt\exceptions\service_communicator_exception $ex) {
                 // Something with the response we got was wrong - log it and set that the question needs manual grading.
                 $internalerror = true;
                 debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
@@ -693,7 +692,7 @@ function internal_retrieve_grading_results($qubaid) {
     }
 
     foreach ($finishedgradingprocesses as $doneid) {
-        $DB->delete_records('qtype_programmingtask_grprcs', ['id' => $doneid]);
+        $DB->delete_records('qtype_moopt_gradeprocesses', ['id' => $doneid]);
     }
 
     return !empty($finishedgradingprocesses);
@@ -715,8 +714,8 @@ function validate_proforma_file_against_schema(DOMDocument $doc, $namespace): ar
     $namespace = str_replace(":", "_", $namespace);
     $schema = file_get_contents(__DIR__ . "/res/proforma/xsd/$namespace.xsd");
     if (!$schema) {
-        $msgs[] = get_string('proformanamespaceinvalidorunknown', 'qtype_programmingtask', $namespace) . '<br/>' 
-                . get_string('proformanamespacesvalid', 'qtype_programmingtask', implode(", ", PROFORMA_TASK_XML_NAMESPACES));
+        $msgs[] = get_string('proformanamespaceinvalidorunknown', 'qtype_moopt', $namespace) . '<br/>' 
+                . get_string('proformanamespacesvalid', 'qtype_moopt', implode(", ", PROFORMA_TASK_XML_NAMESPACES));
         return $msgs;
     }
 
@@ -724,7 +723,7 @@ function validate_proforma_file_against_schema(DOMDocument $doc, $namespace): ar
     if (!$doc->schemaValidateSource($schema)) {
         $errors = libxml_get_errors();
         foreach ($errors as $error) {
-            $msgs[] = get_string('xmlvalidationerrormsg', 'qtype_programmingtask', ['message' => $error->message, 'code' => $error->code, 'line' => $error->line ]);
+            $msgs[] = get_string('xmlvalidationerrormsg', 'qtype_moopt', ['message' => $error->message, 'code' => $error->code, 'line' => $error->line ]);
         }
         libxml_clear_errors();
     }
@@ -749,9 +748,9 @@ function check_if_task_file_is_valid($draftareaid) {
     // Check if there is only the file we want.
     $area = file_get_draft_area_info($draftareaid, "/");
     if ($area['filecount'] == 0) {
-        return get_string('proformataskfilerequired', 'qtype_programmingtask');
+        return get_string('proformataskfilerequired', 'qtype_moopt');
     } else if ($area['filecount'] > 1 || $area['foldercount'] != 0) {
-        return get_string('singleproformataskfilerequired', 'qtype_programmingtask');
+        return get_string('singleproformataskfilerequired', 'qtype_moopt');
     }
 
     // Get name of the file.
@@ -770,7 +769,7 @@ function check_if_task_file_is_valid($draftareaid) {
         $filetype = strtolower($fileinfo['extension']);
     }
     if ($filetype != 'zip') {
-        return get_string('taskfilezipexpected', 'qtype_programmingtask');
+        return get_string('taskfilezipexpected', 'qtype_moopt');
     }
 
     // Unzip file - basically copied from draftfiles_ajax.php.
@@ -798,7 +797,7 @@ function check_if_task_file_is_valid($draftareaid) {
                 '/', '.')->delete();
 
         if ($taskfilecontents == null) {
-            return get_string('taskziplackstaskxml', 'qtype_programmingtask');
+            return get_string('taskziplackstaskxml', 'qtype_moopt');
         }
 
         // TODO: Uncomment this to enable validation of task.xml file itself. Currently commented out because most task files
@@ -808,11 +807,11 @@ function check_if_task_file_is_valid($draftareaid) {
         $doc->loadXML($taskfilecontents);
         $namespace = detect_proforma_namespace($doc);
         if ($namespace == null) {
-            return "<p>" . get_string('invalidproformanamespace', 'qtype_programmingtask',
+            return "<p>" . get_string('invalidproformanamespace', 'qtype_moopt',
                     implode(", ", PROFORMA_TASK_XML_NAMESPACES)) . "</p>";
         }
         if (!empty(($errors = validate_proforma_file_against_schema($doc, $namespace)))) {
-            $ret = "<p>" . get_string('proformavalidationerrorintro', 'qtype_programmingtask', $namespace) . "</p><ul>";
+            $ret = "<p>" . get_string('proformavalidationerrorintro', 'qtype_moopt', $namespace) . "</p><ul>";
             foreach ($errors as $er) {
                 $ret .= '<li>' . $er . '</li>';
             }
@@ -821,7 +820,7 @@ function check_if_task_file_is_valid($draftareaid) {
         }
         */
     } else {
-        return get_string('suppliedzipinvalid', 'qtype_programmingtask');
+        return get_string('suppliedzipinvalid', 'qtype_moopt');
     }
 
     return null;

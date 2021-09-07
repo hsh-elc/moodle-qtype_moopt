@@ -17,7 +17,7 @@
 /**
  * Plugin upgrade helper functions are defined here.
  *
- * @package     qtype_programmingtask
+ * @package     qtype_moopt
  * @category    upgrade
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Helper function used by the upgrade.php file.
  */
-function qtype_programmingtask_helper_function() {
+function qtype_moopt_helper_function() {
     global $DB;
 
     /* Please note that you should always be performing any task using raw (low

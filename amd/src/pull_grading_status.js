@@ -8,7 +8,7 @@ function ($, ajax, ModalFactory, ModalEvents, Strings) {
     function checkGradingFinished() {
         ajax.call([
             {
-                methodname: 'qtype_programmingtask_retrieve_grading_results',
+                methodname: 'qtype_moopt_retrieve_grading_results',
                 args: {qubaid: qubaid},
                 done: function (result) {
                     if (result) {
@@ -31,15 +31,15 @@ function ($, ajax, ModalFactory, ModalEvents, Strings) {
         var strings = [
         {
             key: 'reloadpage',
-            component: 'qtype_programmingtask'
+            component: 'qtype_moopt'
         },
         {
             key: 'gradeprocessfinished',
-            component: 'qtype_programmingtask'
+            component: 'qtype_moopt'
         },
         {
             key: 'reload',
-            component: 'qtype_programmingtask'
+            component: 'qtype_moopt'
         }];
 
         Strings.get_strings(strings).then(function (values) {

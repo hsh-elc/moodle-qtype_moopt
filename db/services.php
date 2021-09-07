@@ -17,35 +17,35 @@
 defined('MOODLE_INTERNAL') || die();
 
 /*
- * Web service for qtype programmingtask
+ * Web service for qtype MooPT
  */
 $functions = array(
-    'qtype_programmingtask_extract_task_infos_from_draft_file' => array(
-        'classname' => 'qtype_programmingtask_external',
+    'qtype_moopt_extract_task_infos_from_draft_file' => array(
+        'classname' => 'qtype_moopt_external',
         'methodname' => 'extract_task_infos_from_draft_file',
-        'classpath' => 'question/type/programmingtask/externallib.php',
-        'description' => 'Extracts the relevant information from the file currently in the draft area.',
+        'classpath' => 'question/type/moopt/externallib.php',
+        'description' => 'Extracts relevant data from the file currently in the draft area.',
         'type' => 'read',
         'capabilities' => 'moodle/question:add',
         'ajax' => true,
-        'services' => array('programmingtaskwebservice')
+        'services' => array('mooptwebservice')
     ),
-    'qtype_programmingtask_retrieve_grading_results' => array(
-        'classname' => 'qtype_programmingtask_external',
+    'qtype_moopt_retrieve_grading_results' => array(
+        'classname' => 'qtype_moopt_external',
         'methodname' => 'retrieve_grading_results',
-        'classpath' => 'question/type/programmingtask/externallib.php',
+        'classpath' => 'question/type/moopt/externallib.php',
         'description' => 'Check if any grade process with the given qubaid finished, retrieves those results,'
         . ' inserts them into the database and returns whether any grade process finished.',
         'type' => 'write',
         'ajax' => true,
-        'services' => array('programmingtaskwebservice')
+        'services' => array('mooptwebservice')
     )
 );
 
 $services = array(
-    'programmingtaskwebservice' => array(
-        'functions' => array('qtype_programmingtask_extract_task_infos_from_draft_file',
-            'qtype_programmingtask_check_if_any_gradeprocess_finished'),
+    'mooptwebservice' => array(
+        'functions' => array('qtype_moopt_extract_task_infos_from_draft_file',
+            'qtype_moopt_check_if_any_gradeprocess_finished'),
         'requiredcapability' => '',
         'restrictedusers' => 0,
         'enabled' => 1

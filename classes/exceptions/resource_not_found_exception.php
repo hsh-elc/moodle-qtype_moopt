@@ -14,22 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace qtype_moopt\utility\proforma_xml;
+namespace qtype_moopt\exceptions;
 
 defined('MOODLE_INTERNAL') || die();
 
-class proforma_xml_creator {
+/**
+ * Exception indicating that no response file is available for
+ */
+class resource_not_found_exception extends service_communicator_exception {
 
-    protected $xmlwriter;
-
-    public function __construct() {
-        $this->xmlwriter = new \XMLWriter();
-    }
-
-    protected function init_xml_writer_for_document() {
-        $this->xmlwriter->openMemory();
-        $this->xmlwriter->setIndent(1);
-        $this->xmlwriter->setIndentString(' ');
+    /**
+     * Constructor
+     * @param string $debuginfo some detailed information
+     */
+    public function __construct($debuginfo = null) {
+        parent::__construct($debuginfo);
     }
 
 }
