@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace qtype_programmingtask\utility\proforma_xml;
+namespace qtype_moopt\utility\proforma_xml;
 
-use qtype_programmingtask\exceptions\service_communicator_exception;
+use qtype_moopt\exceptions\service_communicator_exception;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -113,7 +113,7 @@ class separate_feedback_handler {
     public function process_result() {
 
         $this->detailedfeedback = new separate_feedback_text_node('detailed_feedback',
-                get_string('detailedfeedback', 'qtype_programmingtask'));
+                get_string('detailedfeedback', 'qtype_moopt'));
         if ($this->gradinghintsroot != null && $this->has_children($this->gradinghintsroot)) {
             $this->fill_feedback_with_combine_node_infos($this->gradinghintsroot, $this->detailedfeedback);
             list($this->calculatedscore, $maxscore) = $this->calculate_from_children($this->gradinghintsroot,
@@ -126,7 +126,7 @@ class separate_feedback_handler {
         $this->detailedfeedback->set_score($this->calculatedscore);
 
         $this->summarisedfeedback = new separate_feedback_text_node('summarised_feedback',
-                get_string('summarizedfeedback', 'qtype_programmingtask'));
+                get_string('summarizedfeedback', 'qtype_moopt'));
         $this->fill_feedback_node_with_feedback_list($this->summarisedfeedback,
                 $this->separatetestfeedback->getElementsByTagNameNS($this->namespacefeedback, 'submission-feedback-list')[0]);
     }
@@ -206,7 +206,7 @@ class separate_feedback_handler {
                         " subresults specified in the grading hints. According to the specification this is invalid behaviour." .
                         " In fact there are no grading hints in the task at all.");
             } else {
-                $detfeed->set_heading(get_string('test', 'qtype_programmingtask'));
+                $detfeed->set_heading(get_string('test', 'qtype_moopt'));
                 $result = $value->getElementsByTagNameNS($this->namespacefeedback, 'result')[0];
                 $score = $result->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
                 $this->fill_feedback_node_with_feedback_list($detfeed, $value->getElementsByTagNameNS(
@@ -274,7 +274,7 @@ class separate_feedback_handler {
             $detfeed = new separate_feedback_text_node($detailedfeedback->get_id() . '_' . $counter++);
             $detailedfeedback->add_child($detfeed);
 
-            $detfeed->set_heading(get_string('combinedresult', 'qtype_programmingtask'));
+            $detfeed->set_heading(get_string('combinedresult', 'qtype_moopt'));
             $this->fill_feedback_with_combine_node_infos($this->gradinghintscombines[$combineref->getAttribute('ref')], $detfeed);
 
             list($score, $maxscore) = $this->get_weighted_score_combineref($combineref, $detfeed, $scalescoretolms);
@@ -354,7 +354,7 @@ class separate_feedback_handler {
         if ($elem->hasAttribute('weight')) {
             $weight = $elem->getAttribute('weight');
         }
-        $detailedfeedbacknode->set_heading(get_string('test', 'qtype_programmingtask') . ' ');
+        $detailedfeedbacknode->set_heading(get_string('test', 'qtype_moopt') . ' ');
         $this->fill_feedback_node_with_test_infos($elem, $detailedfeedbacknode, $testresult);
 
         if ($result->hasAttribute('is-internal-error')) {

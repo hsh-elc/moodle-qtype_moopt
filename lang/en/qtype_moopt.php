@@ -17,7 +17,7 @@
 /**
  * Plugin strings are defined here.
  *
- * @package     qtype_programmingtask
+ * @package     qtype_moopt
  * @category    string
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -68,19 +68,18 @@ $string['lmspassword'] = 'LMS Password';
 $string['loadproformataskfile'] = 'Extract information';
 $string['minimum'] = 'Minimum';
 $string['maximum'] = 'Maximum';
-$string['needsgradingbyteacher'] = 'An error occurred during the grading process, your submission needs manual grading by a teacher.';
+$string['needsgradingbyteacher'] = 'An error occurred during the grading process, your submission requires manual grading by a teacher.';
 $string['nofeedback'] = 'No feedback given';
-$string['nofilessubmitted'] = 'You didn\'t submit any files as a solution to the task.';
+$string['nofilessubmitted'] = 'You did not submit any solution files to the task.';
 $string['noresponseyet'] = 'No response yet';
-$string['nosubmissionpossible'] = 'Your teacher didn\'t enable any way of submitting your solution';
+$string['nosubmissionpossible'] = 'Your teacher did not enable any way for submitting a solution.';
 $string['nosummaryavailable'] = 'No summary available.';
 $string['password'] = 'Password';
-$string['pluginname'] = 'Programming task';
-$string['pluginname_help'] = 'Programmingtask questions allow the use of ProFormA tasks.';
-$string['pluginname_link'] = 'question/type/programmingtask';
+$string['pluginname'] = 'MooPT';
+$string['pluginname_help'] = 'MooPT (Moodle Programming Task) uses prefabricated programming tasks  consisting of task descriptions for students and meta data used by grading software to automatically grade and provide scores and feedback to solutions submitted by students.';
 $string['pluginnameadding'] = 'Adding a ProFormA programming task';
 $string['pluginnameediting'] = 'Editing a ProFormA programming task';
-$string['pluginnamesummary'] = 'Questions of this type represent a ProFormA task.';
+$string['pluginnamesummary'] = 'MooPT (Moodle Programming Task) uses prefabricated ProFormA programming tasks consisting of task descriptions for students and meta data used by grading software to automatically grade and provide scores and feedback to solutions submitted by students.';
 $string['previousgradernotavailable'] = 'The previously selected grader with ID \'{$a->grader}\' is currently unavailable. Please contact your system administrator.';
 $string['privacy:metadata:grader_link'] = 'In order to obtain a grade the users submission is sent to a grading software, possibly using a middleware.';
 $string['proformanamespaceinvalidorunknown'] = 'Invalid or unknown proforma namespace: {$a}';

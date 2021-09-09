@@ -17,7 +17,7 @@
 /**
  * Code to be executed after the plugin's database scheme has been installed is defined here.
  *
- * @package     qtype_programmingtask
+ * @package     qtype_moopt
  * @category    upgrade
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -28,7 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Custom code to be run on installing the plugin.
  */
-function xmldb_qtype_programmingtask_install() {
+function xmldb_qtype_moopt_install() {
 
     return true; //currently there is no custom code to be run
 }

@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Question definition class for programmingtask.
+ * Question definition class for a Moodle Programming task (MooPT).
  *
- * @package     qtype_programmingtask
+ * @package     qtype_moopt
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -28,13 +28,13 @@ defined('MOODLE_INTERNAL') || die();
 //
 // Make sure to implement all the abstract methods of the base class.
 
-use qtype_programmingtask\utility\communicator\communicator_factory;
-use qtype_programmingtask\utility\proforma_xml\proforma_submission_xml_creator;
+use qtype_moopt\utility\communicator\communicator_factory;
+use qtype_moopt\utility\proforma_xml\proforma_submission_xml_creator;
 
 /**
- * Class that represents a programmingtask question.
+ * Class that represents a MooPT question.
  */
-class qtype_programmingtask_question extends question_graded_automatically {
+class qtype_moopt_question extends question_graded_automatically {
 
     public $internaldescription;
     public $graderid;
@@ -62,7 +62,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
      */
     public function get_expected_data() {
         $expected = ['answer' => question_attempt::PARAM_FILES];
-        for ($i = 0; $i < get_config("qtype_programmingtask", "max_number_free_text_inputs"); $i++) {
+        for ($i = 0; $i < get_config("qtype_moopt", "max_number_free_text_inputs"); $i++) {
             $expected["answertext$i"] = PARAM_RAW;
             $expected["answerfilename$i"] = PARAM_FILE;
         }
@@ -102,11 +102,11 @@ class qtype_programmingtask_question extends question_graded_automatically {
 
         $prefixtocheck = 'immediate';
         if (substr($preferredbehaviour, 0, strlen($prefixtocheck)) === $prefixtocheck) {
-            $preferredbehaviour = 'immediateprogrammingtask';
+            $preferredbehaviour = 'immediatemoopt';
         } else {
             // No need to check whether it starts with 'deferred' because this is also the default cause if
             // it wouldn't start with 'deferred'.
-            $preferredbehaviour = 'deferredprogrammingtask';
+            $preferredbehaviour = 'deferredmoopt';
         }
 
         return parent::make_behaviour($qa, $preferredbehaviour);
@@ -135,7 +135,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
             // If it is one of those files we need to check permissions because students could just guess download urls
             // and not all files should be downloadable by students
             // From the DBs point of view this combination of fields doesn't guarantee uniqueness; however, conceptually it does.
-            $records = $DB->get_records_sql('SELECT visibletostudents FROM {qtype_programmingtask_files} WHERE questionid = ? and '
+            $records = $DB->get_records_sql('SELECT visibletostudents FROM {qtype_moopt_files} WHERE questionid = ? and '
                     . $DB->sql_concat('filepath', 'filename') . ' = ? and ' . $DB->sql_compare_text('filearea') . ' = ?',
                     array($questionid, '/' . $relativepath, $filearea));
             if (count($records) != 1) {
@@ -173,17 +173,17 @@ class qtype_programmingtask_question extends question_graded_automatically {
      */
     public function get_validation_error(array $response): string {
         // Currently the only case where this might happen is that the students didn't submit any files.
-        return get_string('nofilessubmitted', 'qtype_programmingtask');
+        return get_string('nofilessubmitted', 'qtype_moopt');
     }
 
     /**
-     * This method isn't used for programming task questions, see grade_response_asynch instead.
+     * This method isn't used for MooPT questions, see grade_response_asynch instead.
      * Explanation: grade_response is an overriden method from its parent class and is supposed to grade the given response
      * synchronously. As we use asynchronous grading we need different parameters and have different return values.
      * Using this method and just changing the params and return values would clearly violate the substitution principle.
      */
     public function grade_response(array $response) {
-        throw new coding_exception("This method isn't supported for programming tasks. See grade_response_asynch instead.");
+        throw new coding_exception("This method isn't supported for MooPT. See grade_response_asynch instead.");
     }
 
 
@@ -355,7 +355,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
         // Get filename of task file if necessary but don't load it yet.
         $taskfilename = '';
         if ($includetaskfile) {
-            $taskfilename = $DB->get_record('qtype_programmingtask_files', array('questionid' => $this->id,
+            $taskfilename = $DB->get_record('qtype_moopt_files', array('questionid' => $this->id,
                         'filearea' => PROFORMA_TASKZIP_FILEAREA), 'filename')->filename;
         }
 
@@ -407,7 +407,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
         $returnstate = question_state::$finished;
         try {
             $gradeprocessid = $communicator->enqueue_submission($this->graderid, 'true', $zipfile);
-            $DB->insert_record('qtype_programmingtask_grprcs', ['qubaid' => $qa->get_usage_id(),
+            $DB->insert_record('qtype_moopt_gradeprocesses', ['qubaid' => $qa->get_usage_id(),
                 'questionattemptdbid' => $qa->get_database_id(), 'gradeprocessid' => $gradeprocessid,
                 'graderid' => $this->graderid]);
         } catch (invalid_response_exception $ex) {
@@ -494,7 +494,7 @@ class qtype_programmingtask_question extends question_graded_automatically {
         if($this->submission_proforma_restrictions_message != null) {
             return $this->submission_proforma_restrictions_message;
         } else {
-            return get_string('nosummaryavailable', 'qtype_programmingtask');
+            return get_string('nosummaryavailable', 'qtype_moopt');
         }
     }
 

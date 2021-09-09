@@ -6,7 +6,7 @@
 /*global console */
 
 define(['jquery', 'core/ajax',
-    'qtype_programmingtask/edit_editor_content'],
+    'qtype_moopt/edit_editor_content'],
         function ($, ajax, editorEditor) {
 
             return {
@@ -21,11 +21,11 @@ define(['jquery', 'core/ajax',
                 extractInformation: function () {
                     var fileManager = $("#id_proformataskfileupload").parent();
                     var itemId = fileManager.find("[name='proformataskfileupload']")[0].value;
-                    fileManager.find
+                    fileManager.find // TODO: fix: is missing a semicolon, but what does this even do
 
                     ajax.call([
                         {
-                            methodname: 'qtype_programmingtask_extract_task_infos_from_draft_file',
+                            methodname: 'qtype_moopt_extract_task_infos_from_draft_file',
                             args: {itemid: itemId},
                             done: function (result) {
 

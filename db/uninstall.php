@@ -17,7 +17,7 @@
 /**
  * Code that is executed before the tables and data are dropped during the plugin uninstallation.
  *
- * @package     qtype_programmingtask
+ * @package     qtype_moopt
  * @category    upgrade
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Custom uninstallation procedure.
  */
-function xmldb_qtype_programmingtask_uninstall() {
+function xmldb_qtype_moopt_uninstall() {
 
     global $DB;
 
@@ -35,10 +35,10 @@ function xmldb_qtype_programmingtask_uninstall() {
 
     $success = true;
 
-    $success = $success && $dbman->drop_table(new xmldb_table('qtype_programmingtask_optns'));
-    $success = $success && $dbman->drop_table(new xmldb_table('qtype_programmingtask_files'));
-    $success = $success && $dbman->drop_table(new xmldb_table('qtype_programmingtask_grprcs'));
-    $success = $success && $dbman->drop_table(new xmldb_table('qtype_programmingtask_fts'));
+    $success = $success && $dbman->drop_table(new xmldb_table('qtype_moopt_options'));
+    $success = $success && $dbman->drop_table(new xmldb_table('qtype_moopt_files'));
+    $success = $success && $dbman->drop_table(new xmldb_table('qtype_moopt_gradeprocesses'));
+    $success = $success && $dbman->drop_table(new xmldb_table('qtype_moopt_freetexts'));
 
     return $success;
 }

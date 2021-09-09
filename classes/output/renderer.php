@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The programmingtask question renderer class is defined here.
+ * The moopt question renderer class is defined here.
  *
- * @package     qtype_programmingtask
+ * @package     qtype_moopt
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,17 +25,17 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../locallib.php');
 
-use qtype_programmingtask\utility\proforma_xml\separate_feedback_handler;
-use qtype_programmingtask\output\separate_feedback_text_renderer;
-use qtype_programmingtask\utility\communicator\communicator_factory;
+use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
+use qtype_moopt\output\separate_feedback_text_renderer;
+use qtype_moopt\utility\communicator\communicator_factory;
 
 /**
- * Generates the output for programmingtask questions.
+ * Generates the output for MooPT questions.
  *
  * You should override functions as necessary from the parent class located at
  * /question/type/rendererbase.php.
  */
-class qtype_programmingtask_renderer extends qtype_renderer {
+class qtype_moopt_renderer extends qtype_renderer {
 
     public $generalfeedbacktemp;
 
@@ -63,7 +63,8 @@ class qtype_programmingtask_renderer extends qtype_renderer {
 
         $o = "";
         $onlinegraders = communicator_factory::get_instance()->get_graders();
-        $graderforthistask = $DB->get_record('qtype_programmingtask_optns', ['questionid' => $qa->get_question()->id], 'graderid')->graderid;
+        $graderforthistask = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id], 'graderid')
+            ->graderid;
         $found = false;
         foreach($onlinegraders['graders'] as $grader) {
             foreach($grader as $graderKey => $graderName) {
@@ -75,7 +76,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         }
 
         if(!$found) {
-            $o = '<div class="alertlabel">' . get_string('gradercurrentlynotavailable', 'qtype_programmingtask') . '</div>';
+            $o = '<div class="alertlabel">' . get_string('gradercurrentlynotavailable', 'qtype_moopt') . '</div>';
         }
 
 
@@ -87,7 +88,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         $questionid = $question->id;
 
         // Load ace scripts.
-        $plugindirrel = '/question/type/programmingtask';
+        $plugindirrel = '/question/type/moopt';
         $PAGE->requires->js($plugindirrel . '/ace/ace.js');
         $PAGE->requires->js($plugindirrel . '/ace/ext-language_tools.js');
         $PAGE->requires->js($plugindirrel . '/ace/ext-modelist.js');
@@ -108,10 +109,10 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         } else {
             $submissionarea = $this->render_files_read_only($qa, $options);
         }
-        $o .= $this->output->heading(get_string('submission', 'qtype_programmingtask'), 3);
+        $o .= $this->output->heading(get_string('submission', 'qtype_moopt'), 3);
         $o .= html_writer::tag('div', $submissionarea, array('class' => 'submissionfilearea'));
 
-        $PAGE->requires->js_call_amd('qtype_programmingtask/textareas', 'setupAllTAs');
+        $PAGE->requires->js_call_amd('qtype_moopt/textareas', 'setupAllTAs');
 
         if (has_capability('mod/quiz:grade', $options->context) && $question->internaldescription != '') {
             $internaldescription = $this->render_internal_description($question);
@@ -123,7 +124,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
 
     private function render_internal_description($question) {
         $o = '';
-        $o .= $this->output->heading(get_string('internaldescription', 'qtype_programmingtask'), 3);
+        $o .= $this->output->heading(get_string('internaldescription', 'qtype_moopt'), 3);
         $o .= $question->internaldescription;
         return $o;
     }
@@ -139,11 +140,11 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         $o = '';
         $isteacher = has_capability('mod/quiz:grade', $options->context);
 
-        $files = $DB->get_records('qtype_programmingtask_files', array('questionid' => $questionid));
+        $files = $DB->get_records('qtype_moopt_files', array('questionid' => $questionid));
         $anythingtodisplay = false;
         if (count($files) != 0) { // TODO: this check should happen before these render methods are called
             $downloadurls = '';
-            $downloadurls .= $this->output->heading(get_string('providedfiles', 'qtype_programmingtask'), 3);
+            $downloadurls .= $this->output->heading(get_string('providedfiles', 'qtype_moopt'), 3);
             $downloadurls .= html_writer::start_div('providedfiles');
             $downloadurls .= '<ul>';
             foreach ($files as $file) {
@@ -197,7 +198,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                                             $this->output->pix_icon(file_file_icon($file), get_mimetype_description($file),
                                                     'moodle', array('class' => 'icon')) . ' ' . s($file->get_filename())));
                 }
-                $rendered .= $this->output->heading(get_string('files', 'qtype_programmingtask'), 4);
+                $rendered .= $this->output->heading(get_string('files', 'qtype_moopt'), 4);
                 $rendered .= html_writer::div(implode($output), 'readonlysubmittedfiles');
             }
         }
@@ -205,7 +206,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         if ($qa->get_question()->enablefreetextsubmissions) {
             $renderedfreetext = '';
 
-            $questionoptions = $DB->get_record('qtype_programmingtask_optns', ['questionid' => $qa->get_question()->id]);
+            $questionoptions = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id]);
             $defaultproglang = $questionoptions->ftsstandardlang;
 
             for ($i = 0; $i < $qa->get_question()->ftsmaxnumfields; $i++) {
@@ -214,7 +215,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                     list($filename, ) = $this->get_filename($qa->get_question()->id, $i, $qa->get_last_qt_var("answerfilename$i"),
                             $qa->get_question()->ftsautogeneratefilenames);
 
-                    $customoptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $qa->get_question()->id,
+                    $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
                         'inputindex' => $i]);
 
                     $proglang = $defaultproglang;
@@ -230,13 +231,13 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                                         'data-lang' => $proglang, 'readonly' => '')));
                     $renderedfreetext .= html_writer::end_div();
 
-                    $PAGE->requires->js_call_amd('qtype_programmingtask/userinterfacewrapper', 'newUiWrapper',
+                    $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper',
                             ['ace', "answertext$i"]);
                 }
             }
 
             if ($renderedfreetext != '') {
-                $rendered .= $this->output->heading(get_string('freetextsubmissions', 'qtype_programmingtask'), 4);
+                $rendered .= $this->output->heading(get_string('freetextsubmissions', 'qtype_moopt'), 4);
                 $rendered .= html_writer::div($renderedfreetext, 'readonlysubmittedfreetext');
             }
         }
@@ -249,7 +250,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
         require_once($CFG->dirroot . '/lib/form/filemanager.php');
         require_once($CFG->dirroot . '/repository/lib.php');
 
-        $questionoptions = $DB->get_record('qtype_programmingtask_optns', ['questionid' => $qa->get_question()->id]);
+        $questionoptions = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id]);
 
         $renderedarea = '';
 
@@ -291,7 +292,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 $filenameinputname = $qa->get_qt_field_name($filenamename);
                 $filenameid = $filenameinputname . '_id';
 
-                $customoptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $qa->get_question()->id,
+                $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
                     'inputindex' => $i]);
 
                 $proglang = $defaultproglang;
@@ -303,11 +304,11 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                         $qa->get_last_step_with_qt_var($filenamename)->get_qt_var($filenamename), $autogeneratefilenames);
 
                 $output = '';
-                $output .= html_writer::start_tag('div', array('class' => "qtype_programmingtask_answertext",
-                            'id' => "qtype_programmingtask_answertext_$i",
+                $output .= html_writer::start_tag('div', array('class' => "qtype_moopt_answertext",
+                            'id' => "qtype_moopt_answertext_$i",
                             'style' => 'display:none;'));
                 $output .= html_writer::start_div('answertextfilename');
-                $output .= html_writer::label(get_string('filename', 'qtype_programmingtask') . ":", $filenameid);
+                $output .= html_writer::label(get_string('filename', 'qtype_moopt') . ":", $filenameid);
                 $inputoptions = ['id' => $filenameid, 'name' => $filenameinputname, 'style' => 'width: 100%;padding-left: 10px;',
                     'value' => $filenameresponse];
                 if ($disablefilenameinput) {
@@ -315,8 +316,8 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                 }
                 $output .= html_writer::tag('input', '', $inputoptions);
                 $output .= html_writer::end_div();
-                $output .= html_writer::div(get_string('yourcode', 'qtype_programmingtask') . ' (' .
-                                get_string('programminglanguage', 'qtype_programmingtask') . ': ' .
+                $output .= html_writer::div(get_string('yourcode', 'qtype_moopt') . ' (' .
+                                get_string('programminglanguage', 'qtype_moopt') . ': ' .
                                 PROFORMA_ACE_PROGLANGS[$proglang] . '):');
                 $output .= html_writer::tag('div', html_writer::tag('textarea', $answertextresponse, array('id' => $answertextid,
                                     'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height:250px;',
@@ -329,21 +330,21 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                     $maxindexoffieldwithcontent = $i + 1;
                 }
 
-                $PAGE->requires->js_call_amd('qtype_programmingtask/userinterfacewrapper', 'newUiWrapper', ['ace', $answertextid]);
+                $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper', ['ace', $answertextid]);
             }
             $renderedarea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
-            $renderedarea .= html_writer::tag('button', get_string('addanswertext', 'qtype_programmingtask'),
+            $renderedarea .= html_writer::tag('button', get_string('addanswertext', 'qtype_moopt'),
                             ['id' => 'addAnswertextButton']);
-            $renderedarea .= html_writer::tag('button', get_string('removelastanswertext', 'qtype_programmingtask'),
+            $renderedarea .= html_writer::tag('button', get_string('removelastanswertext', 'qtype_moopt'),
                             ['id' => 'removeLastAnswertextButton', 'style' => 'margin-left: 10px']);
             $renderedarea .= html_writer::end_div();
 
-            $PAGE->requires->js_call_amd('qtype_programmingtask/manage_answer_texts', 'init',
+            $PAGE->requires->js_call_amd('qtype_moopt/manage_answer_texts', 'init',
                     [$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, $questionoptions->ftsnuminitialfields)]);
         }
 
         if ($renderedarea == '') {
-            $nosubmissionpossible = get_string('nosubmissionpossible', 'qtype_programmingtask');
+            $nosubmissionpossible = get_string('nosubmissionpossible', 'qtype_moopt');
             $renderedarea = "<div>$nosubmissionpossible</div>";
         }
 
@@ -353,7 +354,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
     private function get_filename($questionid, $index, $usersuppliedname, $autogeneratefilenames) {
         global $DB;
 
-        $customoptions = $DB->get_record('qtype_programmingtask_fts', ['questionid' => $questionid, 'inputindex' => $index]);
+        $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $questionid, 'inputindex' => $index]);
         $filenameresponse = $usersuppliedname ?? '';         // Init with previous value.
         if ($filenameresponse == '') {
             $temp = $index + 1;
@@ -395,18 +396,18 @@ class qtype_programmingtask_renderer extends qtype_renderer {
 
         if ($qa->get_state()->is_finished()) {
 
-            $PAGE->requires->js_call_amd('qtype_programmingtask/change_display_name_of_redo_button', 'init');
+            $PAGE->requires->js_call_amd('qtype_moopt/change_display_name_of_redo_button', 'init');
 
             if ($qa->get_state() == question_state::$finished) {
-                $PAGE->requires->js_call_amd('qtype_programmingtask/pull_grading_status', 'init', [$qa->get_usage_id(),
-                    get_config("qtype_programmingtask",
+                $PAGE->requires->js_call_amd('qtype_moopt/pull_grading_status', 'init', [$qa->get_usage_id(),
+                    get_config("qtype_moopt",
                             "service_client_polling_interval") * 1000 /* to milliseconds */]);
                 $loader = '<div class="loader"></div>';
-                return html_writer::div(get_string('currentlybeinggraded', 'qtype_programmingtask') . $loader, 'gradingstatus');
+                return html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
             } else if ($qa->get_state() == question_state::$needsgrading && !has_capability('mod/quiz:grade', $PAGE->context)) {
                 // If a teacher is looking at this feedback and we did receive a valid response but it has an
                 // internal-error-attribute we still want to display this result.
-                return html_writer::div(get_string('needsgradingbyteacher', 'qtype_programmingtask'), 'gradingstatus');
+                return html_writer::div(get_string('needsgradingbyteacher', 'qtype_moopt'), 'gradingstatus');
             } else if ($qa->get_state()->is_graded() || (has_capability('mod/quiz:grade', $PAGE->context) &&
                     $qa->get_state() == question_state::$needsgrading)) {
 
@@ -511,7 +512,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                                                     $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
                                     $html .= '<p>' . $separatefeedbackrendererdetailed->render() . '</p>';
                                 } else {
-                                    $html .= '<p>' . get_string('needsgradingbyteacher', 'qtype_programmingtask') . '</p>';
+                                    $html .= '<p>' . get_string('needsgradingbyteacher', 'qtype_moopt') . '</p>';
                                 }
                             } else {
                                 // Merged test feedback.
@@ -532,7 +533,7 @@ class qtype_programmingtask_renderer extends qtype_renderer {
                         } else {
                             $html = html_writer::div('The response contains an invalid response.xml file', 'gradingstatus');
                         }
-                    } catch (\qtype_programmingtask\exceptions\service_communicator_exception $ex) {
+                    } catch (\qtype_moopt\exceptions\service_communicator_exception $ex) {
                         // We did get a xml-valid response but something was still wrong. Display that message.
                         $html = html_writer::div($ex->getMessage(), 'gradingstatus');
                     } catch (\exception $ex) {

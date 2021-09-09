@@ -27,7 +27,7 @@ define(['jquery'], function ($) {
 
         adjustVisibility: function () {
             for (var i = 0; i < maxNumberFields; i++) {
-                var id = "#qtype_programmingtask_answertext_" + i;
+                var id = "#qtype_moopt_answertext_" + i;
                 if (i < currentNumberFields) {
                     $(id).show();
                 } else {

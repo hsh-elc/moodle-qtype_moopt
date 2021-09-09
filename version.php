@@ -17,14 +17,14 @@
 /**
  * Plugin version and other meta-data are defined here.
  *
- * @package     qtype_programmingtask
+ * @package     qtype_moopt
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'qtype_programmingtask';
+$plugin->component = 'qtype_moopt';
 $plugin->release = '0.1.0';
-$plugin->version = 2020061400;
+$plugin->version = 2020090900;
 $plugin->requires = 2018120300;
 $plugin->maturity = MATURITY_ALPHA;

@@ -14,22 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace qtype_programmingtask\tasks;
+namespace qtype_moopt\tasks;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot . '/question/type/programmingtask/locallib.php');
+require_once($CFG->dirroot . '/question/type/moopt/locallib.php');
 
 class retrieve_grading_results extends \core\task\scheduled_task {
 
     public function get_name(): string {
-        return get_string('retrievegradingresults', 'qtype_programmingtask');
+        return get_string('retrievegradingresults', 'qtype_moopt');
     }
 
     public function execute() {
         global $DB;
 
-        $records = $DB->get_records_sql('select distinct qubaid from {qtype_programmingtask_grprcs}');
+        $records = $DB->get_records_sql('select distinct qubaid from {qtype_moopt_gradeprocesses}');
         foreach ($records as $record) {
             retrieve_grading_results($record->qubaid);
         }

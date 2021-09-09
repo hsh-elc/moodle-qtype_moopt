@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace qtype_programmingtask\tasks;
+namespace qtype_moopt\tasks;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -22,7 +22,7 @@ defined('MOODLE_INTERNAL') || die();
 class remove_leftover_responsefiles extends \core\task\scheduled_task {
 
     public function get_name(): string {
-        return get_string('remove_leftover_responsefiles', 'qtype_programmingtask');
+        return get_string('remove_leftover_responsefiles', 'qtype_moopt');
     }
 
     public function execute() {
