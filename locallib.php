@@ -107,6 +107,7 @@ use qtype_programmingtask\utility\communicator\communicator_factory;
 use qtype_programmingtask\utility\proforma_xml\separate_feedback_handler;
 use qtype_programmingtask\exceptions\resource_not_found_exception;
 
+
 /*
  * Unzips the task zip file in the given draft area into the area
  *
@@ -734,7 +735,7 @@ function validate_proforma_file_against_schema(DOMDocument $doc, $namespace): ar
 }
 
 /**
- *  Checks whether supplied zip file is valid.
+ * Checks whether supplied zip file is valid.
  * @global type $USER
  * @param type $draftareaid
  * @return string null if there are no errors. The error message otherwise
@@ -837,61 +838,78 @@ function mangle_pathname($filename) {
 }
 
 /**
+ * TODO: check how this works when working with zip files in a submission
  * Checks if the file-restrictions of the specific task.xml file are violated by the submission of a student
  *
  * @param DOMDocument $taskdoc the content of the task.xml file as a DOMDocument
  * @param array $submissionfiles the files that belong to the submission as an array
- * @return array an array that contains the messages
+ * @return array an array that contains the messages with the following fields:
+ * generaldescription,
+ * maxfilesizeforthistask,
+ * filesizesubmitted,
+ * requiredfilemissing,
+ * prohibitedfileexists
  */
-function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $submissionfiles) : array {
+function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $submissionfiles, $qa) : array {
     global $DB;
     $returnval = array();
+
+    $firstfile = "";
+    foreach($submissionfiles as $file) {
+        $firstfile = $file;
+        break;
+    }
+    if(count($submissionfiles) == 1 && ($firstfile->get_mimetype() === 'application/zip' /* || TODO: check other formats too */)) {
+        //unzip it and do the other stuff...
+        //$submissionfiles = get_files_inside_archive_file($firstfile);
+    }
 
     $taskxmlnamespace = detect_proforma_namespace($taskdoc);
     $submissionrestrictions = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'submission-restrictions')[0];
     if ($submissionrestrictions->hasAttribute('max-size')){
         $sum = 0;
         foreach($submissionfiles as $file) {
-            $sum += $DB->get_record(files, ['id' => $file->get_id()], 'filesize')->filesize;
+            $sum += $file->get_filesize();//$DB->get_record(files, ['id' => $file->get_id()], 'filesize')->filesize;
         }
         if($sum > $submissionrestrictions->getAttribute('max-size')) {
-            $returnval['maxfilesizeforthistask'] = "$submissionrestrictions->getAttribute('max-size') bytes";
-            $returnval['filesizesubmitted'] = "$sum bytes";
+            $returnval['maxfilesizeforthistask'] = $submissionrestrictions->getAttribute('max-size') . " bytes";
+            $returnval['filesizesubmitted'] = $sum ." bytes";
         }
     }
     foreach($taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'file-restriction') as $filerestriction) {
-        $format = "standard";
+        $format = "none";  //The default pattern-format
         if ($filerestriction->hasAttribute('pattern-format')) {
             $format = $filerestriction->getAttribute('pattern-format');
         }
-        if ($format === 'posix-ere') {
-            continue;   //posix-ere cant be checked correctly at the moment so just skip it
-        }
         switch($filerestriction->getAttribute('use')){
             case 'required':
-                if (!does_key_exist_in_array($submissionfiles ,$filerestriction->nodeValue, $format)) {
+                $nodeValue = add_slash_to_filename($filerestriction->nodeValue, $format);
+                if (!does_key_exist_in_array($submissionfiles ,$nodeValue, $format)) {
                     if (empty($returnval["requiredfilemissing"])) {
                         $returnval["requiredfilemissing"] = array();
                     }
-                    $returnval["requiredfilemissing"][] = $filerestriction->nodeValue;
+                    $returnval["requiredfilemissing"][] = $nodeValue;
                 }
                 break;
             case 'optional':
                 // No actions required here
                 break;
             case 'prohibited':
-                if (does_key_exist_in_array($submissionfiles ,$filerestriction->nodeValue, $format)) {
+                $nodeValue = add_slash_to_filename($filerestriction->nodeValue, $format);
+                if (does_key_exist_in_array($submissionfiles ,$nodeValue, $format)) {
                     if (empty($returnval["prohibitedfileexists"])) {
                         $returnval["prohibitedfileexists"] = array();
                     }
-                    $returnval["prohibitedfileexists"][] = $filerestriction->nodeValue;
+                    $returnval["prohibitedfileexists"][] = $nodeValue;
                 }
                 break;
             default:
-                //TODO: See what you can do here
+                $use_value = $filerestriction->getAttribute('use');
+                throw new InvalidArgumentException("the use-attribute value: '$use_value' is unknown");
                 break;
         }
     }
+    /* find the description in the child nodes of the 'submission-restrictions' node */
     $description = "";
     foreach($submissionrestrictions->childNodes as $child) {
         if ($child->localName === 'description') {
@@ -899,30 +917,147 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
             break;
         }
     }
+    //This is done indirectly because we want that the generaldescription field is always set (""), even when it is empty
+    //so the following if statement will work
     $returnval["generaldescription"] = $description;
-    return $returnval;
+    if(count($returnval) > 1) {
+        return $returnval;
+    } else {
+        return array(); //Just return an empty array when no restrictions are violated
+    }
 }
 
+/**
+ * Checks if a given key exists in a given array
+ *
+ * @param $array The array in which to search for the key
+ * @param $key The key to search for in the given array
+ * @param $format The pattern format in which this should be checked: "none" for standard string comparison
+ * and "posix-ere" for standard regular expression comparison
+ * @return bool whether the key exists in the array or not
+ */
 function does_key_exist_in_array($array, $key, $format) {
     foreach($array as $arrkey => $element) {
         switch($format) {
-            case 'standard':
+            case 'none':
                 if ($arrkey === $key) {
                     return true;
                 }
                 break;
-            case 'none':
-                if (preg_match($key, $arrkey)) {
+            case 'posix-ere':
+                if (preg_match("#$key#", "$arrkey")) {
                     return true;
                 }
                 break;
-            case 'posix-ere':
-                //TODO: Find out how to check posix-ere format in php
-                break;
             default:
-                //TODO: See what you can do here
+                throw new InvalidArgumentException("pattern-format: '$format' is unknown");
                 break;
         }
     }
     return false;
+}
+
+/**
+ * TODO: check what happens when something of the array contains ' this could mess up the sql query
+ * Writes the proforma submission restrictions message to the moodle database
+ *
+ * @param $msg The array with the proforma submission restrictions message
+ * @param $qa The question attempt of the question
+ */
+function write_proforma_submission_restrictions_msg_to_db($msg, $qa) {
+    global $DB;
+    /* this is really not the best solution to abuse the responsesummary field of the question_attempt table */
+    $responsesummary = render_proforma_submission_restrictions($msg);
+    $qaid = $qa->get_database_id();
+    $sql = "UPDATE mdl_question_attempts SET responsesummary = '$responsesummary' WHERE id = $qaid";
+    $DB->execute($sql);
+}
+
+/**
+ * Converts the proforma_submission_restrictions_message array into html text
+ *
+ * @param $msg the array that contains the proforma_submission_restrictions_message
+ * @return string the proforma_submission_restrictions_messagem as html text
+ */
+function render_proforma_submission_restrictions($msg) {
+    $o = "<div><h3>Submission Restrictions</h3>";
+    $o .= "<p>Your submission violated some restrictions, because of this, your submission will not be graded.</p>";
+    $o .= "<br><br>";
+    if($msg['generaldescription'] != "") {
+        $o .= "<div><h4>General Description</h4>";
+        $o .= "<p>{$msg['generaldescription']}</p></div>";
+        $o .= "<br>";
+    }
+    if(!empty($msg['maxfilesizeforthistask'])) {
+        $o .= "<div><h4>Filesize</h4>";
+        $o .= "<p>The sum of your submitted files exceeded the maximum filesize a submission could have. </p>";
+        $o .= "<p>The maximum filesize that is allowed for this task: {$msg['maxfilesizeforthistask']}</p>";
+        $o .= "<p>The size of your files in total: {$msg['filesizesubmitted']}</p></div>";
+        $o .= "<br>";
+    }
+    if (!empty($msg['requiredfilemissing'])) {
+        $o .= "<div><h4>Files missing</h4>";
+        $o .= "<p>There are file(s) missing that are expected to be submitted:</p><ul>";
+        foreach($msg['requiredfilemissing'] as $missingfilename) {
+            $o .= "<li>$missingfilename</li>";
+        }
+        $o .= "</ul></div>";
+        $o .= "<br>";
+    }
+    if(!empty($msg['prohibitedfileexists'])) {
+        $o .= "<div><h4>Prohibited files</h4>";
+        $o .= "<p>You submitted file(s) that are not allowed to be submitted:</p><ul>";
+        foreach($msg['prohibitedfileexists'] as $prohibitedfilename) {
+            $o .= "<li>$prohibitedfilename</li>";
+        }
+        $o .= "</ul></div>";
+        $o .= "<br>";
+    }
+    $o .= "</div>";
+    return $o;
+}
+
+/**
+ * @param $filename The filename to check as a String
+ * @param $format The pattern-format that is used in the proforma submission restriction
+ * @return string returns the filename with an added "/" at the beginning when the proforma pattern-format is "none",
+ * if there were a "/" before at the beginning of the filename it will be returned as it was before
+ */
+function add_slash_to_filename($filename, $format) {
+    if ($format == "none") {
+        if ("/" != substr($filename, 0, 1)) {
+            return "/" . $filename;
+        } else {
+            return $filename;
+        }
+    } else {
+        return $filename;
+    }
+}
+
+//TODO: finish this function
+function get_files_inside_archive_file($archivefile) {
+    global $USER;
+    $files = array();
+    extract_file_in_area($archivefile, $archivefile->get_filearea(), $archivefile->get_mimetype());
+    /* Build the array of the files...
+
+
+
+    */
+    //Remove all the files again afterwards
+    remove_all_files_from_draft_area($archivefile->get_filearea(), context_user::instance($USER->id), $archivefile->get_filename());
+    return $files;
+}
+
+//TODO: finish this function
+function extract_file_in_area($archivefile) {
+    //TODO: find out what the other mimetypes are and programm the extracting
+    switch($archivefile->get_mimetype()) {
+        case 'application/zip':
+
+            break;
+        default:
+            break;
+    }
 }
