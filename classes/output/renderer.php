@@ -390,7 +390,7 @@ class qtype_moopt_renderer extends qtype_renderer {
         global $PAGE, $DB;
 
         $responsesummary = $DB->get_record("question_attempts", ["id" => $qa->get_database_id()], "responsesummary")->responsesummary;
-        if ($responsesummary != get_string('nosummaryavailable', 'qtype_programmingtask') && $responsesummary != null){
+        if ($responsesummary != get_string('nosummaryavailable', 'qtype_moopt') && $responsesummary != null){
             return $responsesummary;
         }
 
