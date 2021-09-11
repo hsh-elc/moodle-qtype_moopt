@@ -149,46 +149,9 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
         throw new invalid_parameter_exception('Supplied file must be a zip file.');
     }
 
-    // Unzip file - basically copied from draftfiles_ajax.php.
-    $zipper = get_file_packer('application/zip');
-
-    // Find unused name for directory to extract the archive.
-    $temppath = $fs->get_unused_dirname($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($filename,
-                    PATHINFO_FILENAME) . '/');
-    $donotremovedirs = array();
-    $doremovedirs = array($temppath);
-    // Extract archive and move all files from $temppath to $filepath.
-    if ($file->extract_to_storage($zipper, $usercontext->id, 'user', 'draft', $draftareaid, $temppath, $USER->id)) {
-        $extractedfiles = $fs->get_directory_files($usercontext->id, 'user', 'draft', $draftareaid, $temppath, true);
-        $xtemppath = preg_quote($temppath, '|');
-        foreach ($extractedfiles as $exfile) {
-            $realpath = preg_replace('|^' . $xtemppath . '|', '/', $exfile->get_filepath());
-            if (!$exfile->is_directory()) {
-                // Set the source to the extracted file to indicate that it came from archive.
-                $exfile->set_source(serialize((object) array('source' => '/')));
-            }
-            if (!$fs->file_exists($usercontext->id, 'user', 'draft', $draftareaid, $realpath, $exfile->get_filename())) {
-                // File or directory did not exist, just move it.
-                $exfile->rename($realpath, $exfile->get_filename());
-            } else if (!$exfile->is_directory()) {
-                // File already existed, overwrite it.
-                repository::overwrite_existing_draftfile($draftareaid, $realpath, $exfile->get_filename(), $exfile->get_filepath(),
-                        $exfile->get_filename());
-            } else {
-                // Directory already existed, remove temporary dir but make sure we don't remove the existing dir.
-                $doremovedirs[] = $exfile->get_filepath();
-                $donotremovedirs[] = $realpath;
-            }
-        }
-    } else {
+    $extractedfilepath = extract_file($file, '/', $filename, 'draft', $draftareaid, 'user', $usercontext, 'application/zip');
+    if (!$extractedfilepath) {
         return null;
-    }
-    // Remove remaining temporary directories.
-    foreach (array_diff($doremovedirs, $donotremovedirs) as $filepath) {
-        $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, $filepath, '.');
-        if ($file) {
-            $file->delete();
-        }
     }
 
     return $filename;
@@ -837,7 +800,6 @@ function mangle_pathname($filename) {
 }
 
 /**
- * TODO: check how this works when working with zip files in a submission
  * Checks if the file-restrictions of the specific task.xml file are violated by the submission of a student
  *
  * @param DOMDocument $taskdoc the content of the task.xml file as a DOMDocument
@@ -871,9 +833,10 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
         }
     }
 
+    $firstfilemimetype = translate_archive_extension_into_mimetype($firstfile);
     /* when the submission only contains one archivefile, the proforma submission restrictions should use the files inside the archivefile not the archivefile itself for the check
        this is done after the "max-size" checking above because the "max-size" attribute relates to the size of the archivefile not the size of the extracted archivefile */
-    if(count($submissionfiles) == 1 && ($firstfile->get_mimetype() === 'application/zip' /* || TODO: check other formats too */)) {
+    if(count($submissionfiles) == 1 && (in_array($firstfilemimetype, get_supported_archive_types()))) {
         $submissionfiles = get_files_inside_archive_file($firstfile);
     }
 
@@ -1037,93 +1000,105 @@ function add_slash_to_filename($filename, $format) {
 }
 
 /**
- * Gets the files of an archivefile and saves them into an array
+ * TODO: test if this function works also in other use cases than: the archivefile being in the root directory of the filearea
+ * Gets the files of an archivefile and saves them into an array.
+ * The archivefile will be extracted at filepath of the archivefile.
+ * For example: /root/test.zip --> /root/testfile   |   test.zip contains one file "testfile" in this example
  *
  * @param $archivefile The archivefile to get the files from
- * @return array The files of the archivefile, the keys are the filename + the relative path of the file to the archivefile
+ * @return array The files of the archivefile, the keys are the filename + the relative path of the file to the filearea
  */
 function get_files_inside_archive_file($archivefile) {
     global $USER;
     $usercontext = context_user::instance($USER->id);
 
-    /* extract the archivefile into the same fileareas root directory */
-    $extractedfilepath = extract_file($archivefile);
+    $fs = get_file_storage();
+
+    //Get all files in the directory of the $archivefile to exclude them later
+    $donotsavefiles = $fs->get_area_tree($usercontext->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid());
+    $donotsavefiles = set_rootdir_of_tree($archivefile->get_filepath(), $donotsavefiles);
+    $donotsavefiles = get_files_of_dir($donotsavefiles);
+
+    /* extract the archivefile into the directory where the archivefile is saved */
+    $mimetype = translate_archive_extension_into_mimetype($archivefile);
+    $extractedfilepath = extract_file($archivefile, $archivefile->get_filepath(), $archivefile->get_filename(), $archivefile->get_filearea(),
+                                      $archivefile->get_itemid(), $archivefile->get_component(), $usercontext, $mimetype);
 
     if(!$extractedfilepath) {
         throw new RuntimeException("Something went wrong while extracting the submitted archivefile");
     }
 
-    $fs = get_file_storage();
-
     //Get all the files of the filearea and save it into the $files array
     $rootdir = $fs->get_area_tree($usercontext->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid());
-    $files = get_files_of_dir($rootdir);
-    //Remove the archivefile itself out of the array again, we dont want to check the restrictions on it
-    unset($files[$archivefile->get_filepath() . $archivefile->get_filename()]);
 
-    //Remove all the extracted files afterwards, we saved the files in the $files array so wen dont need them in the filearea anymore
+    //Only save the files that are inside the $extractedfilepath
+    $rootdir = set_rootdir_of_tree($extractedfilepath, $rootdir);
+
+    $files = get_files_of_dir($rootdir);
+
+    //Exclude all the files that where in the directory before extracting, we only want to return extracted files
+    $files = array_diff_key($files, $donotsavefiles);
+
+    //Remove all the extracted files afterwards, we saved the files in the $files array so we dont need them in the filearea anymore
     remove_all_files_from_draft_area($archivefile->get_itemid(), $usercontext, $archivefile->get_filename());
     return $files;
 }
 
 /**
  * Extracts an archived file into the same filearea
+ * Currently only supports .zip, .tar.gz .tgz files and .tar files
+ *
+ * If this function does not work: try using: "translate_archive_extension_into_mimetype($archivefile)" before
  *
  * @param $archivefile The archivefile to be extracted
  * @return false|string when nothing goes wrong: the filepath in which the files have been extracted, else: false
  */
-function extract_file($archivefile) {
+function extract_file($archivefile, $filepath, $filename, $filearea, $itemid, $component, $context, $mimetype) {
     global $USER;
-    //TODO: find out what the other mimetypes are and programm the extracting of these (like tar, gz...)
-    switch($archivefile->get_mimetype()) {
-        //TODO: check if you can reduce redundancy of this block with the "unzip_task_file_in_draft_area" function
-        case 'application/zip':
-            $fs = get_file_storage();
+    if (in_array($mimetype, get_supported_archive_types())) {
+        $fs = get_file_storage();
 
-            //The following code is copied from draftfiles_ajax.php and slightly changed
-            $zipper = get_file_packer('application/zip');
-            $usercontext = context_user::instance($USER->id);
-            $temppath = $fs->get_unused_dirname($usercontext->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid(),
-                                                $archivefile->get_filepath() . pathinfo($archivefile->get_filename(), PATHINFO_FILENAME) . '/');
-            $donotremovedirs = array();
-            $doremovedirs = array($temppath);
+        //The following code is copied from draftfiles_ajax.php and slightly changed
+        $zipper = get_file_packer($mimetype);
+        $temppath = $fs->get_unused_dirname($context->id, $component, $filearea, $itemid,
+            $filepath . pathinfo($filename, PATHINFO_FILENAME) . '/');
+        $donotremovedirs = array();
+        $doremovedirs = array($temppath);
 
-            // Extract archive and move all files from $temppath to $archivefile->get_filepath()
-            if (($processed = $archivefile->extract_to_storage($zipper, $usercontext->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid(), $temppath, $USER->id))
-                !== false) {
-                $extractedfiles = $fs->get_directory_files($usercontext->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid(), $temppath, true);
-                $xtemppath = preg_quote($temppath, '|');
-                foreach ($extractedfiles as $file) {
-                    $realpath = preg_replace('|^'.$xtemppath.'|', $archivefile->get_filepath(), $file->get_filepath());
-                    if (!$file->is_directory()) {
-                        // Set the source to the extracted file to indicate that it came from archive.
-                        $file->set_source(serialize((object)array('source' => $archivefile->get_filepath())));
-                    }
-                    if (!$fs->file_exists($usercontext->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid(), $realpath, $file->get_filename())) {
-                        // File or directory did not exist, just move it.
-                        $file->rename($realpath, $file->get_filename());
-                    } else if (!$file->is_directory()) {
-                        // File already existed, overwrite it
-                        repository::overwrite_existing_draftfile($archivefile->get_itemid(), $realpath, $file->get_filename(), $file->get_filepath(), $file->get_filename());
-                    } else {
-                        // Directory already existed, remove temporary dir but make sure we don't remove the existing dir
-                        $doremovedirs[] = $file->get_filepath();
-                        $donotremovedirs[] = $realpath;
-                    }
+        // Extract archive and move all files from $temppath to $filepath
+        if (($processed = $archivefile->extract_to_storage($zipper, $context->id, $component, $filearea, $itemid, $temppath, $USER->id))
+            !== false) {
+            $extractedfiles = $fs->get_directory_files($context->id, $component, $filearea, $itemid, $temppath, true);
+            $xtemppath = preg_quote($temppath, '|');
+            foreach ($extractedfiles as $file) {
+                $realpath = preg_replace('|^' . $xtemppath . '|', $filepath, $file->get_filepath());
+                if (!$file->is_directory()) {
+                    // Set the source to the extracted file to indicate that it came from archive.
+                    $file->set_source(serialize((object)array('source' => $archivefile->get_filepath())));
                 }
-            } else {
-                return false;
-            }
-            foreach (array_diff($doremovedirs, $donotremovedirs) as $filepath) {
-                if ($file = $fs->get_file($usercontext->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid(), $filepath, '.')) {
-                    $file->delete();
+                if (!$fs->file_exists($context->id, $component, $filearea, $itemid, $realpath, $file->get_filename())) {
+                    // File or directory did not exist, just move it.
+                    $file->rename($realpath, $file->get_filename());
+                } else if (!$file->is_directory()) {
+                    // File already existed, overwrite it
+                    repository::overwrite_existing_draftfile($itemid, $realpath, $file->get_filename(), $file->get_filepath(), $file->get_filename());
+                } else {
+                    // Directory already existed, remove temporary dir but make sure we don't remove the existing dir
+                    $doremovedirs[] = $file->get_filepath();
+                    $donotremovedirs[] = $realpath;
                 }
             }
-            return $archivefile->get_filepath();
-            break;
-        default:
-            throw new InvalidArgumentException("The File that should be extracted has an unknown archive type");
-            break;
+        } else {
+            return false;
+        }
+        foreach (array_diff($doremovedirs, $donotremovedirs) as $path) {
+            if ($file = $fs->get_file($context->id, $component, $filearea, $itemid, $path, '.')) {
+                $file->delete();
+            }
+        }
+        return $filepath;
+    } else {
+        throw new InvalidArgumentException("The File that should be extracted has an unknown archive type");
     }
 }
 
@@ -1143,4 +1118,68 @@ function get_files_of_dir(array $dir) : array{
         $files[$file->get_filepath() . $file->get_filename()] = $file;
     }
     return $files;
+}
+
+/**
+ * Navigates trough a filetree, and returns the specific subfiletree
+ *
+ * @param $filespath The path of which you want the filetree
+ * @param $dirtree The tree of all the files
+ * @return mixed The subfiletree of the $filepath as an array
+ */
+function set_rootdir_of_tree($filespath, $dirtree) {
+    //Only get files in the specified directory
+    $path = explode("/", $filespath);
+    $path = array_diff($path, array("")); //Delete all elements in the path that only contain "", this can happen when using explode
+    foreach($path as $subdir) {
+        $dirtree = $dirtree["subdirs"][$subdir];
+    }
+    return $dirtree;
+}
+
+/**
+ * Function that translates the file extension of a specific archivefile into a specific mimetype.
+ * Is needed because there is a mismatch between the mimetypes of some archivefiles.
+ * For example: test.tar.gz has the mimetype 'application/g-zip' but moodle's "get_file_packer" needs: 'application/x-gzip'
+ * for .tar.gz archivefiles
+ *
+ * @param $archivefile The archivefile to check
+ * @return string The mimetype of the archivefile, if there is no translation needed it will just return the normal mimetype of the file
+ */
+function translate_archive_extension_into_mimetype($archivefile) : string {
+    $fileinfo = pathinfo($archivefile->get_filename());
+    $filetype = '';
+    if (array_key_exists('extension', $fileinfo)) {
+        $filetype = strtolower($fileinfo['extension']);
+    }
+    switch ($filetype){
+        case 'gz':
+            $filename = strtolower($fileinfo['filename']);
+            $fileinfo = pathinfo($filename);
+            $extension = '';
+            if (array_key_exists('extension', $fileinfo)) {
+                $extension = strtolower($fileinfo['extension']);
+            }
+            if ($extension === 'tar'){
+                return 'application/x-gzip';
+            } else {
+                return $archivefile->get_mimetype();
+            }
+            break;
+        case 'tgz':
+            return 'application/x-gzip';
+            break;
+        case 'tar':
+            return 'application/x-gzip';
+            break;
+        default:
+            return $archivefile->get_mimetype();
+    }
+}
+
+/**
+ * @return string[] Array of the mimetypes that are supported to be extracted by the function: "extract_file"
+ */
+function get_supported_archive_types() : array {
+    return array('application/zip', 'application/x-gzip');
 }
