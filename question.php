@@ -366,7 +366,7 @@ class qtype_moopt_question extends question_graded_automatically {
         // Create the submission.xml file.
         $submissionxmlcreator = new proforma_submission_xml_creator();
         $submissionxml = $submissionxmlcreator->create_submission_xml($includetaskfile, $includetaskfile ?
-                $taskfilename : $this->taskuuid, $files, 'zip', PROFORMA_MERGED_FEEDBACK_TYPE, 'info', 'debug',
+                $taskfilename : $this->taskuuid, $files, 'zip', PROFORMA_SEPARATE_FEEDBACK_TYPE, 'info', 'debug',
                 $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark());
 
         // Load task file and add it to the files that go into the zip file.
