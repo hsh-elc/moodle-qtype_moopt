@@ -41,6 +41,18 @@ class qtype_moopt_external extends external_api {
             'taskuuid' => new external_value(PARAM_RAW, 'task\'s uuid', VALUE_OPTIONAL),
             'maxscoregradinghints' => new external_value(PARAM_FLOAT, 'maximum score', VALUE_OPTIONAL),
             'filesdisplayedingeneralfeedback' => new external_value(PARAM_RAW, 'general feedback', VALUE_OPTIONAL),
+            'enablefileinput' => new external_value(PARAM_BOOL, 'Enable file submissions'),
+            'freetextfilesettings' => new external_multiple_structure(
+                        new external_single_structure(
+                            array(
+                                'enablecustomsettings'    => new external_value(PARAM_BOOL, 'Enable custom settings'),
+                                'usefixedfilename'    => new external_value(PARAM_BOOL, 'Use fixed file name'),
+                                'defaultfilename'    => new external_value(PARAM_TEXT, 'Default file name'),
+                                'proglang'    => new external_value(PARAM_TEXT, 'Programming language for syntax highlighting'),
+                                'filecontent'    => new external_value(PARAM_RAW, 'File content to use as a template')
+                            )
+                        )
+                    ,'Free text settings', VALUE_OPTIONAL),
             'moodleValidationProformaNamespace' => new external_value(PARAM_TEXT, 'detected namespace', VALUE_OPTIONAL),
             'moodleValidationWarningInvalidNamespace' => new external_value(PARAM_TEXT, 'warning message in case of invalid XML namespace', VALUE_OPTIONAL),
             'moodleValidationWarnings' => new external_multiple_structure(
@@ -132,6 +144,78 @@ class qtype_moopt_external extends external_api {
             $gradinghintshelper = new grading_hints_helper($gradinghints, $tests, $namespace);
             $maxscoregradinghints = $gradinghintshelper->calculate_max_score();
             $returnval['maxscoregradinghints'] = $maxscoregradinghints;
+
+            // Process lms-input-fields
+            $includeenablefileinput = false;
+            $enablefileinput = false;
+            //$enablefreetextinput = true;
+            $lmsinputfieldsettings = array();
+            // TODO: fix hard coded namespace
+            $lmsinputfields = $doc->getElementsByTagNameNS('urn:hsh:lmsinputfields:v0.1', 'lms-input-fields');
+            if(1 == $lmsinputfields->length) {
+                $includeenablefileinput = true;
+                foreach ($lmsinputfields[0]->childNodes as $child) {
+                    if ($child->localName == 'fileinput') {
+                        // Moopt doesn't support multiple fileinputs, meaning multiple draft areas for file upload.
+                        // If at least one fileinput is configured in lms-input-fields, use that as an indicator to
+                        // use one draft area and that's it. Moopt also doesn't  support the fixedfilename and
+                        // proglang attributes of the fileinput element.
+                        $enablefileinput = true;
+                    } else if ($child->localName == 'textfield') {
+                        $settings = array('fixedfilename' => $child->attributes->getNamedItem('fixedfilename')->nodeValue == 'true',
+                            'proglang' => $child->attributes->getNamedItem('proglang')->nodeValue);
+                        $lmsinputfieldsettings[$child->attributes->getNamedItem('file-ref')->nodeValue] = $settings;
+                    }
+                }
+            } else if(1 < $lmsinputfields->length)
+                throw new Exception('Task meta-data contains more than one lms-input-fields element.');
+            $returnval["enablefileinput"] = $includeenablefileinput ? $enablefileinput : true;
+            //$returnval["enablefileinput"] = true;
+            $returnval["freetextfilesettings"] = array();
+            foreach ($doc->getElementsByTagNameNS($namespace, 'file') as $file) {
+                $includefreetext = false;
+                $enablecustomsettings = true;
+                $usefixedfilename = true;
+                $defaultfilename = '';
+                $proglang = ''; // TODO: should be the task's proglang initially
+                $fileid = '';
+                foreach ($file->childNodes as $child) {
+                    if($file->attributes->getNamedItem('visible')->nodeValue == 'yes' &&
+                        $file->attributes->getNamedItem('usage-by-lms') != null &&
+                        $file->attributes->getNamedItem('usage-by-lms')->nodeValue == 'edit') {
+
+                        if($child->localName == 'embedded-txt-file') {
+                            $filecontent = $child->nodeValue;
+                            $defaultfilename = $child->attributes->getNamedItem('filename')->nodeValue;
+                            $fileid = $file->attributes->getNamedItem('id')->nodeValue;
+                            $includefreetext = true;
+                            break;
+                        } else if ($child->localName == 'attached-txt-file') {
+                            $pathinfo = pathinfo('/' . $child->nodeValue);
+                            $filecontent = get_text_content_from_file($usercontext, $draftid, $taskfilename,
+                                $pathinfo['dirname'] . '/', $pathinfo['basename']);
+                            $defaultfilename = basename($child->nodeValue);
+                            $fileid = $file->attributes->getNamedItem('id')->nodeValue;
+                            $includefreetext = true;
+                            break;
+                        }
+                    }
+                }
+
+                if($includefreetext) {
+                    if(array_key_exists($fileid, $lmsinputfieldsettings)) {
+                        $usefixedfilename = $lmsinputfieldsettings[$fileid]['fixedfilename'];
+                        $proglang = $lmsinputfieldsettings[$fileid]['proglang'];
+                    }
+                    $freetextfilesettings = array("enablecustomsettings" => $enablecustomsettings,
+                        "usefixedfilename" => $usefixedfilename,
+                        "defaultfilename" => $defaultfilename,
+                        "proglang" => $proglang,
+                        "filecontent" => $filecontent);
+
+                    array_push($returnval["freetextfilesettings"], $freetextfilesettings);
+                }
+            }
 
             // Fill in the question's general feedback
             // Look for files that have their 'visible' attribute set to 'delayed' and the

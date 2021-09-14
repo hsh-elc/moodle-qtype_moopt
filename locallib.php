@@ -240,7 +240,7 @@ function create_domdocument_from_task_xml($usercontext, $draftareaid, $zipfilena
 }
 
 /**
- * Get the text content of a file -- attached or embedded(), from the task.zip
+ * Get the text content of a file -- attached or embedded, from the task.zip
  *
  * @param $usercontext
  * @param $draftareaid

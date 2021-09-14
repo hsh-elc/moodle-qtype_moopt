@@ -44,6 +44,31 @@ define(['jquery', 'core/ajax',
                                 editorEditor.setContentsOfText('id_defaultmark', result.maxscoregradinghints);
                                 editorEditor.setContents('id_generalfeedback', result.filesdisplayedingeneralfeedback);
 
+                                //$('#id_showstudscorecalcscheme').prop('checked', false).click();
+                                $('#id_enablefilesubmissions').prop('checked', !result.enablefileinput).click();
+
+                                var ftsmaxnumfields = result.freetextfilesettings.length;
+                                $('#id_enablefreetextsubmissions').prop('checked', !(ftsmaxnumfields > 0)).click();
+                                if(ftsmaxnumfields > 0) {
+                                    //$('#id_enablefreetextsubmissions').prop('checked', false).click();
+                                    $('#id_ftsnuminitialfields').val(ftsmaxnumfields).click();
+                                    $('#id_ftsmaxnumfields').val(ftsmaxnumfields).click();
+                                    $('#id_enablecustomsettingsforfreetextinputfields').prop('checked', false).click();
+
+                                    for(var i=0; i<result.freetextfilesettings.length; i++) {
+                                        $('#id_enablecustomsettingsforfreetextinputfield'+i).prop('checked',
+                                            !(1 == result.freetextfilesettings[i]["enablecustomsettings"])).click();
+                                        if(result.freetextfilesettings[i]["usefixedfilename"] == true) {
+                                            $('#id_namesettingsforfreetextinput'+i+'_0').prop('checked', false).click();
+                                        } else {
+                                            $('#id_namesettingsforfreetextinput'+i+'_1').prop('checked', false).click();
+                                        }
+                                        $('#id_freetextinputfieldname'+i).val(result.freetextfilesettings[i]['defaultfilename']);
+                                        $('#id_freetextinputfieldtemplate'+i).val(result.freetextfilesettings[i]['filecontent']);
+                                        $('#id_ftsoverwrittenlang'+i).val(result.freetextfilesettings[i]['proglang']);
+                                    }
+                                }
+
                                 var warnings = '';
                                 if (typeof result.moodleValidationProformaNamespace !== 'undefined') {
                                     warnings += '<p>Detected ProFormA-version ' + result.moodleValidationProformaNamespace + '</p>';

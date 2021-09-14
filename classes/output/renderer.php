@@ -211,6 +211,15 @@ class qtype_moopt_renderer extends qtype_renderer {
 
             for ($i = 0; $i < $qa->get_question()->ftsmaxnumfields; $i++) {
                 $text = $qa->get_last_qt_var("answertext$i");
+
+                if(is_null($text)) { // TODO: test this code block
+                    $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
+                        'inputindex' => $i]);
+                    if ($customoptions && !not_null($customoptions->filecontent)) {
+                        $text = $customoptions->filecontent;
+                    }
+                }
+
                 if ($text) {
                     list($filename, ) = $this->get_filename($qa->get_question()->id, $i, $qa->get_last_qt_var("answerfilename$i"),
                             $qa->get_question()->ftsautogeneratefilenames);
@@ -282,18 +291,20 @@ class qtype_moopt_renderer extends qtype_renderer {
             $defaultproglang = $questionoptions->ftsstandardlang;
 
             for ($i = 0; $i < $questionoptions->ftsmaxnumfields; $i++) {
+                $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
+                    'inputindex' => $i]);
+
                 $answertextname = "answertext$i";
                 $answertextinputname = $qa->get_qt_field_name($answertextname);
                 $answertextid = $answertextinputname . '_id';
 
                 $answertextresponse = $qa->get_last_step_with_qt_var($answertextname)->get_qt_var($answertextname) ?? '';
+                if ($customoptions && !is_null($customoptions->filecontent))
+                    $answertextresponse = $customoptions->filecontent;
 
                 $filenamename = "answerfilename$i";
                 $filenameinputname = $qa->get_qt_field_name($filenamename);
                 $filenameid = $filenameinputname . '_id';
-
-                $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
-                    'inputindex' => $i]);
 
                 $proglang = $defaultproglang;
                 if ($customoptions && $customoptions->ftslang != 'default') {

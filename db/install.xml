@@ -66,6 +66,7 @@
         <FIELD NAME="presetfilename" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="filename" TYPE="char" LENGTH="256" NOTNULL="false" DEFAULT="" SEQUENCE="false"/>
         <FIELD NAME="ftslang" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="default" SEQUENCE="false"/>
+        <FIELD NAME="filecontent" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="the template code for a free text input"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

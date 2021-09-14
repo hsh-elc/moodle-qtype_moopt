@@ -160,6 +160,28 @@ class qtype_moopt_edit_form extends question_edit_form {
             $mform->hideIf("ftsoverwrittenlang$i", "enablecustomsettingsforfreetextinputfield$i");
             $mform->hideIf("ftsoverwrittenlang$i", 'enablefreetextsubmissions');
             $mform->hideIf("ftsoverwrittenlang$i", "enablecustomsettingsforfreetextinputfields");
+
+            // static form elements don't work with hideIf
+            // use workaround in https://tracker.moodle.org/browse/MDL-66251
+            $lblgroup = [];
+            $lblgroup[] =& $mform->createElement('static', "freetextinputfieldtemplatetitle$i", '', 'Template:');
+            $mform->addGroup($lblgroup, 'lblgroup', '', ' ', false);
+            $mform->hideIf('lblgroup', "enablecustomsettingsforfreetextinputfield$i");
+            $mform->hideIf('lblgroup', 'enablefreetextsubmissions');
+            $mform->hideIf('lblgroup', "enablecustomsettingsforfreetextinputfields");
+//            $mform->addElement('static', "freetextinputfieldtemplatetitle$i", '', 'Template:');
+//            $mform->hideIf("freetextinputfieldtemplatetitle$i", "enablecustomsettingsforfreetextinputfield$i");
+//            $mform->hideIf("freetextinputfieldtemplatetitle$i", 'enablefreetextsubmissions');
+//            $mform->hideIf("freetextinputfieldtemplatetitle$i", "enablecustomsettingsforfreetextinputfields");
+
+            $mform->addElement('textarea', "freetextinputfieldtemplate$i", '', 'wrap="virtual" rows="3" cols="50"');
+//            $mform->addElement('editor', "freetextinputfieldtemplate$i", '',
+//                array('rows' => 10), array('maxfiles' => 0,
+//                    'noclean' => true, 'context' => $this->context, 'subdirs' => true));
+//            $mform->setType("freetextinputfieldtemplate$i", PARAM_RAW);
+            $mform->hideIf("freetextinputfieldtemplate$i", "enablecustomsettingsforfreetextinputfield$i");
+            $mform->hideIf("freetextinputfieldtemplate$i", 'enablefreetextsubmissions');
+            $mform->hideIf("freetextinputfieldtemplate$i", "enablecustomsettingsforfreetextinputfields");
         }
     }
 
@@ -199,6 +221,7 @@ class qtype_moopt_edit_form extends question_edit_form {
                         $question->{"freetextinputfieldname$indx"} = $value->filename;
                     }
                     $question->{"ftsoverwrittenlang$indx"} = $value->ftslang;
+                    $question->{"freetextinputfieldtemplate$indx"} = $value->filecontent;
                 }
             }
         }
