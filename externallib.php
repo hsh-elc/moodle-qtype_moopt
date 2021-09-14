@@ -151,7 +151,7 @@ class qtype_moopt_external extends external_api {
             //$enablefreetextinput = true;
             $lmsinputfieldsettings = array();
             // TODO: fix hard coded namespace
-            $lmsinputfields = $doc->getElementsByTagNameNS('urn:hsh:lmsinputfields:v0.1', 'lms-input-fields');
+            $lmsinputfields = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.1', 'lms-input-fields');
             if(1 == $lmsinputfields->length) {
                 $includeenablefileinput = true;
                 foreach ($lmsinputfields[0]->childNodes as $child) {
@@ -162,8 +162,11 @@ class qtype_moopt_external extends external_api {
                         // proglang attributes of the fileinput element.
                         $enablefileinput = true;
                     } else if ($child->localName == 'textfield') {
-                        $settings = array('fixedfilename' => $child->attributes->getNamedItem('fixedfilename')->nodeValue == 'true',
-                            'proglang' => $child->attributes->getNamedItem('proglang')->nodeValue);
+                        $fixed = $child->attributes->getNamedItem('fixedfilename')->nodeValue != null &&
+                            $child->attributes->getNamedItem('fixedfilename')->nodeValue == 'true';
+                        $lang = $child->attributes->getNamedItem('proglang')->nodeValue ?
+                            $child->attributes->getNamedItem('proglang')->nodeValue : 'txt';
+                        $settings = array('fixedfilename' => $fixed, 'proglang' => $lang);
                         $lmsinputfieldsettings[$child->attributes->getNamedItem('file-ref')->nodeValue] = $settings;
                     }
                 }
