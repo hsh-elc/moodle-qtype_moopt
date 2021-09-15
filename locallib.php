@@ -149,7 +149,7 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
         throw new invalid_parameter_exception('Supplied file must be a zip file.');
     }
 
-    $extractedfilepath = extract_file($file, '/', $filename, 'draft', $draftareaid, 'user', $usercontext, 'application/zip');
+    $extractedfilepath = extract_file($file, '/', $filename, 'draft', $draftareaid, 'user', $usercontext, 'application/zip', true);
     if (!$extractedfilepath) {
         return null;
     }
@@ -812,13 +812,8 @@ function mangle_pathname($filename) {
  * prohibitedfileexists
  */
 function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $submissionfiles) : array {
+    global $USER;
     $returnval = array();
-
-    $firstfile = "";
-    foreach($submissionfiles as $file) {
-        $firstfile = $file;
-        break;
-    }
 
     $taskxmlnamespace = detect_proforma_namespace($taskdoc);
     $submissionrestrictions = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'submission-restrictions')[0];
@@ -833,11 +828,25 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
         }
     }
 
+    $firstfile = "";
+    foreach($submissionfiles as $file) {
+        $firstfile = $file;
+        break;
+    }
+
+    $filesRenamedWhileExtraction = false;
+
     $firstfilemimetype = translate_archive_extension_into_mimetype($firstfile);
     /* when the submission only contains one archivefile, the proforma submission restrictions should use the files inside the archivefile not the archivefile itself for the check
        this is done after the "max-size" checking above because the "max-size" attribute relates to the size of the archivefile not the size of the extracted archivefile */
     if(count($submissionfiles) == 1 && (in_array($firstfilemimetype, get_supported_archive_types()))) {
-        $submissionfiles = get_files_inside_archive_file($firstfile);
+        $usercontext = context_user::instance($USER->id);
+        $archive_files_return_value = get_files_inside_archive_file($firstfile, $usercontext, false, false, true);
+        $submissionfiles = $archive_files_return_value->files;
+        $filesRenamedWhileExtraction = ($archive_files_return_value->filesRenamed > 0);
+
+        //Remove all the extracted files afterwards, we saved the files in the $submissionfiles array so we dont need them in the filearea anymore
+        remove_all_files_from_draft_area($firstfile->get_itemid(), $usercontext, $firstfile->get_filename());
     }
 
     foreach($taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'file-restriction') as $filerestriction) {
@@ -845,10 +854,23 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
         if ($filerestriction->hasAttribute('pattern-format')) {
             $format = $filerestriction->getAttribute('pattern-format');
         }
+        $nodeValue = add_slash_to_filename($filerestriction->nodeValue, $format);
+        $searchValue = $nodeValue; //The seperation of node and search value is used to get the correct message later
+
+        //this block is used to ensure that an archivefile inside an archivefile with the same name also work with the restrictions correctly
+        if ($filesRenamedWhileExtraction) {
+            if (does_key_exist_in_array(array($firstfile->get_filepath() . $firstfile->get_filename() => $firstfile) ,$nodeValue, $format)) {
+                $fs = get_file_storage();
+                $context = context_user::instance($USER->id);
+                $searchValue = $fs->get_unused_filename($context->id, $firstfile->get_component(), $firstfile->get_filearea(), $firstfile->get_itemid(), $firstfile->get_filepath(), $firstfile->get_filename());
+                $format = "none";
+                $searchValue = add_slash_to_filename($searchValue, $format);
+            }
+        }
+
         switch($filerestriction->getAttribute('use')){
             case 'required':
-                $nodeValue = add_slash_to_filename($filerestriction->nodeValue, $format);
-                if (!does_key_exist_in_array($submissionfiles ,$nodeValue, $format)) {
+                if (!does_key_exist_in_array($submissionfiles ,$searchValue, $format)) {
                     if (empty($returnval["requiredfilemissing"])) {
                         $returnval["requiredfilemissing"] = array();
                     }
@@ -859,8 +881,7 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
                 // No actions required here
                 break;
             case 'prohibited':
-                $nodeValue = add_slash_to_filename($filerestriction->nodeValue, $format);
-                if (does_key_exist_in_array($submissionfiles ,$nodeValue, $format)) {
+                if (does_key_exist_in_array($submissionfiles ,$searchValue, $format)) {
                     if (empty($returnval["prohibitedfileexists"])) {
                         $returnval["prohibitedfileexists"] = array();
                     }
@@ -894,13 +915,13 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
 /**
  * Checks if a given key exists in a given array
  *
- * @param $array The array in which to search for the key
- * @param $key The key to search for in the given array
- * @param $format The pattern format in which this should be checked: "none" for standard string comparison
+ * @param array $array The array in which to search for the key
+ * @param string $key The key to search for in the given array
+ * @param string $format The pattern format in which this should be checked: "none" for standard string comparison
  * and "posix-ere" for standard regular expression comparison
  * @return bool whether the key exists in the array or not
  */
-function does_key_exist_in_array($array, $key, $format) {
+function does_key_exist_in_array(array $array, string $key, string $format) {
     foreach($array as $arrkey => $element) {
         switch($format) {
             case 'none':
@@ -922,7 +943,6 @@ function does_key_exist_in_array($array, $key, $format) {
 }
 
 /**
- * TODO: check what happens when something of the array contains ' this could mess up the sql query
  * Writes the proforma submission restrictions message to the moodle database
  *
  * @param $msg The array with the proforma submission restrictions message
@@ -931,7 +951,7 @@ function does_key_exist_in_array($array, $key, $format) {
 function write_proforma_submission_restrictions_msg_to_db($msg, $qa) {
     global $DB;
     /* this is really not the best solution to abuse the responsesummary field of the question_attempt table */
-    $responsesummary = render_proforma_submission_restrictions($msg);
+    $responsesummary = mysqli_real_escape_string(render_proforma_submission_restrictions($msg));
     $qaid = $qa->get_database_id();
     $sql = "UPDATE mdl_question_attempts SET responsesummary = '$responsesummary' WHERE id = $qaid";
     $DB->execute($sql);
@@ -982,8 +1002,8 @@ function render_proforma_submission_restrictions($msg) {
 }
 
 /**
- * @param $filename The filename to check as a String
- * @param $format The pattern-format that is used in the proforma submission restriction
+ * @param string $filename The filename to check as a String
+ * @param string $format The pattern-format that is used in the proforma submission restriction
  * @return string returns the filename with an added "/" at the beginning when the proforma pattern-format is "none",
  * if there were a "/" before at the beginning of the filename it will be returned as it was before
  */
@@ -1000,61 +1020,85 @@ function add_slash_to_filename($filename, $format) {
 }
 
 /**
- * TODO: test if this function works also in other use cases than: the archivefile being in the root directory of the filearea
  * Gets the files of an archivefile and saves them into an array.
- * The archivefile will be extracted at filepath of the archivefile.
- * For example: /root/test.zip --> /root/testfile   |   test.zip contains one file "testfile" in this example
  *
- * @param $archivefile The archivefile to get the files from
- * @return array The files of the archivefile, the keys are the filename + the relative path of the file to the filearea
+ * @param stored_file $archivefile The archivefile to get the files from
+ * @param $context
+ * @param bool $extract_in_seperate_dir Specifies if the files should be extracted inside the same directory like the archivefile or in a seperate directory, the seperate directory has the name of the archivefile
+ * @param bool $overwriteexistingfiles Should this function overwrite existing files? When no: the extracted files that would overwrite other files will be renamed instead
+ * @return stdClass An Object with the following fields: files -> The files of the archivefile, the keys of the array are the filename + the relative path of the file to the filearea
+ * | filesRenamed -> the number of files that has been renamed while the extraction | filesOverwritten -> the number of files that has been overwritten while the extraction
  */
-function get_files_inside_archive_file($archivefile) {
-    global $USER;
-    $usercontext = context_user::instance($USER->id);
+function get_files_inside_archive_file($archivefile, $context, $extract_in_seperate_dir = false, bool $overwriteexistingfiles = false) {
 
+    $return = new stdClass();
     $fs = get_file_storage();
 
-    //Get all files in the directory of the $archivefile to exclude them later
-    $donotsavefiles = $fs->get_area_tree($usercontext->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid());
-    $donotsavefiles = set_rootdir_of_tree($archivefile->get_filepath(), $donotsavefiles);
-    $donotsavefiles = get_files_of_dir($donotsavefiles);
+    $filepath = $archivefile->get_filepath();
+    if($extract_in_seperate_dir) {
+        $filepath = $archivefile->get_filepath() . $archivefile->get_filename() . '/';
+    }
 
-    /* extract the archivefile into the directory where the archivefile is saved */
+    //Get all files in the directory $filepath to exclude them later, we only want to return files that have been extracted
+    $donotsavefiles = $fs->get_area_tree($context->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid());
+    $rootdir = set_rootdir_of_tree($filepath, $donotsavefiles);
+    if($rootdir === null){ //When the directory does not exist, there cant be files inside to exclude later
+        $donotsavefiles = array();
+    } else {
+        $donotsavefiles = get_files_of_dir($rootdir);
+    }
+
+    /* extract the archivefile into the directory: $filepath */
     $mimetype = translate_archive_extension_into_mimetype($archivefile);
-    $extractedfilepath = extract_file($archivefile, $archivefile->get_filepath(), $archivefile->get_filename(), $archivefile->get_filearea(),
-                                      $archivefile->get_itemid(), $archivefile->get_component(), $usercontext, $mimetype);
+    $extract_return_value = extract_file($archivefile, $filepath, $archivefile->get_filename(), $archivefile->get_filearea(),
+                                      $archivefile->get_itemid(), $archivefile->get_component(), $context, $mimetype, $overwriteexistingfiles);
 
-    if(!$extractedfilepath) {
+    if(!$extract_return_value) {
         throw new RuntimeException("Something went wrong while extracting the submitted archivefile");
     }
 
     //Get all the files of the filearea and save it into the $files array
-    $rootdir = $fs->get_area_tree($usercontext->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid());
+    $rootdir = $fs->get_area_tree($context->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid());
 
     //Only save the files that are inside the $extractedfilepath
-    $rootdir = set_rootdir_of_tree($extractedfilepath, $rootdir);
+    $rootdir = set_rootdir_of_tree($extract_return_value->filepath, $rootdir);
 
     $files = get_files_of_dir($rootdir);
 
     //Exclude all the files that where in the directory before extracting, we only want to return extracted files
     $files = array_diff_key($files, $donotsavefiles);
 
-    //Remove all the extracted files afterwards, we saved the files in the $files array so we dont need them in the filearea anymore
-    remove_all_files_from_draft_area($archivefile->get_itemid(), $usercontext, $archivefile->get_filename());
-    return $files;
+    $return->filesRenamed = $extract_return_value->filesRenamed;
+    $return->filesOverwritten = $extract_return_value->filesOverwritten;
+    $return->files = $files;
+
+    return $return;
 }
 
 /**
  * Extracts an archived file into the same filearea
  * Currently only supports .zip, .tar.gz .tgz files and .tar files
  *
- * If this function does not work: try using: "translate_archive_extension_into_mimetype($archivefile)" before
+ * If this function does not work: try using: "translate_archive_extension_into_mimetype($archivefile)" before to get the correct mimetype
  *
- * @param $archivefile The archivefile to be extracted
- * @return false|string when nothing goes wrong: the filepath in which the files have been extracted, else: false
+ * @param stored_file $archivefile The archivefile to be extracted
+ * @param string $filepath The filepath of the directory in which the extracted files should be stored
+ * @param string $filename The filename of the archivefile
+ * @param string $filearea The filearea of the archivefile
+ * @param int $itemid The itemid of the archivefile (the filearea id)
+ * @param $component
+ * @param $context
+ * @param $mimetype
+ * @param bool $overwriteexistingfiles Should this function overwrite existing files? When no: the extracted files that would overwrite other files will be renamed instead
+ * @return false|stdClass when nothing goes wrong: An Object with the following fields: filepath -> The filepath in which the extracted files have been saved
+ * | filesRenamed -> the number of files that has been renamed while the extraction | filesOverwritten -> the number of files that has been overwritten while the extraction, else: false
  */
-function extract_file($archivefile, $filepath, $filename, $filearea, $itemid, $component, $context, $mimetype) {
+function extract_file($archivefile, $filepath, $filename, $filearea, $itemid, $component, $context, $mimetype, bool $overwriteexistingfiles = false) {
     global $USER;
+    $return = new stdClass();
+    $return->filesRenamed = 0;
+    $return->filesOverwritten = 0;
+
     if (in_array($mimetype, get_supported_archive_types())) {
         $fs = get_file_storage();
 
@@ -1080,8 +1124,15 @@ function extract_file($archivefile, $filepath, $filename, $filearea, $itemid, $c
                     // File or directory did not exist, just move it.
                     $file->rename($realpath, $file->get_filename());
                 } else if (!$file->is_directory()) {
-                    // File already existed, overwrite it
-                    repository::overwrite_existing_draftfile($itemid, $realpath, $file->get_filename(), $file->get_filepath(), $file->get_filename());
+                    if ($overwriteexistingfiles) {
+                        // File already existed, overwrite it
+                        repository::overwrite_existing_draftfile($itemid, $realpath, $file->get_filename(), $file->get_filepath(), $file->get_filename());
+                        $return->filesOverwritten++;
+                    } else {
+                        // File already existed, dont overwrite it, rename it
+                        $file->rename($realpath, $fs->get_unused_filename($context->id, $component, $filearea, $itemid, $realpath, $file->get_filename()));
+                        $return->filesRenamed++;
+                    }
                 } else {
                     // Directory already existed, remove temporary dir but make sure we don't remove the existing dir
                     $doremovedirs[] = $file->get_filepath();
@@ -1096,7 +1147,8 @@ function extract_file($archivefile, $filepath, $filename, $filearea, $itemid, $c
                 $file->delete();
             }
         }
-        return $filepath;
+        $return->filepath = $filepath;
+        return $return;
     } else {
         throw new InvalidArgumentException("The File that should be extracted has an unknown archive type");
     }
@@ -1143,7 +1195,7 @@ function set_rootdir_of_tree($filespath, $dirtree) {
  * For example: test.tar.gz has the mimetype 'application/g-zip' but moodle's "get_file_packer" needs: 'application/x-gzip'
  * for .tar.gz archivefiles
  *
- * @param $archivefile The archivefile to check
+ * @param stored_file $archivefile The archivefile to check
  * @return string The mimetype of the archivefile, if there is no translation needed it will just return the normal mimetype of the file
  */
 function translate_archive_extension_into_mimetype($archivefile) : string {
