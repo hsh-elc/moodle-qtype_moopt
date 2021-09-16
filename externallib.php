@@ -225,37 +225,45 @@ class qtype_moopt_external extends external_api {
             // 'usage-by-lms' attribute set to 'display'. Display these files in the
             // question's general feedback.
             $filesdisplayedingeneralfeedback = '';
-            foreach ($doc->getElementsByTagNameNS($namespace, 'file') as $file) {
-                $filediv = '';
+            $displayedfilesxml = $doc->getElementsByTagNameNS($namespace, 'file');
+            $generalfeedbackfiles = array();
+            foreach ($displayedfilesxml as $file) {
                 foreach ($file->childNodes as $child) {
                     if($file->attributes->getNamedItem('visible')->nodeValue == 'delayed' &&
                         $file->attributes->getNamedItem('usage-by-lms') != null &&
                         $file->attributes->getNamedItem('usage-by-lms')->nodeValue == 'display') {
 
+                        $filename = '';
                         $filecontent = '';
 
                         if($child->localName == 'embedded-txt-file') {
-//                            $filepath = pathinfo('/' . $file->attributes->getNamedItem('id')->nodeValue . '/' .
-//                                $child->attributes->getNamedItem('filename')->nodeValue);
+                            $filename = $child->attributes->getNamedItem('filename')->nodeValue;
                             $filecontent = $child->nodeValue;
                         } else if ($child->localName == 'attached-txt-file') {
                             $pathinfo = pathinfo('/' . $child->nodeValue);
+                            $filename = basename($child->nodeValue);
                             $filecontent = get_text_content_from_file($usercontext, $draftid, $taskfilename,
                                 $pathinfo['dirname'] . '/', $pathinfo['basename']);
                         }
 
-                        if(!empty($filecontent)) {
-                            $filediv = html_writer::start_div('delayeddisplayedfile', ['style' => 'overflow: auto;']);
-                            $filediv .= $filecontent;
-                            $filediv .= html_writer::end_div('delayeddisplayedfile');
-                        }
+                        if(!empty($filecontent))
+                            $generalfeedbackfiles[] = array('filename' => $filename, 'content' => $filecontent);
                     }
                 }
-                if(!empty($filediv)) {
-                    $filesdisplayedingeneralfeedback .= $filediv;
-//                    $filesdisplayedingeneralfeedback .= '<p />';
-                }
             }
+
+            if (0 < count($generalfeedbackfiles)) {
+                $filesdisplayedingeneralfeedback = html_writer::start_div('delayeddisplayedfile', ['style' => 'overflow: auto;']);
+                for ($i = 0; $i < count($generalfeedbackfiles); $i++) {
+                    if (1 < count($generalfeedbackfiles)) {
+                        // include file names if there's multiple files
+                        $filesdisplayedingeneralfeedback .= "<hr/><h5>{$generalfeedbackfiles[$i]['filename']}</h5><br/>";
+                    }
+                    $filesdisplayedingeneralfeedback .= $generalfeedbackfiles[$i]['content'];
+                }
+                $filesdisplayedingeneralfeedback .= html_writer::end_div('delayeddisplayedfile');
+            }
+
             $returnval['filesdisplayedingeneralfeedback'] = $filesdisplayedingeneralfeedback;
         }
 
