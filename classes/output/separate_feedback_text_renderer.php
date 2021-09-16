@@ -109,11 +109,11 @@ class separate_feedback_text_renderer {
         $content = '';
         if ($node->get_description() != null || ($node->get_internal_description() != null && $this->displayteachercontent)) {
             if ($node->get_description() != null) {
-                $content .= "<div><h4>" . get_string('testdescription', 'qtype_moopt') .
+                $content .= "<div class='moopt-feedback-description'><h4>" . get_string('description', 'qtype_moopt') .
                         "</h4><i><p>{$node->get_description()}</p></i></div>";
             }
             if ($this->displayteachercontent && $node->get_internal_description() != null) {
-                $content .= "<div><h4>" . get_string('internaldescription', 'qtype_moopt') .
+                $content .= "<div class='moopt-feedback-internal-description'><h4>" . get_string('internaldescription', 'qtype_moopt') .
                         "</h4><i><p>{$node->get_internal_description()}</p></i></div>";
             }
         }
@@ -154,7 +154,7 @@ class separate_feedback_text_renderer {
             return $content;
         } else {
             if (!empty($node->get_student_feedback())) {
-                $content .= '<div><h4>' . get_string('feedback', 'qtype_moopt') . '</h4>';
+                $content .= '<div class=\'moopt-feedback-student\'><h4>' . get_string('feedback', 'qtype_moopt') . '</h4>';
                 foreach ($node->get_student_feedback() as $studfeed) {
                     if ($studfeed['title'] != null) {
                         $content .= "<p><strong>{$studfeed['title']}</strong></p>";
@@ -183,7 +183,7 @@ class separate_feedback_text_renderer {
                 $content .= '</div>';
             }
             if (!empty($node->get_teacher_feedback()) && $this->displayteachercontent) {
-                $content .= '<div><h4>' . get_string('teacherfeedback', 'qtype_moopt') . '</h4>';
+                $content .= '<div class=\'moopt-feedback-teacher\'><h4>' . get_string('teacherfeedback', 'qtype_moopt') . '</h4>';
                 foreach ($node->get_teacher_feedback() as $teacherfeed) {
                     $content .= '<p>';
                     if ($teacherfeed['title'] != null) {
