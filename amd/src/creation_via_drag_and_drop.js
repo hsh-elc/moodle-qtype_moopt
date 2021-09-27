@@ -57,7 +57,7 @@ define(['jquery', 'core/ajax',
 
                                     for(var i=0; i<result.freetextfilesettings.length; i++) {
                                         $('#id_enablecustomsettingsforfreetextinputfield'+i).prop('checked',
-                                            !(1 == result.freetextfilesettings[i]["enablecustomsettings"])).click();
+                                            !result.freetextfilesettings[i]["enablecustomsettings"]).click();
                                         if(result.freetextfilesettings[i]["usefixedfilename"] == true) {
                                             $('#id_namesettingsforfreetextinput'+i+'_0').prop('checked', false).click();
                                         } else {

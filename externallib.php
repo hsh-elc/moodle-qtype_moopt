@@ -148,7 +148,6 @@ class qtype_moopt_external extends external_api {
             // Process lms-input-fields
             $includeenablefileinput = false;
             $enablefileinput = false;
-            //$enablefreetextinput = true;
             $lmsinputfieldsettings = array();
             // TODO: fix hard coded namespace
             $lmsinputfields = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.1', 'lms-input-fields');
@@ -162,21 +161,32 @@ class qtype_moopt_external extends external_api {
                         // proglang attributes of the fileinput element.
                         $enablefileinput = true;
                     } else if ($child->localName == 'textfield') {
-                        $fixed = $child->attributes->getNamedItem('fixedfilename')->nodeValue != null &&
-                            $child->attributes->getNamedItem('fixedfilename')->nodeValue == 'true';
-                        $lang = $child->attributes->getNamedItem('proglang')->nodeValue ?
-                            $child->attributes->getNamedItem('proglang')->nodeValue : 'txt';
-                        $settings = array('fixedfilename' => $fixed, 'proglang' => $lang);
+                        // fixedfilename is true by default if not set via lmsinputfields
+                        $fixedfilename = true;
+                        if($child->hasAttribute('fixedfilename')) {
+                            $fixedfilename = filter_var($child->attributes->getNamedItem('fixedfilename')->nodeValue,
+                                FILTER_VALIDATE_BOOLEAN);
+                        }
+                        $proglang = 'txt';
+                        if($child->hasAttribute('proglang')) {
+                            $lang = $child->attributes->getNamedItem('proglang')->nodeValue;
+                            // make sure the task's lmsinputfields contains a valid proglang value
+                            if(array_key_exists($lang, PROFORMA_ACE_PROGLANGS))
+                                $proglang = $lang;
+                        }
+                        $settings = array('fixedfilename' => $fixedfilename, 'proglang' => $proglang);
                         $lmsinputfieldsettings[$child->attributes->getNamedItem('file-ref')->nodeValue] = $settings;
                     }
                 }
             } else if(1 < $lmsinputfields->length)
                 throw new Exception('Task meta-data contains more than one lms-input-fields element.');
             $returnval["enablefileinput"] = $includeenablefileinput ? $enablefileinput : true;
-            //$returnval["enablefileinput"] = true;
             $returnval["freetextfilesettings"] = array();
             foreach ($doc->getElementsByTagNameNS($namespace, 'file') as $file) {
-                $includefreetext = false;
+                // enable free text fields only if there's one or more files that are visible to and editable by
+                // students
+                $enablefreetext = false;
+
                 $enablecustomsettings = true;
                 $usefixedfilename = true;
                 $defaultfilename = '';
@@ -191,7 +201,7 @@ class qtype_moopt_external extends external_api {
                             $filecontent = $child->nodeValue;
                             $defaultfilename = $child->attributes->getNamedItem('filename')->nodeValue;
                             $fileid = $file->attributes->getNamedItem('id')->nodeValue;
-                            $includefreetext = true;
+                            $enablefreetext = true;
                             break;
                         } else if ($child->localName == 'attached-txt-file') {
                             $pathinfo = pathinfo('/' . $child->nodeValue);
@@ -199,13 +209,13 @@ class qtype_moopt_external extends external_api {
                                 $pathinfo['dirname'] . '/', $pathinfo['basename']);
                             $defaultfilename = basename($child->nodeValue);
                             $fileid = $file->attributes->getNamedItem('id')->nodeValue;
-                            $includefreetext = true;
+                            $enablefreetext = true;
                             break;
                         }
                     }
                 }
 
-                if($includefreetext) {
+                if($enablefreetext) {
                     if(array_key_exists($fileid, $lmsinputfieldsettings)) {
                         $usefixedfilename = $lmsinputfieldsettings[$fileid]['fixedfilename'];
                         $proglang = $lmsinputfieldsettings[$fileid]['proglang'];
