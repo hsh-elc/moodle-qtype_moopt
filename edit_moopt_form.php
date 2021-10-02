@@ -83,15 +83,6 @@ class qtype_moopt_edit_form extends question_edit_form {
         $this->gradererrorlabel = $mform->addElement('static', 'gradernotavailableerrorlabel', '', '');
         $this->set_class_attribute_of_label($this->gradererrorlabel, 'errorlabel');
 
-        $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_moopt'), array("size" => '36'));
-        $mform->setType('taskuuid', PARAM_TEXT);
-        $mform->addRule('taskuuid', get_string('taskuuidrequired', 'qtype_moopt'), 'required');
-
-        $mform->addElement('advcheckbox', 'showstudscorecalcscheme',
-                get_string('showstudscorecalcscheme', 'qtype_moopt'), ' ');
-
-        $mform->addElement('header', 'submissionsettings', get_string('submissionsettings', 'qtype_moopt'));
-
         /* Add the settings for the result specs */
         $select = $mform->addElement('select', 'resultspecformat', get_string('result-spec/format', 'qtype_moopt'), array('zip' => 'zip', 'xml' => 'xml'));
         $select->setSelected('zip');
@@ -108,6 +99,15 @@ class qtype_moopt_edit_form extends question_edit_form {
         $select = $mform->addElement('select', 'teacherfeedbacklevel', get_string('teacher-feedback-level', 'qtype_moopt'), $feedbackleveloptions);
         $mform->setType('teacherfeedbacklevel', PARAM_TEXT);
         $select->setSelected('debug');
+
+        $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_moopt'), array("size" => '36'));
+        $mform->setType('taskuuid', PARAM_TEXT);
+        $mform->addRule('taskuuid', get_string('taskuuidrequired', 'qtype_moopt'), 'required');
+
+        $mform->addElement('advcheckbox', 'showstudscorecalcscheme',
+                get_string('showstudscorecalcscheme', 'qtype_moopt'), ' ');
+
+        $mform->addElement('header', 'submissionsettings', get_string('submissionsettings', 'qtype_moopt'));
 
         $mform->addElement('advcheckbox', 'enablefilesubmissions', get_string('enablefilesubmissions', 'qtype_moopt'),
                 ' ');
