@@ -28,7 +28,7 @@ require_once('locallib.php');
 use qtype_moopt\utility\communicator\communicator_factory;
 
 /**
- * moopt question editing form defition.
+ * moopt question editing form definition.
  *
  * You should override functions as necessary from the parent class located at
  * /question/type/edit_question_form.php.
@@ -91,6 +91,23 @@ class qtype_moopt_edit_form extends question_edit_form {
                 get_string('showstudscorecalcscheme', 'qtype_moopt'), ' ');
 
         $mform->addElement('header', 'submissionsettings', get_string('submissionsettings', 'qtype_moopt'));
+
+        /* Add the settings for the result specs */
+        $select = $mform->addElement('select', 'resultspecformat', get_string('result-spec/format', 'qtype_moopt'), array('zip' => 'zip', 'xml' => 'xml'));
+        $select->setSelected('zip');
+        $mform->setType('resultspecformat', PARAM_TEXT);
+        $select = $mform->addElement('select', 'resultspecstructure', get_string('result-spec/structure', 'qtype_moopt'), array('merged-test-feedback' => 'merged-test-feedback', 'separate-test-feedback' => 'separate-test-feedback'));
+        $select->setSelected(PROFORMA_SEPARATE_FEEDBACK_TYPE);
+        $mform->setType('resultspecstructure', PARAM_TEXT);
+
+        /* Add the settings for the teacher and student feedback level */
+        $feedbackleveloptions = array('error' => 'error', 'warn' => 'warn', 'info' => 'info', 'debug' => 'debug');
+        $select = $mform->addElement('select', 'studentfeedbacklevel', get_string('student-feedback-level', 'qtype_moopt'), $feedbackleveloptions);
+        $select->setSelected('info');
+        $mform->setType('studentfeedbacklevel', PARAM_TEXT);
+        $select = $mform->addElement('select', 'teacherfeedbacklevel', get_string('teacher-feedback-level', 'qtype_moopt'), $feedbackleveloptions);
+        $mform->setType('teacherfeedbacklevel', PARAM_TEXT);
+        $select->setSelected('debug');
 
         $mform->addElement('advcheckbox', 'enablefilesubmissions', get_string('enablefilesubmissions', 'qtype_moopt'),
                 ' ');

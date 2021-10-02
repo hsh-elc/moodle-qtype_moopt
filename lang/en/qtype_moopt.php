@@ -121,3 +121,7 @@ $string['testresult'] = 'Test result';
 $string['timeout'] = 'Service Timeout';
 $string['xmlvalidationerrormsg'] = '{$a->message} (Code {$a->code}) on line {$a->line}';
 $string['yourcode'] = 'Your code';
+$string['result-spec/format'] = 'Result-Spec/Format';
+$string['result-spec/structure'] = 'Result-Spec/Structure';
+$string['student-feedback-level'] = 'Student Feedback Level';
+$string['teacher-feedback-level'] = 'Teacher Feedback Level';

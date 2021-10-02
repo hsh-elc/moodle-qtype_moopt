@@ -155,5 +155,17 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2020020800, 'qtype', 'moopt');
     }
 
+    if ($oldversion < 2021100100) {
+
+        $optionstable = new xmldb_table('qtype_moopt_options');
+        $dbman->add_field($optionstable, new xmldb_field('resultspecformat', XMLDB_TYPE_CHAR, '5', null, null, null, null));
+        $dbman->add_field($optionstable, new xmldb_field('resultspecstructure', XMLDB_TYPE_CHAR, '30', null, null, null, null));
+        $dbman->add_field($optionstable, new xmldb_field('studentfeedbacklevel', XMLDB_TYPE_CHAR, '10', null, null, null, null));
+        $dbman->add_field($optionstable, new xmldb_field('teacherfeedbacklevel', XMLDB_TYPE_CHAR, '10', null, null, null, null));
+
+        // ProForma savepoint reached.
+        upgrade_plugin_savepoint(true, 2021100100, 'qtype', 'moopt');
+    }
+
     return true;
 }
