@@ -421,9 +421,9 @@ function retrieve_grading_results($qubaid) {
      * and try to access the same qubaid which can lead to unwanted behaviour. Hence use the locking api.
      */
     $locktype = "qtype_moopt_retrieve_grading_results";
-    $ressource = "qubaid:$qubaid";
+    $resource = "qubaid:$qubaid";
     $lockfactory = \core\lock\lock_config::get_lock_factory($locktype);
-    $lock = $lockfactory->get_lock($ressource, 0, PROFORMA_RETRIEVE_GRADING_RESULTS_LOCK_MAXLIFETIME);
+    $lock = $lockfactory->get_lock($resource, 0, PROFORMA_RETRIEVE_GRADING_RESULTS_LOCK_MAXLIFETIME);
     if (!$lock) {
         return false;
     }
@@ -448,25 +448,21 @@ function internal_retrieve_grading_results($qubaid) {
     $fs = get_file_storage();
 
     $finishedgradingprocesses = [];
-    $records = $DB->get_records('qtype_moopt_gradeprocesses', ['qubaid' => $qubaid]);
-
-    if (empty($records)) {
-        // Most likely the systems cron job retrieved the result a couple of seconds ago.
-        return true;
-    }
-
-    foreach ($records as $record) {
-
-        $quba = question_engine::load_questions_usage_by_activity($qubaid);
-        $qubarecord = $DB->get_record('question_usages', ['id' => $qubaid]);
+    $qubarecord = $DB->get_record('question_usages', ['id' => $qubaid]);
+    $gradeprocessrecords = $DB->get_records('qtype_moopt_gradeprocesses', ['qubaid' => $qubaid]);
+    foreach ($gradeprocessrecords as $gradeprocrecord) {
         if (!$qubarecord) {
-            // The quba got deleted for whatever reason - just ignore this entry.
-            // It can be safely deleted at the end of this function because the result has already been fetched.
+            // The quba got deleted for whatever reason. There's no need to keep this particular gradeprocess
+            // record anymore because it has no purpose without its quba, so we mark it for deletion.
+            $finishedgradingprocesses[] = $gradeprocrecord->id;
             continue;
         }
-        $slot = $DB->get_record('question_attempts', ['id' => $record->questionattemptdbid], 'slot')->slot;
+
+        $quba = question_engine::load_questions_usage_by_activity($qubaid);
+
+        $slot = $DB->get_record('question_attempts', ['id' => $gradeprocrecord->questionattemptdbid], 'slot')->slot;
         try {
-            $response = $communicator->get_grading_result($record->graderid, $record->gradeprocessid);
+            $response = $communicator->get_grading_result($gradeprocrecord->graderid, $gradeprocrecord->gradeprocessid);
         } catch (resource_not_found_exception $e) {
             // A grading result does not exist and won't ever exist for this grade process id.
             // The middleware or grader returned a HTTP 404 NotFound when polling for a
@@ -485,9 +481,9 @@ function internal_retrieve_grading_results($qubaid) {
             // process record from the database, thus ending the automatic polling.
             // Once the error has been resolved, a teacher may either start a re-grade, or manually
             // delete the question attempt.
-            $quba->process_action($slot, ['-graderunavailable' => 1, 'gradeprocessdbid' => $record->id]);
+            $quba->process_action($slot, ['-graderunavailable' => 1, 'gradeprocessdbid' => $gradeprocrecord->id]);
             question_engine::save_questions_usage_by_activity($quba);
-            $finishedgradingprocesses[] = $record->id;
+            $finishedgradingprocesses[] = $gradeprocrecord->id;
         } catch (Throwable $e) {
             // Treat network errors, authorization errors etc differently, do not abbandon the automatic
             // polling for a grading result, since these types of errors are easily fixable.
@@ -498,16 +494,16 @@ function internal_retrieve_grading_results($qubaid) {
             $internalerror = false;
             try {
                 // We take care of this grade process therefore we will delete it afterwards.
-                $finishedgradingprocesses[] = $record->id;
+                $finishedgradingprocesses[] = $gradeprocrecord->id;
 
                 // Remove old extracted files in case this is a regrade.
                 $oldexractedfiles = array_merge(
                         $fs->get_directory_files($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
-                                "_{$record->questionattemptdbid}", $qubaid, "/", true, true),
+                                "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", true, true),
                         $fs->get_directory_files($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE .
-                                "_{$record->questionattemptdbid}", $qubaid, "/", true, true),
+                                "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", true, true),
                         $fs->get_directory_files($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA_EMBEDDED .
-                                "_{$record->questionattemptdbid}", $qubaid, "/", true, true)
+                                "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", true, true)
                 );
                 foreach ($oldexractedfiles as $f) {
                     $f->delete();
@@ -519,7 +515,7 @@ function internal_retrieve_grading_results($qubaid) {
                     // Write response to file system.
                     $filerecord = array(
                         'component' => 'question',
-                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$record->questionattemptdbid}",
+                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$gradeprocrecord->questionattemptdbid}",
                         'itemid' => $qubaid,
                         'contextid' => $qubarecord->contextid,
                         'filepath' => "/",
@@ -529,12 +525,12 @@ function internal_retrieve_grading_results($qubaid) {
                     $zipper = get_file_packer('application/zip');
 
                     $couldsaveresponsetodisk = $file->extract_to_storage($zipper, $qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
-                            "_{$record->questionattemptdbid}", $qubaid, "/");
+                            "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/");
                 } else {
                     // XML file.
                     $filerecord = array(
                         'component' => 'question',
-                        'filearea' => PROFORMA_RESPONSE_FILE_AREA . "_{$record->questionattemptdbid}",
+                        'filearea' => PROFORMA_RESPONSE_FILE_AREA . "_{$gradeprocrecord->questionattemptdbid}",
                         'itemid' => $qubaid,
                         'contextid' => $qubarecord->contextid,
                         'filepath' => "/",
@@ -548,7 +544,7 @@ function internal_retrieve_grading_results($qubaid) {
                 if ($couldsaveresponsetodisk) {
                     $doc = new DOMDocument();
                     $responsexmlfile = $fs->get_file($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
-                            "_{$record->questionattemptdbid}", $qubaid, "/", 'response.xml');
+                            "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", 'response.xml');
                     if ($responsexmlfile) {
 
                         set_error_handler(function($number, $error) {
@@ -590,7 +586,7 @@ function internal_retrieve_grading_results($qubaid) {
                                         $elem->getAttribute('filename'));
                                 $fileinfo = array(
                                     'component' => 'question',
-                                    'filearea' => PROFORMA_RESPONSE_FILE_AREA_EMBEDDED . "_{$record->questionattemptdbid}",
+                                    'filearea' => PROFORMA_RESPONSE_FILE_AREA_EMBEDDED . "_{$gradeprocrecord->questionattemptdbid}",
                                     'itemid' => $qubaid,
                                     'contextid' => $qubarecord->contextid,
                                     'filepath' => $pathinfo['dirname'] . '/',
@@ -669,17 +665,21 @@ function internal_retrieve_grading_results($qubaid) {
                 }
 
                 // Change the state to the question needing manual grading because automatic grading failed.
-                $quba->process_action($slot, ['-graderunavailable' => 1, 'gradeprocessdbid' => $record->id]);
+                $quba->process_action($slot, ['-graderunavailable' => 1, 'gradeprocessdbid' => $gradeprocrecord->id]);
                 question_engine::save_questions_usage_by_activity($quba);
 
                 continue;
             }
 
-            // Apply the grading result.
-            $quba->process_action($slot, ['-gradingresult' => 1, 'score' => $score, 'gradeprocessdbid' => $record->id]);
+            // Apply the grading result to the question attempt
+            $quba->process_action($slot, ['-gradingresult' => 1, 'score' => $score, 'gradeprocessdbid' => $gradeprocrecord->id]);
             question_engine::save_questions_usage_by_activity($quba);
 
-            // Update total mark.
+            // make sure we are in the context of a quiz and not a preview before proceeding with updating the quizze's
+            // attempt data with a total mark
+            $attemptrecord = $DB->get_record('quiz_attempts', ['uniqueid' => $qubaid]);
+            if(!$attemptrecord)
+                continue;
             $attempt = quiz_attempt::create_from_usage_id($qubaid)->get_attempt();
             $attempt->timemodified = time();
             $attempt->sumgrades = $quba->get_total_mark();
