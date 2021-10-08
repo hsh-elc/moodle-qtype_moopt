@@ -67,7 +67,8 @@ class qtype_moopt_renderer extends qtype_renderer {
         // Question is queued for grading, print the message that the question have been queued for grading
         if ($qa->get_state() == question_state::$finished) {
             $o .= "<div class='specificfeedback queuedforgrading'>";
-            $o .= $this->specific_feedback($qa);
+            $loader = '<div class="loader"></div>';
+            $o .= html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
             $o .= "</div><br>";
         }
 
