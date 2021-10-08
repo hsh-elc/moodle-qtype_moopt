@@ -88,11 +88,11 @@ class qtype_moopt_edit_form extends question_edit_form {
         $select->setSelected('zip');
         $mform->setType('resultspecformat', PARAM_TEXT);
         $select = $mform->addElement('select', 'resultspecstructure', get_string('result-spec/structure', 'qtype_moopt'), array('merged-test-feedback' => 'merged-test-feedback', 'separate-test-feedback' => 'separate-test-feedback'));
-        $select->setSelected(PROFORMA_SEPARATE_FEEDBACK_TYPE);
+        $select->setSelected('separate-test-feedback');
         $mform->setType('resultspecstructure', PARAM_TEXT);
 
         /* Add the settings for the teacher and student feedback level */
-        $feedbackleveloptions = array('error' => 'error', 'warn' => 'warn', 'info' => 'info', 'debug' => 'debug');
+        $feedbackleveloptions = array('error' => 'error', 'warn' => 'warn', 'info' => 'info', 'debug' => 'debug', 'not specified' => 'not specified');
         $select = $mform->addElement('select', 'studentfeedbacklevel', get_string('student-feedback-level', 'qtype_moopt'), $feedbackleveloptions);
         $select->setSelected('info');
         $mform->setType('studentfeedbacklevel', PARAM_TEXT);
