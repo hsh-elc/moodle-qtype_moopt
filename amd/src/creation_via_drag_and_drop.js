@@ -13,15 +13,20 @@ define(['jquery', 'core/ajax',
 
                 init: function () {
                     var self = this;
-                    $("#loadproformataskfilebutton").click(function () {
+                    document.querySelector("#loadproformataskfilebutton").addEventListener('click', function(event) {
                         self.extractInformation();
                     });
                 },
 
                 extractInformation: function () {
-                    var fileManager = $("#id_proformataskfileupload").parent();
-                    var itemId = fileManager.find("[name='proformataskfileupload']")[0].value;
-                    fileManager.find // TODO: fix: is missing a semicolon, but what does this even do
+                    var fileManager = document.querySelector("#id_proformataskfileupload").parentNode;
+                    var itemId = null;
+                    for (const child of fileManager.childNodes) {
+                        if (child.name == 'proformataskfileupload') {
+                            itemId = child.value;
+                            break;
+                        }
+                    }
 
                     ajax.call([
                         {
