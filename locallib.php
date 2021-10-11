@@ -64,6 +64,13 @@ define('PROFORMA_TASK_XML_NAMESPACES', [/* First namespace is default namespace.
 
 define('PROFORMA_MERGED_FEEDBACK_TYPE', 'merged-test-feedback');
 define('PROFORMA_SEPARATE_FEEDBACK_TYPE', 'separate-test-feedback');
+define('PROFORMA_RESULT_SPEC_FORMAT_ZIP', 'zip');
+define('PROFORMA_RESULT_SPEC_FORMAT_XML', 'xml');
+define('PROFORMA_FEEDBACK_LEVEL_ERROR', 'error');
+define('PROFORMA_FEEDBACK_LEVEL_WARNING', 'warn');
+define('PROFORMA_FEEDBACK_LEVEL_INFO', 'info');
+define('PROFORMA_FEEDBACK_LEVEL_DEBUG', 'debug');
+define('PROFORMA_FEEDBACK_LEVEL_NOTSPECIFIED', 'notspecified');
 
 define('PROFORMA_ACE_PROGLANGS', [
     'txt' => 'Plain text',

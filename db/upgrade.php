@@ -41,7 +41,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
 
         // Define field resultspecformat to be added to qtype_moopt_options.
         $table = new xmldb_table('qtype_moopt_options');
-        $field = new xmldb_field('resultspecformat', XMLDB_TYPE_CHAR, '5', null, XMLDB_NOTNULL, null, 'zip', 'ftsstandardlang');
+        $field = new xmldb_field('resultspecformat', XMLDB_TYPE_CHAR, '5', null, null, null, null, 'ftsstandardlang');
 
         // Conditionally launch add field resultspecformat.
         if (!$dbman->field_exists($table, $field)) {
@@ -49,7 +49,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         }
 
         // Define field resultspecstructure to be added to qtype_moopt_options.
-        $field = new xmldb_field('resultspecstructure', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL, null, 'separate-test-feedback', 'resultspecformat');
+        $field = new xmldb_field('resultspecstructure', XMLDB_TYPE_CHAR, '30', null, null, null, null, 'resultspecformat');
 
         // Conditionally launch add field resultspecstructure.
         if (!$dbman->field_exists($table, $field)) {
@@ -57,7 +57,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         }
 
         // Define field studentfeedbacklevel to be added to qtype_moopt_options.
-        $field = new xmldb_field('studentfeedbacklevel', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'info', 'resultspecstructure');
+        $field = new xmldb_field('studentfeedbacklevel', XMLDB_TYPE_CHAR, '15', null, null, null, null, 'resultspecstructure');
 
         // Conditionally launch add field studentfeedbacklevel.
         if (!$dbman->field_exists($table, $field)) {
@@ -65,7 +65,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         }
 
         // Define field teacherfeedbacklevel to be added to qtype_moopt_options.
-        $field = new xmldb_field('teacherfeedbacklevel', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'debug', 'studentfeedbacklevel');
+        $field = new xmldb_field('teacherfeedbacklevel', XMLDB_TYPE_CHAR, '15', null, null, null, null, 'studentfeedbacklevel');
 
         // Conditionally launch add field teacherfeedbacklevel.
         if (!$dbman->field_exists($table, $field)) {

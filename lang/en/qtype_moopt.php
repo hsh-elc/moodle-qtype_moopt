@@ -125,3 +125,4 @@ $string['result-spec/format'] = 'Result-Spec/Format';
 $string['result-spec/structure'] = 'Result-Spec/Structure';
 $string['student-feedback-level'] = 'Student Feedback Level';
 $string['teacher-feedback-level'] = 'Teacher Feedback Level';
+$string['not specified'] = 'not specified';
