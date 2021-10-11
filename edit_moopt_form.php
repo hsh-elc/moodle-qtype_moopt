@@ -85,20 +85,20 @@ class qtype_moopt_edit_form extends question_edit_form {
 
         /* Add the settings for the result specs */
         $select = $mform->addElement('select', 'resultspecformat', get_string('result-spec/format', 'qtype_moopt'), array('zip' => 'zip', 'xml' => 'xml'));
-        $select->setSelected('zip');
+        $select->setSelected('zip'); // this default could be changed by a grader- or question-specific value in the near future
         $mform->setType('resultspecformat', PARAM_TEXT);
         $select = $mform->addElement('select', 'resultspecstructure', get_string('result-spec/structure', 'qtype_moopt'), array('merged-test-feedback' => 'merged-test-feedback', 'separate-test-feedback' => 'separate-test-feedback'));
-        $select->setSelected('separate-test-feedback');
+        $select->setSelected('separate-test-feedback'); // this default could be changed by a grader- or question-specific value in the near future
         $mform->setType('resultspecstructure', PARAM_TEXT);
 
         /* Add the settings for the teacher and student feedback level */
         $feedbackleveloptions = array('error' => 'error', 'warn' => 'warn', 'info' => 'info', 'debug' => 'debug', 'not specified' => 'not specified');
         $select = $mform->addElement('select', 'studentfeedbacklevel', get_string('student-feedback-level', 'qtype_moopt'), $feedbackleveloptions);
-        $select->setSelected('info');
+        $select->setSelected('info'); // this default could be changed by a grader- or question-specific value in the near future
         $mform->setType('studentfeedbacklevel', PARAM_TEXT);
         $select = $mform->addElement('select', 'teacherfeedbacklevel', get_string('teacher-feedback-level', 'qtype_moopt'), $feedbackleveloptions);
         $mform->setType('teacherfeedbacklevel', PARAM_TEXT);
-        $select->setSelected('debug');
+        $select->setSelected('debug'); // this default could be changed by a grader- or question-specific value in the near future
 
         $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_moopt'), array("size" => '36'));
         $mform->setType('taskuuid', PARAM_TEXT);
