@@ -370,26 +370,22 @@ class qtype_moopt_question extends question_graded_automatically {
         /* When a question doesn't have set the grader specific options, set them in database and in this question */
         if ($this->resultspecformat === null) {
             $value = PROFORMA_RESULT_SPEC_FORMAT_ZIP; // this default could be changed by a grader- or question-specific value in the near future
-            $sql = "UPDATE mdl_qtype_moopt_options SET resultspecformat = '$value' WHERE questionid = $this->id";
-            $DB->execute($sql);
+            update_options_table_field("resultspecformat", $value, $this->id);
             $this->resultspecformat = $value;
         }
         if ($this->resultspecstructure === null) {
             $value = PROFORMA_SEPARATE_FEEDBACK_TYPE; // this default could be changed by a grader- or question-specific value in the near future
-            $sql = "UPDATE mdl_qtype_moopt_options SET resultspecstructure = '$value' WHERE questionid = $this->id";
-            $DB->execute($sql);
+            update_options_table_field("resultspecstructure", $value, $this->id);
             $this->resultspecstructure = $value;
         }
         if ($this->studentfeedbacklevel === null) {
             $value = PROFORMA_FEEDBACK_LEVEL_INFO; // this default could be changed by a grader- or question-specific value in the near future
-            $sql = "UPDATE mdl_qtype_moopt_options SET studentfeedbacklevel = '$value' WHERE questionid = $this->id";
-            $DB->execute($sql);
+            update_options_table_field("studentfeedbacklevel", $value, $this->id);
             $this->studentfeedbacklevel = $value;
         }
         if ($this->teacherfeedbacklevel === null) {
             $value = PROFORMA_FEEDBACK_LEVEL_DEBUG; // this default could be changed by a grader- or question-specific value in the near future
-            $sql = "UPDATE mdl_qtype_moopt_options SET teacherfeedbacklevel = '$value' WHERE questionid = $this->id";
-            $DB->execute($sql);
+            update_options_table_field("teacherfeedbacklevel", $value, $this->id);
             $this->teacherfeedbacklevel = $value;
         }
 
