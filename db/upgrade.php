@@ -37,7 +37,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
 
     $dbman = $DB->get_manager();
 
-    if ($oldversion < 2021100100) {
+    if ($oldversion < 2021101401) {
 
         // Define field resultspecformat to be added to qtype_moopt_options.
         $table = new xmldb_table('qtype_moopt_options');
@@ -73,7 +73,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         }
 
         // Moopt savepoint reached.
-        upgrade_plugin_savepoint(true, 2021100100, 'qtype', 'moopt');
+        upgrade_plugin_savepoint(true, 2021101401, 'qtype', 'moopt');
     }
 
     return true;
