@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="question/type/moopt/db" VERSION="20211008" COMMENT="XMLDB file for Moodle qtype_moopt"
+<XMLDB PATH="question/type/moopt/db" VERSION="20211014" COMMENT="XMLDB file for Moodle qtype_moopt"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd"
 >
