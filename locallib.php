@@ -841,15 +841,3 @@ function mangle_pathname($filename) {
     $filename = ltrim($filename, '/');                  // No leading slash.
     return $filename;
 }
-
-/**
- * Updates the options table of the moopt plugin
- * @param string $field The field you want to update
- * @param string $value The value to set for the field
- * @param int $questionid The id of the question
- * @throws dml_exception
- */
-function update_options_table_field(string $field, string $value, int $questionid) {
-    GLOBAL $DB;
-    $DB->execute("UPDATE mdl_qtype_moopt_options SET $field = '$value' WHERE questionid = $questionid");
-}

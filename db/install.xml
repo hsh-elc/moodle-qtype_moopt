@@ -18,10 +18,10 @@
         <FIELD NAME="ftsmaxnumfields" TYPE="int" LENGTH="8" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="ftsautogeneratefilenames" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="ftsstandardlang" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="txt" SEQUENCE="false"/>
-        <FIELD NAME="resultspecformat" TYPE="char" LENGTH="5" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="resultspecstructure" TYPE="char" LENGTH="30" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="studentfeedbacklevel" TYPE="char" LENGTH="15" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="teacherfeedbacklevel" TYPE="char" LENGTH="15" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="resultspecformat" TYPE="char" LENGTH="5" NOTNULL="true" DEFAULT="zip" SEQUENCE="false"/>
+        <FIELD NAME="resultspecstructure" TYPE="char" LENGTH="30" NOTNULL="true" DEFAULT="separate-test-feedback" SEQUENCE="false"/>
+        <FIELD NAME="studentfeedbacklevel" TYPE="char" LENGTH="15" NOTNULL="true" DEFAULT="info" SEQUENCE="false"/>
+        <FIELD NAME="teacherfeedbacklevel" TYPE="char" LENGTH="15" NOTNULL="true" DEFAULT="debug" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
