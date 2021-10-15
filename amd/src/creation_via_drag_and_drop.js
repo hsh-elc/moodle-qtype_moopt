@@ -5,9 +5,9 @@
 
 /*global console */
 
-define(['jquery', 'core/ajax',
+define(['core/ajax',
     'qtype_moopt/edit_editor_content'],
-        function ($, ajax, editorEditor) {
+        function (ajax, editorEditor) {
 
             return {
 
@@ -35,42 +35,55 @@ define(['jquery', 'core/ajax',
                             done: function (result) {
 
                                 if (typeof result.error !== 'undefined') {
-                                    $("#id_error_ajaxerrorlabel").parent().children().first().
-                                            html('<div>' + result.error + '</div>');
-                                    $("#id_error_ajaxwarninglabel").parent().children().first().html('');
+                                    document.querySelector("#id_error_ajaxerrorlabel").parentNode.children.item(0).innerHTML = '<div>' + result.error + '</div>';
+                                    document.querySelector("#id_error_ajaxwarnlabel").parentNode.children.item(0).innerHTML = '';
                                     return;
                                 }
 
-                                $("#id_error_ajaxerrorlabel").parent().children().first().html('');
-                                $("#id_name").val(result.title);
+                                document.querySelector("#id_error_ajaxerrorlabel").parentNode.children.item(0).innerHTML = '';
+                                document.querySelector("#id_name").value = result.title;
                                 editorEditor.setContents('id_questiontext', result.description);
                                 editorEditor.setContents('id_internaldescription', result.internaldescription);
                                 editorEditor.setContentsOfText('id_taskuuid', result.taskuuid);
                                 editorEditor.setContentsOfText('id_defaultmark', result.maxscoregradinghints);
                                 editorEditor.setContents('id_generalfeedback', result.filesdisplayedingeneralfeedback);
 
-                                //$('#id_showstudscorecalcscheme').prop('checked', false).click();
-                                $('#id_enablefilesubmissions').prop('checked', !result.enablefileinput).click();
+                                var elem = document.querySelector("#id_enablefilesubmissions");
+                                elem.checked = !result.enablefileinput;
+                                elem.click();
 
                                 var ftsmaxnumfields = result.freetextfilesettings.length;
-                                $('#id_enablefreetextsubmissions').prop('checked', !(ftsmaxnumfields > 0)).click();
+                                elem = document.querySelector("#id_enablefreetextsubmissions");
+                                elem.checked = !(ftsmaxnumfields > 0);
+                                elem.click();
+
                                 if(ftsmaxnumfields > 0) {
-                                    //$('#id_enablefreetextsubmissions').prop('checked', false).click();
-                                    $('#id_ftsnuminitialfields').val(ftsmaxnumfields).click();
-                                    $('#id_ftsmaxnumfields').val(ftsmaxnumfields).click();
-                                    $('#id_enablecustomsettingsforfreetextinputfields').prop('checked', false).click();
+                                    elem = document.querySelector("#id_ftsnuminitialfields");
+                                    elem.value = ftsmaxnumfields;
+                                    elem.click();
+                                    elem = document.querySelector("#id_ftsmaxnumfields");
+                                    elem.value = ftsmaxnumfields;
+                                    elem.click();
+                                    elem = document.querySelector("#id_enablecustomsettingsforfreetextinputfields");
+                                    elem.checked = false;
+                                    elem.click();
 
                                     for(var i=0; i<result.freetextfilesettings.length; i++) {
-                                        $('#id_enablecustomsettingsforfreetextinputfield'+i).prop('checked',
-                                            !result.freetextfilesettings[i]["enablecustomsettings"]).click();
+                                        elem = document.querySelector("#id_enablecustomsettingsforfreetextinputfield"+i);
+                                        elem.checked = !result.freetextfilesettings[i]["enablecustomsettings"];
+                                        elem.click();
                                         if(result.freetextfilesettings[i]["usefixedfilename"] == true) {
-                                            $('#id_namesettingsforfreetextinput'+i+'_0').prop('checked', false).click();
+                                            elem = document.querySelector("#id_namesettingsforfreetextinput"+i+"_0");
+                                            elem.checked = false;
+                                            elem.click();
                                         } else {
-                                            $('#id_namesettingsforfreetextinput'+i+'_1').prop('checked', false).click();
+                                            elem = document.querySelector("#id_namesettingsforfreetextinput"+i+"_1");
+                                            elem.checked = false;
+                                            elem.click();
                                         }
-                                        $('#id_freetextinputfieldname'+i).val(result.freetextfilesettings[i]['defaultfilename']);
-                                        $('#id_freetextinputfieldtemplate'+i).val(result.freetextfilesettings[i]['filecontent']);
-                                        $('#id_ftsoverwrittenlang'+i).val(result.freetextfilesettings[i]['proglang']);
+                                        document.querySelector("#id_freetextinputfieldname"+i).value = result.freetextfilesettings[i]['defaultfilename'];
+                                        document.querySelector("#id_freetextinputfieldtemplate"+i).value = result.freetextfilesettings[i]['filecontent'];
+                                        document.querySelector("#id_ftsoverwrittenlang"+i).value = result.freetextfilesettings[i]['proglang'];
                                     }
                                 }
 
@@ -88,17 +101,18 @@ define(['jquery', 'core/ajax',
                                     });
                                     warnings += '</ul>';
                                 }
-                                $("#id_error_ajaxwarninglabel").parent().children().first().html(warnings);
 
-                                // Focus the first input field of extracted data:
-                                $("#id_name").focus();
+                                document.querySelector("#id_error_ajaxwarninglabel").parentNode.children.item(0).innerHTML = warnings;
+
+                                document.querySelector("#id_name").focus();
                             },
                             fail: function (errorObject) {
                                 console.log(errorObject);
-                                $("#id_error_ajaxerrorlabel").parent().children().first().
-                                        html('<div>' + errorObject.debuginfo + '</div><div> For more information see browser '
-                                                + 'console.</div>');
-                                $("#id_error_ajaxwarninglabel").parent().children().first().html('');
+                                document.querySelector("#id_error_ajaxerrorlabel").parentNode.children.item(0)
+                                    .innerHTML = '<div>' + errorObject.debuginfo + '</div><div> For more information see browser '
+                                    + 'console.</div>';
+                                document.querySelector("#id_error_ajaxwarninglabel").parentNode.children.item(0),innerHTML = '';
+
                             }
                         }
                     ]);

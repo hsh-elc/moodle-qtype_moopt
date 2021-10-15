@@ -1,5 +1,5 @@
-define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/str'],
-function ($, ajax, ModalFactory, ModalEvents, Strings) {
+define(['core/ajax', 'core/modal_factory', 'core/modal_events', 'core/str'],
+function (ajax, ModalFactory, ModalEvents, Strings) {
 
     var timer;
     var qubaid;
@@ -68,7 +68,9 @@ function ($, ajax, ModalFactory, ModalEvents, Strings) {
 
         init: function (qubaid_param, polling_interval) {
             // Don't show the retry button yet.
-            $("input[name='redoslot2']").remove();
+            for (const elem of document.querySelectorAll("input[name='redoslot1']")) {
+                elem.remove();
+            }
 
             qubaid = qubaid_param;
             if (typeof timer === 'undefined') {

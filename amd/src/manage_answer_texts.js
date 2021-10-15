@@ -1,22 +1,25 @@
-define(['jquery'], function ($) {
+define([], function () {
 
     var maxNumberFields;
     var currentNumberFields;
     return {
 
         init: function (maxFields, initialNumberFields) {
-            maxNumberFields = maxFields;
-            currentNumberFields = initialNumberFields;
+
+            //these parameters are strings, convert them to numbers to prevent some problems later
+            maxNumberFields = Number(maxFields);
+            currentNumberFields = Number(initialNumberFields);
+
             this.adjustVisibility();
             var self = this;
-            $("#addAnswertextButton").click(function (event) {
+            document.querySelector("#addAnswertextButton").addEventListener("click", function (event) {
                 if (currentNumberFields < maxNumberFields) {
                     currentNumberFields++;
                     self.adjustVisibility();
                 }
                 event.preventDefault();
             });
-            $("#removeLastAnswertextButton").click(function (event) {
+            document.querySelector("#removeLastAnswertextButton").addEventListener("click", function (event) {
                 if (currentNumberFields > 1) {
                     currentNumberFields--;
                     self.adjustVisibility();
@@ -29,21 +32,21 @@ define(['jquery'], function ($) {
             for (var i = 0; i < maxNumberFields; i++) {
                 var id = "#qtype_moopt_answertext_" + i;
                 if (i < currentNumberFields) {
-                    $(id).show();
+                    document.querySelector(id).style.display = "block";
                 } else {
-                    $(id).hide();
+                    document.querySelector(id).style.display = "none";
                 }
             }
             if (currentNumberFields == maxNumberFields) {
-                $("#addAnswertextButton").prop('disabled', true);
+                document.querySelector("#addAnswertextButton").disabled = true;
             } else {
-                $("#addAnswertextButton").prop('disabled', false);
+                document.querySelector("#addAnswertextButton").disabled = false;
             }
 
             if (currentNumberFields <= 1) {
-                $("#removeLastAnswertextButton").prop('disabled', true);
+                document.querySelector("#removeLastAnswertextButton").disabled = true;
             } else {
-                $("#removeLastAnswertextButton").prop('disabled', false);
+                document.querySelector("#removeLastAnswertextButton").disabled = false;
             }
 
         }
