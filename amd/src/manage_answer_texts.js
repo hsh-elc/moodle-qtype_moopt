@@ -6,9 +6,8 @@ define([], function () {
 
         init: function (maxFields, initialNumberFields) {
 
-            //these parameters are strings, convert them to numbers to prevent some problems later
-            maxNumberFields = Number(maxFields);
-            currentNumberFields = Number(initialNumberFields);
+            maxNumberFields = maxFields;
+            currentNumberFields = initialNumberFields;
 
             this.adjustVisibility();
             var self = this;

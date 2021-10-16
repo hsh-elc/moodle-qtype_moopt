@@ -290,7 +290,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
             $defaultproglang = $questionoptions->ftsstandardlang;
 
-            for ($i = 0; $i < $questionoptions->ftsmaxnumfields; $i++) {
+            for ($i = 0; $i < (int)$questionoptions->ftsmaxnumfields; $i++) {
                 $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
                     'inputindex' => $i]);
 
@@ -351,7 +351,7 @@ class qtype_moopt_renderer extends qtype_renderer {
             $renderedarea .= html_writer::end_div();
 
             $PAGE->requires->js_call_amd('qtype_moopt/manage_answer_texts', 'init',
-                    [$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, $questionoptions->ftsnuminitialfields)]);
+                    [(int)$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, (int)$questionoptions->ftsnuminitialfields)]);
         }
 
         if ($renderedarea == '') {
@@ -401,10 +401,10 @@ class qtype_moopt_renderer extends qtype_renderer {
         global $PAGE, $DB;
         if ($qa->get_state()->is_finished()) {
 
-            $PAGE->requires->js_call_amd('qtype_moopt/change_display_name_of_redo_button', 'init');
+            $PAGE->requires->js_call_amd('qtype_moopt/change_display_name_of_redo_button', 'init', [$qa->get_slot()]);
 
             if ($qa->get_state() == question_state::$finished) {
-                $PAGE->requires->js_call_amd('qtype_moopt/pull_grading_status', 'init', [$qa->get_usage_id(),
+                $PAGE->requires->js_call_amd('qtype_moopt/pull_grading_status', 'init', [$qa->get_usage_id(), $qa->get_slot(),
                     get_config("qtype_moopt",
                             "service_client_polling_interval") * 1000 /* to milliseconds */]);
                 $loader = '<div class="loader"></div>';

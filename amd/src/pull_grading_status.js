@@ -66,9 +66,9 @@ function (ajax, ModalFactory, ModalEvents, Strings) {
 
     return {
 
-        init: function (qubaid_param, polling_interval) {
+        init: function (qubaid_param, slot, polling_interval) {
             // Don't show the retry button yet.
-            for (const elem of document.querySelectorAll("input[name='redoslot1']")) {
+            for (const elem of document.querySelectorAll("input[name='redoslot" + slot + "'")) {
                 elem.remove();
             }
 
