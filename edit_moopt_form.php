@@ -28,7 +28,7 @@ require_once('locallib.php');
 use qtype_moopt\utility\communicator\communicator_factory;
 
 /**
- * moopt question editing form defition.
+ * moopt question editing form definition.
  *
  * You should override functions as necessary from the parent class located at
  * /question/type/edit_question_form.php.
@@ -82,6 +82,36 @@ class qtype_moopt_edit_form extends question_edit_form {
 
         $this->gradererrorlabel = $mform->addElement('static', 'gradernotavailableerrorlabel', '', '');
         $this->set_class_attribute_of_label($this->gradererrorlabel, 'errorlabel');
+
+        /* Add the settings for the result specs */
+        $select = $mform->addElement('select', 'resultspecformat', get_string('resultspecformat', 'qtype_moopt'), array(
+            PROFORMA_RESULT_SPEC_FORMAT_ZIP => PROFORMA_RESULT_SPEC_FORMAT_ZIP,
+            PROFORMA_RESULT_SPEC_FORMAT_XML => PROFORMA_RESULT_SPEC_FORMAT_XML)
+        );
+        $select->setSelected(PROFORMA_RESULT_SPEC_FORMAT_ZIP); // this default could be changed by a grader- or question-specific value in the near future
+        $mform->setType('resultspecformat', PARAM_TEXT);
+
+        $select = $mform->addElement('select', 'resultspecstructure', get_string('resultspecstructure', 'qtype_moopt'), array(
+            PROFORMA_MERGED_FEEDBACK_TYPE => PROFORMA_MERGED_FEEDBACK_TYPE,
+            PROFORMA_SEPARATE_FEEDBACK_TYPE => PROFORMA_SEPARATE_FEEDBACK_TYPE)
+        );
+        $select->setSelected(PROFORMA_SEPARATE_FEEDBACK_TYPE); // this default could be changed by a grader- or question-specific value in the near future
+        $mform->setType('resultspecstructure', PARAM_TEXT);
+
+        /* Add the settings for the teacher and student feedback level */
+        $feedbackleveloptions = array(
+            PROFORMA_FEEDBACK_LEVEL_ERROR => PROFORMA_FEEDBACK_LEVEL_ERROR,
+            PROFORMA_FEEDBACK_LEVEL_WARNING => PROFORMA_FEEDBACK_LEVEL_WARNING,
+            PROFORMA_FEEDBACK_LEVEL_INFO => PROFORMA_FEEDBACK_LEVEL_INFO,
+            PROFORMA_FEEDBACK_LEVEL_DEBUG => PROFORMA_FEEDBACK_LEVEL_DEBUG,
+            PROFORMA_FEEDBACK_LEVEL_NOTSPECIFIED => get_string('notspecified', 'qtype_moopt')
+        );
+        $select = $mform->addElement('select', 'studentfeedbacklevel', get_string('studentfeedbacklevel', 'qtype_moopt'), $feedbackleveloptions);
+        $select->setSelected(PROFORMA_FEEDBACK_LEVEL_INFO); // this default could be changed by a grader- or question-specific value in the near future
+        $mform->setType('studentfeedbacklevel', PARAM_TEXT);
+        $select = $mform->addElement('select', 'teacherfeedbacklevel', get_string('teacherfeedbacklevel', 'qtype_moopt'), $feedbackleveloptions);
+        $mform->setType('teacherfeedbacklevel', PARAM_TEXT);
+        $select->setSelected(PROFORMA_FEEDBACK_LEVEL_DEBUG); // this default could be changed by a grader- or question-specific value in the near future
 
         $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_moopt'), array("size" => '36'));
         $mform->setType('taskuuid', PARAM_TEXT);

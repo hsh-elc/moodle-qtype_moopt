@@ -55,7 +55,8 @@ class qtype_moopt extends question_type {
     public function extra_question_fields() {
         return array("qtype_moopt_options", "internaldescription", "graderid", "taskuuid", 'showstudscorecalcscheme',
             'enablefilesubmissions', 'enablefreetextsubmissions', 'ftsnuminitialfields', 'ftsmaxnumfields',
-            'ftsautogeneratefilenames', 'ftsstandardlang');
+            'ftsautogeneratefilenames', 'ftsstandardlang', 'resultspecformat', 'resultspecstructure',
+            'studentfeedbacklevel', 'teacherfeedbacklevel');
     }
 
     /**
