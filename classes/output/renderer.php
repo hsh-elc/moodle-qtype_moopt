@@ -62,6 +62,16 @@ class qtype_moopt_renderer extends qtype_renderer {
         $qa->get_question()->generalfeedback = '<p />';
 
         $o = "";
+
+
+        // Question is queued for grading, print the message that the question have been queued for grading
+        if ($qa->get_state() == question_state::$finished) {
+            $o .= "<div class='specificfeedback queuedforgrading'>";
+            $loader = '<div class="loader"></div>';
+            $o .= html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
+            $o .= "</div><br>";
+        }
+
         $onlinegraders = communicator_factory::get_instance()->get_graders();
         $graderforthistask = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id], 'graderid')
             ->graderid;

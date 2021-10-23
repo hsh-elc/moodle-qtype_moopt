@@ -79,8 +79,12 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
         $xml->startElement('result-spec');
         $xml->writeAttribute('format', $resultformat);
         $xml->writeAttribute('structure', $resultstructure);
-        $xml->writeElement('student-feedback-level', $studentfeedbacklevel);
-        $xml->writeElement('teacher-feedback-level', $teacherfeedbacklevel);
+        if ($studentfeedbacklevel != PROFORMA_FEEDBACK_LEVEL_NOTSPECIFIED) {
+            $xml->writeElement('student-feedback-level', $studentfeedbacklevel);
+        }
+        if ($teacherfeedbacklevel != PROFORMA_FEEDBACK_LEVEL_NOTSPECIFIED) {
+            $xml->writeElement('teacher-feedback-level', $teacherfeedbacklevel);
+        }
         $xml->endElement();
 
         $xml->endElement();

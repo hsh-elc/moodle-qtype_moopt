@@ -303,9 +303,15 @@ class qtype_moopt_external extends external_api {
         // Check if calling user is teacher.
         $qubarecord = $DB->get_record('question_usages', ['id' => $qubaid]);
         $contextrecord = $DB->get_record('context', ['id' => $qubarecord->contextid]);
-        $context = context_module::instance($contextrecord->instanceid);
-        self::validate_context($context);
-        $isteacher = has_capability('mod/quiz:grade', $context);
+        $context = context_module::instance($contextrecord->instanceid, IGNORE_MISSING);
+        if($context) {
+            self::validate_context($context);
+            // do not make us wait wait through the polling interval if we're a teacher
+            $isteacher = has_capability('mod/quiz:grade', $context);
+        } else {
+            // no context module for this quba, we're probably in a question preview
+            $isteacher = true;
+        }
 
         $lastaccess = $SESSION->last_retrieve_grading_results ?? microtime(true);
         $SESSION->last_retrieve_grading_results = microtime(true);
@@ -327,6 +333,7 @@ class qtype_moopt_external extends external_api {
             }
         }
 
+        // not a recursive call, but a call to a method in locallib
         return retrieve_grading_results($qubaid);
     }
 
