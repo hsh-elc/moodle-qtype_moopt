@@ -13,7 +13,7 @@ define(['core/ajax',
 
                 init: function () {
                     var self = this;
-                    document.querySelector("#loadproformataskfilebutton").addEventListener('click', function(event) {
+                    document.querySelector("#loadproformataskfilebutton").addEventListener('click', function() {
                         self.extractInformation();
                     });
                 },
@@ -21,12 +21,11 @@ define(['core/ajax',
                 extractInformation: function () {
                     var fileManager = document.querySelector("#id_proformataskfileupload").parentNode;
                     var itemId = null;
-                    for (const child of fileManager.childNodes) {
-                        if (child.name == 'proformataskfileupload') {
-                            itemId = child.value;
-                            break;
-                        }
-                    }
+                    fileManager.childNodes.forEach( function (child) {
+                       if (child.name == 'proformataskfileupload' && itemId === null) {
+                           itemId = child.value;
+                       }
+                    });
 
                     ajax.call([
                         {
@@ -35,8 +34,13 @@ define(['core/ajax',
                             done: function (result) {
 
                                 if (typeof result.error !== 'undefined') {
-                                    document.querySelector("#id_error_ajaxerrorlabel").parentNode.children.item(0).innerHTML = '<div>' + result.error + '</div>';
-                                    document.querySelector("#id_error_ajaxwarnlabel").parentNode.children.item(0).innerHTML = '';
+
+                                    document.querySelector("#id_error_ajaxerrorlabel")
+                                        .parentNode.children.item(0).innerHTML = '<div>' + result.error + '</div>';
+
+                                    document.querySelector("#id_error_ajaxwarnlabel")
+                                        .parentNode.children.item(0).innerHTML = '';
+
                                     return;
                                 }
 
@@ -81,9 +85,14 @@ define(['core/ajax',
                                             elem.checked = false;
                                             elem.click();
                                         }
-                                        document.querySelector("#id_freetextinputfieldname"+i).value = result.freetextfilesettings[i]['defaultfilename'];
-                                        document.querySelector("#id_freetextinputfieldtemplate"+i).value = result.freetextfilesettings[i]['filecontent'];
-                                        document.querySelector("#id_ftsoverwrittenlang"+i).value = result.freetextfilesettings[i]['proglang'];
+                                        document.querySelector("#id_freetextinputfieldname"+i)
+                                            .value = result.freetextfilesettings[i]['defaultfilename'];
+
+                                        document.querySelector("#id_freetextinputfieldtemplate"+i)
+                                            .value = result.freetextfilesettings[i]['filecontent'];
+
+                                        document.querySelector("#id_ftsoverwrittenlang"+i)
+                                            .value = result.freetextfilesettings[i]['proglang'];
                                     }
                                 }
 
@@ -102,7 +111,8 @@ define(['core/ajax',
                                     warnings += '</ul>';
                                 }
 
-                                document.querySelector("#id_error_ajaxwarninglabel").parentNode.children.item(0).innerHTML = warnings;
+                                document.querySelector("#id_error_ajaxwarninglabel")
+                                    .parentNode.children.item(0).innerHTML = warnings;
 
                                 document.querySelector("#id_name").focus();
                             },
@@ -111,7 +121,7 @@ define(['core/ajax',
                                 document.querySelector("#id_error_ajaxerrorlabel").parentNode.children.item(0)
                                     .innerHTML = '<div>' + errorObject.debuginfo + '</div><div> For more information see browser '
                                     + 'console.</div>';
-                                document.querySelector("#id_error_ajaxwarninglabel").parentNode.children.item(0),innerHTML = '';
+                                document.querySelector("#id_error_ajaxwarninglabel").parentNode.children.item(0).innerHTML = '';
 
                             }
                         }

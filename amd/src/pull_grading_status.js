@@ -68,9 +68,9 @@ function (ajax, ModalFactory, ModalEvents, Strings) {
 
         init: function (qubaid_param, slot, polling_interval) {
             // Don't show the retry button yet.
-            for (const elem of document.querySelectorAll("input[name='redoslot" + slot + "'")) {
+            document.querySelectorAll("input[name='redoslot" + slot + "'").forEach(function (elem) {
                 elem.remove();
-            }
+            });
 
             qubaid = qubaid_param;
             if (typeof timer === 'undefined') {
