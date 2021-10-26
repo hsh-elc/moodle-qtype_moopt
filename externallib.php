@@ -283,21 +283,21 @@ class qtype_moopt_external extends external_api {
         return $returnval;
     }
 
-    public static function retrieve_grading_results_parameters() {
+    public static function service_retrieve_grading_results_parameters() {
         return new external_function_parameters(
                 ['qubaid' => new external_value(PARAM_INT, 'id of the question usage')]
         );
     }
 
-    public static function retrieve_grading_results_returns() {
+    public static function service_retrieve_grading_results_returns() {
         return new external_value(PARAM_BOOL, "whether any grade process finished");
     }
 
-    public static function retrieve_grading_results($qubaid) {
+    public static function service_retrieve_grading_results($qubaid) {
         global $USER, $SESSION, $DB;
 
         // Do some param validation.
-        $params = self::validate_parameters(self::retrieve_grading_results_parameters(), array('qubaid' => $qubaid));
+        $params = self::validate_parameters(self::service_retrieve_grading_results_parameters(), array('qubaid' => $qubaid));
         $qubaid = $params['qubaid'];
 
         // Check if calling user is teacher.
@@ -313,8 +313,8 @@ class qtype_moopt_external extends external_api {
             $isteacher = true;
         }
 
-        $lastaccess = $SESSION->last_retrieve_grading_results ?? microtime(true);
-        $SESSION->last_retrieve_grading_results = microtime(true);
+        $lastaccess = $SESSION->last_retrieve_grading_results_by_service ?? microtime(true);
+        $SESSION->last_retrieve_grading_results_by_service = microtime(true);
         if (microtime(true) - $lastaccess < get_config("qtype_moopt", "service_client_polling_interval") *
                 0.9 && !$isteacher) {
             // Only allow a request every n seconds from the same user.
@@ -333,7 +333,6 @@ class qtype_moopt_external extends external_api {
             }
         }
 
-        // not a recursive call, but a call to a method in locallib
         return retrieve_grading_results($qubaid);
     }
 

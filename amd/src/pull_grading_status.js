@@ -8,7 +8,7 @@ function ($, ajax, ModalFactory, ModalEvents, Strings) {
     function checkGradingFinished() {
         ajax.call([
             {
-                methodname: 'qtype_moopt_retrieve_grading_results',
+                methodname: 'qtype_moopt_service_retrieve_grading_results',
                 args: {qubaid: qubaid},
                 done: function (result) {
                     if (result) {
