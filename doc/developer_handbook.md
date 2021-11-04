@@ -32,8 +32,8 @@
 
 ## **AMD Modules** ##
 
-The JavaScript files under **amd/src/** must be minifed to **amd/build/** after changes of the source files in **amd/src/**, because moodle will use the minified files rather than the normal source files. When we want to do changes at the javascript source files we should set the option "cache javascript" in moodle to off so moodle will use the normal source files under **amd/src/** and the not the minified files under **amd/build/**.
-To do this minification of the AMD Modules moodle is using grunt.
+The JavaScript files under **amd/src/** must be minifed to **amd/build/** after changes of the source files in **amd/src/**, because Moodle will use the minified files rather than the normal source files. During development of javascript source files we should set the option "cache javascript" in Moodle to off so Moodle will use the normal source files below **amd/src/** and not the minified files below **amd/build/**.
+For minification of the AMD Modules, Moodle is using grunt.
 
 
 ### **HowTo Grunt** ###
@@ -43,11 +43,11 @@ https://docs.moodle.org/dev/Javascript_Modules#Install_grunt
 This section does also only explain the minification based on a windows system, so on other systems it could be different.
 
 #### **Installation of Grunt** ####
-At first you need to install Node.js on your system (https://nodejs.org/). The Node.js version that is supported by moodle is [documented here](https://docs.moodle.org/dev/Javascript_Modules#Install_NVM_and_Node). In the Windows installer check "Automatically install the necessary tools".
+At first you need to install Node.js on your system (https://nodejs.org/). The Node.js version that is supported by Moodle is [documented here](https://docs.moodle.org/dev/Javascript_Modules#Install_NVM_and_Node). In the Windows installer check "Automatically install the necessary tools".
 
 If you missed the automatic installation of necessary tools, after installation you can run "Install additional tools for Node.js" from the start menu.
 
-Then as administrator open CMD and navigate to the directory in which moodle is installed.
+Then as administrator open CMD and navigate to the directory in which Moodle is installed.
 From there execute the following two commands:  
 ```npm install```  
 ```npm install -g grunt-cli```  
