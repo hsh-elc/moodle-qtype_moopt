@@ -43,21 +43,25 @@ https://docs.moodle.org/dev/Javascript_Modules#Install_grunt
 This section does also only explain the minification based on a windows system, so on other systems it could be different.
 
 #### **Installation of Grunt** ####
-At first you need to install node.js on your system (https://nodejs.org/).
-Then you open CMD and navigate to the directory in which moodle is installed.
-There you use the following two commands:  
+At first you need to install Node.js on your system (https://nodejs.org/). The Node.js version that is supported by moodle is [documented here](https://docs.moodle.org/dev/Javascript_Modules#Install_NVM_and_Node). In the Windows installer check "Automatically install the necessary tools".
+
+If you missed the automatic installation of necessary tools, after installation you can run "Install additional tools for Node.js" from the start menu.
+
+Then as administrator open CMD and navigate to the directory in which moodle is installed.
+From there execute the following two commands:  
 ```npm install```  
 ```npm install -g grunt-cli```  
 It can happen that vulnerabilities are mentioned, you can ignore that.
+
 
 #### **Running Grunt** ####
 
 Use CMD and move into the AMD directory of the plugin and run the following command:   
 ```grunt amd```  
-It can happen that this does fail because this command also checks the code with the ESLint Code Analysis Tool and when it finds "problematic patterns" it will return some errors. 
+It can happen that this fails because this command also checks the code with the ESLint Code Analysis Tool and when it finds "problematic patterns" it will return some errors. 
 When these "problematic patterns" in the code are no real problems you can also run:   
 ```grunt amd --force```   
-instead to minificate the files even when the Code Analysis Tool finds problematic code.
+instead to minify the files even when the Code Analysis Tool finds problematic code.
 
 After that the minified files should be under amd/build/.
 

@@ -200,14 +200,13 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     return $filename;
 }
 
-/*
+/**
  * Removes all files and directories from the given draft area except a file with the given file name
  *
  * @param type $draftareaid
  * @param type $user_context
  * @param type $excluded_file_name
  */
-
 function remove_all_files_from_draft_area($draftareaid, $usercontext, $excludedfilename) {
     $fs = get_file_storage();
     $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftareaid);
