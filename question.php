@@ -28,6 +28,9 @@ defined('MOODLE_INTERNAL') || die();
 //
 // Make sure to implement all the abstract methods of the base class.
 
+require_once($CFG->dirroot . '/question/behaviour/immediatemoopt/behaviour.php');
+require_once($CFG->dirroot . '/question/behaviour/deferredmoopt/behaviour.php');
+
 use qtype_moopt\utility\communicator\communicator_factory;
 use qtype_moopt\utility\proforma_xml\proforma_submission_xml_creator;
 
@@ -101,7 +104,6 @@ class qtype_moopt_question extends question_graded_automatically {
      * @return question_behaviour the new behaviour object.
      */
     public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
-
         $prefixtocheck = 'immediate';
         if (substr($preferredbehaviour, 0, strlen($prefixtocheck)) === $prefixtocheck) {
             $preferredbehaviour = 'immediatemoopt';
@@ -110,8 +112,8 @@ class qtype_moopt_question extends question_graded_automatically {
             // it wouldn't start with 'deferred'.
             $preferredbehaviour = 'deferredmoopt';
         }
-
-        return parent::make_behaviour($qa, $preferredbehaviour);
+        $class = 'qbehaviour_' . $preferredbehaviour;
+        return new $class($qa, $preferredbehaviour);
     }
 
     /**
