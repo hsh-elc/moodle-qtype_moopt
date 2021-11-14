@@ -42,27 +42,31 @@ class qtype_moopt_edit_form extends question_edit_form {
     protected function definition() {
         global $COURSE, $PAGE;
 
-        $mform = $this->_form;
+        if (!has_capability("qtype/moopt:create", $this->context)) {
+            redirect(new moodle_url('/question/type/moopt/missing_capability_errorpage.php'));
+        } else {
+            $mform = $this->_form;
 
-        $mform->addElement('header', 'taskfile', get_string('taskfile', 'qtype_moopt'));
+            $mform->addElement('header', 'taskfile', get_string('taskfile', 'qtype_moopt'));
 
-        $mform->addElement('filemanager', 'proformataskfileupload', get_string('proformataskfileupload', 'qtype_moopt'),
+            $mform->addElement('filemanager', 'proformataskfileupload', get_string('proformataskfileupload', 'qtype_moopt'),
                 null, array('subdirs' => 0, 'maxbytes' => $COURSE->maxbytes, 'maxfiles' => 1));
-        $mform->addHelpButton('proformataskfileupload', 'proformataskfileupload', 'qtype_moopt');
-        $mform->addRule('proformataskfileupload', get_string('proformataskfilerequired', 'qtype_moopt'), 'required');
+            $mform->addHelpButton('proformataskfileupload', 'proformataskfileupload', 'qtype_moopt');
+            $mform->addRule('proformataskfileupload', get_string('proformataskfilerequired', 'qtype_moopt'), 'required');
 
-        $mform->addElement('button', 'loadproformataskfilebutton', get_string('loadproformataskfile', 'qtype_moopt'),
+            $mform->addElement('button', 'loadproformataskfilebutton', get_string('loadproformataskfile', 'qtype_moopt'),
                 array('id' => 'loadproformataskfilebutton'));
 
-        $label = $mform->addElement('static', 'ajaxerrorlabel', '', '');
-        $this->set_class_attribute_of_label($label, 'errorlabel');
+            $label = $mform->addElement('static', 'ajaxerrorlabel', '', '');
+            $this->set_class_attribute_of_label($label, 'errorlabel');
 
-        $label = $mform->addElement('static', 'ajaxwarninglabel', '', '');
-        $this->set_class_attribute_of_label($label, 'warninglabel');
+            $label = $mform->addElement('static', 'ajaxwarninglabel', '', '');
+            $this->set_class_attribute_of_label($label, 'warninglabel');
 
-        parent::definition();
+            parent::definition();
 
-        $PAGE->requires->js_call_amd('qtype_moopt/creation_via_drag_and_drop', 'init');
+            $PAGE->requires->js_call_amd('qtype_moopt/creation_via_drag_and_drop', 'init');
+        }
     }
 
     protected function definition_inner($mform) {
@@ -159,7 +163,7 @@ class qtype_moopt_edit_form extends question_edit_form {
 
         for ($i = 0; $i < get_config("qtype_moopt", "max_number_free_text_inputs"); $i++) {
             $mform->addElement('advcheckbox', "enablecustomsettingsforfreetextinputfield$i",
-                    get_string('enablecustomsettingsforfreetextinputfield', 'qtype_moopt') . ($i + 1), ' ');
+                get_string('enablecustomsettingsforfreetextinputfield', 'qtype_moopt') . ($i + 1), ' ');
             $mform->hideIf("enablecustomsettingsforfreetextinputfield$i", 'enablefreetextsubmissions');
             $mform->hideIf("enablecustomsettingsforfreetextinputfield$i", "enablecustomsettingsforfreetextinputfields");
             $hidearr = [];
@@ -170,9 +174,9 @@ class qtype_moopt_edit_form extends question_edit_form {
 
             $namesettingsarray = array();
             $namesettingsarray[] = $mform->createElement('radio', "namesettingsforfreetextinput$i", '',
-                    get_string('freetextinputteachername', 'qtype_moopt'), 0);
+                get_string('freetextinputteachername', 'qtype_moopt'), 0);
             $namesettingsarray[] = $mform->createElement('radio', "namesettingsforfreetextinput$i", '',
-                    get_string('freetextinputstudentname', 'qtype_moopt'), 1);
+                get_string('freetextinputstudentname', 'qtype_moopt'), 1);
             $mform->addGroup($namesettingsarray, "namesettingsforfreetextinputgroup$i", '', array(' '), false);
             $mform->hideIf("namesettingsforfreetextinputgroup$i", "enablecustomsettingsforfreetextinputfield$i");
             $mform->hideIf("namesettingsforfreetextinputgroup$i", 'enablefreetextsubmissions');

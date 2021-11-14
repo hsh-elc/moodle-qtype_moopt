@@ -608,4 +608,25 @@ class qtype_moopt_renderer extends qtype_renderer {
         return '';
     }
 
+    function render_error(error_renderable $error_renderable) {
+        $output = "<div class='errorbox'>" . $error_renderable->err_msg . "</div>";
+        $output .= "<form method='get' action='$error_renderable->redirect_url'>";
+        $output .= "<button class='button type='submit'>" . get_string('continue', 'qtype_moopt') . "</button>";
+        $output .= "</form></div>";
+        return $output;
+    }
+}
+
+class error_renderable implements renderable {
+    var $err_msg = null;
+    var $redirect_url = null;
+
+    /**
+     * @param string $err_msg The message that should be printed
+     * @param string $redirect_url The url of the site to which the user should be redirected by the button
+     */
+    public function __construct(string $err_msg, string $redirect_url) {
+        $this->err_msg = $err_msg;
+        $this->redirect_url = $redirect_url;
+    }
 }
