@@ -77,30 +77,6 @@
     margin-left: 10px;
 }
 
-.errorbox{
-    color: #691911;
-    background-color: #f4d6d2;
-    border-color: #f0c5c1;
-    position: relative;
-    padding: .75rem 1.25rem;
-    margin-bottom: 1rem;
-    border: 0 solid transparent;
-}
-
-.button {
-    color: #fff;
-    background-color: #333;
-    border-color: #333;
-    display: inline-block;
-    font-weight: 400;
-    text-align: center;
-    vertical-align: middle;
-    padding: .375rem .75rem;
-    font-size: .9375rem;
-    line-height: 1.5;
-    border-radius: 0;
-}
-
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }

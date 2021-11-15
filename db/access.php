@@ -8,7 +8,6 @@ $capabilities = [
         'archetypes' => array (
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW
-        ),
-        'clonepersmissionsfrom' => 'moodle/course:manageactivities'
+        )
     ],
 ];
