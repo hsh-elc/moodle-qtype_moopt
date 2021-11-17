@@ -196,7 +196,7 @@ class qtype_moopt_question extends question_graded_automatically {
      *          the submission manually or trigger a regrade
      */
     public function grade_response_asynch(question_attempt $qa, array $responsefiles, array $freetextanswers): question_state {
-        global $DB;
+        global $DB, $USER, $COURSE;
         $communicator = communicator_factory::get_instance();
         $fs = get_file_storage();
 
@@ -242,7 +242,7 @@ class qtype_moopt_question extends question_graded_automatically {
         $submissionxmlcreator = new proforma_submission_xml_creator();
         $submissionxml = $submissionxmlcreator->create_submission_xml($includetaskfile, $includetaskfile ?
                 $taskfilename : $this->taskuuid, $files, $this->resultspecformat, $this->resultspecstructure, $this->studentfeedbacklevel, $this->teacherfeedbacklevel,
-                $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark());
+                $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark(), $USER->id, $COURSE->id);
 
         // Load task file and add it to the files that go into the zip file.
         if ($includetaskfile) {

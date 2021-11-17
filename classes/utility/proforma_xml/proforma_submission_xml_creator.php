@@ -24,7 +24,7 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
 
     public function create_submission_xml(bool $includetask, string $taskfilenameoruuid, array $files, string $resultformat,
             string $resultstructure, $studentfeedbacklevel, $teacherfeedbacklevel,
-            $gradinghints, $tests, $gradinghintsnamespace, $maxscorelms): string {
+            $gradinghints, $tests, $gradinghintsnamespace, $maxscorelms, $userid, $courseid): string {
         $this->init_xml_writer_for_document();
 
         $xml = $this->xmlwriter;
@@ -75,6 +75,18 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
             $xml->endElement();
         }
         $xml->endElement();
+
+
+        /* LMS */
+        $xml->startElement('lms');
+        $xml->writeAttribute('url', new \moodle_url('/')); // new moodle_url automatically gets the base url of the lms, so we just use this without additional parameters
+        $currentDateTime = new \DateTime();
+        $date = $currentDateTime->format('Y-m-d');
+        $xml->writeElement('submission-datetime', $date . 'T' . $currentDateTime->format('H:i:s'));
+        $xml->writeElement('user-id', md5($userid));
+        $xml->writeElement('course-id', $courseid);
+        $xml->endElement();
+
 
         $xml->startElement('result-spec');
         $xml->writeAttribute('format', $resultformat);
