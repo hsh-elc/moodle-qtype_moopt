@@ -83,7 +83,7 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
         $currentDateTime = new \DateTime();
         $date = $currentDateTime->format('Y-m-d');
         $xml->writeElement('submission-datetime', $date . 'T' . $currentDateTime->format('H:i:s'));
-        $xml->writeElement('user-id', md5($userid));
+        $xml->writeElement('user-id', $userid);
         $xml->writeElement('course-id', $courseid);
         $xml->endElement();
 
