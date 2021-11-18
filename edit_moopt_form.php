@@ -42,7 +42,7 @@ class qtype_moopt_edit_form extends question_edit_form {
     protected function definition() {
         global $COURSE, $PAGE;
 
-        if (!has_capability("qtype/moopt:create", $this->context)) {
+        if (!has_capability("qtype/moopt:author", $this->context)) {
             redirect(new moodle_url('/question/type/moopt/missing_capability_errorpage.php'));
         } else {
             $mform = $this->_form;
