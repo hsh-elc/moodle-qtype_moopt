@@ -56,6 +56,14 @@ The child elements control the widgets of the question creation dialog, that def
 'yaml' => 'YAML'
 ```
 
+# MooPT specific capability #
+
+The MooPT plugin defines a Moodle capability to create and edit MooPT questions. By default, the roles *manager* and *editingteacher* will get that capability. If access to authorship of questions of the MooPT question type should be restricted to selected users in selected courses, after installation of MooPT you should withdraw the capability `qtype/moopt:author` for *editingteacher*s and selectively assign it to users in courses. As a Moodle site administrator it might be helpful to create a blank new Moodle role *MooPT* that is not based on an existing role archetype. Then you should allow the capability `qtype/moopt:author` for the new role. The following screenshot shows a sample configuration of the new role:
+
+![](doc/img/moopt_role.png) 
+
+As a Moodle site administrator then the new *MooPT* role can be assigned to selected users in selected courses via the Moodle *Manage courses and categories* dialogue.
+
 
 ## License ##
 

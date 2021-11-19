@@ -1,7 +1,7 @@
 <?php
 
 $capabilities = [
-    'qtype/moopt:create' => [
+    'qtype/moopt:author' => [
         'riskbitmask' => RISK_XSS,
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
