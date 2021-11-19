@@ -11,6 +11,6 @@ $PAGE->set_pagelayout('standard');
 /* Output of the page's content */
 $output = $PAGE->get_renderer('qtype_moopt');
 echo $output->header();
-echo $output->render_error_msg(get_string('missingcreatecapability', 'qtype_moopt'),
+echo $output->render_error_msg(get_string('missingauthorcapability', 'qtype_moopt'),
     new moodle_url('/')); //Just redirect to the startpage of moodle
 echo $output->footer();
