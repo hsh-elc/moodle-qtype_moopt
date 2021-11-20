@@ -30,13 +30,15 @@ class separate_feedback_text_renderer {
     private $displayteachercontent;
     private $fileinfos;
     private $showstudentsscorecalculationscheme;
+    private $feedbackblockid;
     private $randid;
 
-    public function __construct($rootnode, $displayteachercontent, $fileinfos, $showstudentsscorecalculationscheme) {
+    public function __construct($rootnode, $displayteachercontent, $fileinfos, $showstudentsscorecalculationscheme, $feedbackblockid) {
         $this->rootnode = $rootnode;
         $this->displayteachercontent = $displayteachercontent;
         $this->fileinfos = $fileinfos;
         $this->showstudentsscorecalculationscheme = $showstudentsscorecalculationscheme;
+        $this->feedbackblockid;
         $this->randid = bin2hex(random_bytes(6));
     }
 
@@ -55,7 +57,7 @@ class separate_feedback_text_renderer {
                     <div class='card-header, {$additionalheaderclasses}' id='$currentid'>
                       <h5 class='mb-0'>
                         <button type='button' class='btn btn-link' data-toggle='collapse' data-target='#collapse_$currentid'" .
-                " aria-expanded='true' aria-controls='collapse_$currentid' style='width: 100%;'>
+                " aria-expanded='false' aria-controls='collapse_$currentid' style='width: 100%;'>
                             {$this->format_heading($node)}
                         </button>
                       </h5>
