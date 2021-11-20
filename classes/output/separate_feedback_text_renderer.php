@@ -30,15 +30,13 @@ class separate_feedback_text_renderer {
     private $displayteachercontent;
     private $fileinfos;
     private $showstudentsscorecalculationscheme;
-    private $feedbackblockid;
     private $randid;
 
-    public function __construct($rootnode, $displayteachercontent, $fileinfos, $showstudentsscorecalculationscheme, $feedbackblockid) {
+    public function __construct($rootnode, $displayteachercontent, $fileinfos, $showstudentsscorecalculationscheme) {
         $this->rootnode = $rootnode;
         $this->displayteachercontent = $displayteachercontent;
         $this->fileinfos = $fileinfos;
         $this->showstudentsscorecalculationscheme = $showstudentsscorecalculationscheme;
-        $this->feedbackblockid;
         $this->randid = bin2hex(random_bytes(6));
     }
 
