@@ -72,17 +72,21 @@ class qtype_moopt_renderer extends qtype_renderer {
             $o .= "</div><br>";
         }
 
-        $onlinegraders = communicator_factory::get_instance()->get_graders();
-        $graderforthistask = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id], 'graderid')
-            ->graderid;
-        $found = false;
-        foreach($onlinegraders['graders'] as $grader) {
-            foreach($grader as $graderKey => $graderName) {
-                if($graderKey === $graderforthistask) {
-                    $found = true;
-                    break 2;
+        try {
+            $onlinegraders = communicator_factory::get_instance()->get_graders();
+            $graderforthistask = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id], 'graderid')
+                ->graderid;
+            $found = false;
+            foreach($onlinegraders['graders'] as $grader) {
+                foreach($grader as $graderKey => $graderName) {
+                    if($graderKey === $graderforthistask) {
+                        $found = true;
+                        break 2;
+                    }
                 }
             }
+        } catch (Exception $ex) {
+            $found= false;
         }
 
         if(!$found) {

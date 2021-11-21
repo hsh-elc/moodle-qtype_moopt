@@ -72,6 +72,7 @@ $string['maximum'] = 'Maximum';
 $string['needsgradingbyteacher'] = 'An error occurred during the grading process, your submission requires manual grading by a teacher.';
 $string['nofeedback'] = 'No feedback given';
 $string['nofilessubmitted'] = 'You did not submit any solution files to the task.';
+$string['nograderavailable'] = 'Currently, there are no graders available. Please contact your system administrator.';
 $string['noresponseyet'] = 'No response yet';
 $string['nosubmissionpossible'] = 'Your teacher did not enable any way for submitting a solution.';
 $string['nosummaryavailable'] = 'No summary available.';
