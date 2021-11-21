@@ -72,17 +72,21 @@ class qtype_moopt_renderer extends qtype_renderer {
             $o .= "</div><br>";
         }
 
-        $onlinegraders = communicator_factory::get_instance()->get_graders();
-        $graderforthistask = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id], 'graderid')
-            ->graderid;
-        $found = false;
-        foreach($onlinegraders['graders'] as $grader) {
-            foreach($grader as $graderKey => $graderName) {
-                if($graderKey === $graderforthistask) {
-                    $found = true;
-                    break 2;
+        try {
+            $onlinegraders = communicator_factory::get_instance()->get_graders();
+            $graderforthistask = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id], 'graderid')
+                ->graderid;
+            $found = false;
+            foreach($onlinegraders['graders'] as $grader) {
+                foreach($grader as $graderKey => $graderName) {
+                    if($graderKey === $graderforthistask) {
+                        $found = true;
+                        break 2;
+                    }
                 }
             }
+        } catch (Exception $ex) {
+            $found= false;
         }
 
         if(!$found) {
@@ -513,6 +517,8 @@ class qtype_moopt_renderer extends qtype_renderer {
                                     'contextid' => $qubarecord->contextid,
                                     'filepath' => "/{$qa->get_slot()}/{$qa->get_usage_id()}/"
                                 ];
+                                $feedbackblockid = "moopt-feedbackblock-" . $qa->get_usage_id() . "-" . $qa->get_slot();
+                                $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_separate_feedback_buttons', 'init', [$feedbackblockid]);
 
                                 if (!$separatefeedbackhelper->get_detailed_feedback()->has_internal_error() ||
                                         has_capability('mod/quiz:grade', $PAGE->context)) {
@@ -520,12 +526,19 @@ class qtype_moopt_renderer extends qtype_renderer {
                                             $separatefeedbackhelper->get_summarised_feedback(),
                                             has_capability('mod/quiz:grade', $PAGE->context), $fileinfos,
                                             $qa->get_question()->showstudscorecalcscheme);
-                                    $html .= '<p>' . $separatefeedbackrenderersummarised->render() . '</p>';
-
+                                    $html .= "<p class='expandcollapselink'><a href='#' id='" . $feedbackblockid . "-expand-all-button'>" 
+                                             . get_string('expand_all', 'qtype_moopt') . "</a> ";
+                                    $html .= "<a href='#' id='" . $feedbackblockid . "-collapse-all-button'>"
+                                             . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
+                                    
+                                    $html .= "<div id='" . $feedbackblockid . "'>";
+                                    $html .=    $separatefeedbackrenderersummarised->render();
+                                    $html .=    '<p/>'; // vertical space between summarized and detailed feedback buttons
                                     $separatefeedbackrendererdetailed = new separate_feedback_text_renderer(
                                             $separatefeedbackhelper->get_detailed_feedback(), has_capability('mod/quiz:grade',
                                                     $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
-                                    $html .= '<p>' . $separatefeedbackrendererdetailed->render() . '</p>';
+                                    $html .= $separatefeedbackrendererdetailed->render();
+                                    $html .= '</div>';
                                 } else {
                                     $html .= '<p>' . get_string('needsgradingbyteacher', 'qtype_moopt') . '</p>';
                                 }
@@ -600,7 +613,8 @@ class qtype_moopt_renderer extends qtype_renderer {
                     // TODO: put following string in lang
                     $html .= "<a href='$url' style='display:block;text-align:right;'>" .
                             " <span style='font-family: FontAwesome; display:inline-block;" .
-                            "margin-right: 5px'>&#xf019;</span> Download complete '{$downloadable_responsefilename}' file</a>";
+                            "margin-right: 5px'>&#xf019;</span> " .
+                            get_string('downloadcompletefile', 'qtype_moopt', $downloadable_responsefilename) . "</a>";
                 }
                 return $html;
             }
@@ -615,9 +629,10 @@ class qtype_moopt_renderer extends qtype_renderer {
      * @return string The html output of the errormessage
      * @throws coding_exception
      */
-    public function render_error_msg(string $err_msg, string $redirect_url): string {
+    public function render_error_msg(string $err_msg, string $redirect_url, int $courseid): string {
         $output = "<div class='box py-3 errorbox alert alert-danger'>" . $err_msg . "</div>";
         $output .= "<form method='get' action='$redirect_url'>";
+        $output .= "<input type='hidden' id='id' name='id' value='$courseid'>";
         $output .= "<button class='btn btn-primary' type='submit'>" . get_string('continue', 'qtype_moopt') . "</button>";
         $output .= "</form></div>";
         return $output;

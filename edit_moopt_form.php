@@ -43,7 +43,7 @@ class qtype_moopt_edit_form extends question_edit_form {
         global $COURSE, $PAGE;
 
         if (!has_capability("qtype/moopt:author", $this->context)) {
-            redirect(new moodle_url('/question/type/moopt/missing_capability_errorpage.php'));
+            redirect(new moodle_url('/question/type/moopt/missing_capability_errorpage.php', array('courseid' => $COURSE->id)));
         } else {
             $mform = $this->_form;
 
@@ -75,17 +75,28 @@ class qtype_moopt_edit_form extends question_edit_form {
             'noclean' => true, 'context' => $this->context, 'subdirs' => true));
         $mform->setType('internaldescription', PARAM_RAW); // No XSS prevention here, users must be trusted.
 
-        $graders = communicator_factory::get_instance()->get_graders()['graders'];
         $this->availableGraders = array();
-        foreach ($graders as $grader) {
-            $k = key($grader);
-            $this->availableGraders[$k] = $grader[$k];
+        try {
+            $graders = communicator_factory::get_instance()->get_graders()['graders'];
+            foreach ($graders as $grader) {
+                $k = key($grader);
+                $this->availableGraders[$k] = $grader[$k];
+            }
+        } catch (Exception $ex) {
+            // backend not reachable.
+            // no available graders.
         }
         $this->graderselect = $mform->addElement('select', 'graderid', get_string('grader', 'qtype_moopt'),
             $this->availableGraders);
 
         $this->gradererrorlabel = $mform->addElement('static', 'gradernotavailableerrorlabel', '', '');
         $this->set_class_attribute_of_label($this->gradererrorlabel, 'errorlabel');
+        if (empty($this->availableGraders)) {
+            $this->gradererrorlabel->setText(get_string('nograderavailable', 'qtype_moopt'));
+            // This message might get overwritten in the function data_preprocessing
+            // by a more specific message, if we are editing an existing question
+            // whose given grader is currently unavailable.
+        }
 
         /* Add the settings for the result specs */
         $select = $mform->addElement('select', 'resultspecformat', get_string('resultspecformat', 'qtype_moopt'), array(

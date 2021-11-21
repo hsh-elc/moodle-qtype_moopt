@@ -33,6 +33,14 @@
     align-items: center;
 }
 
+.specificfeedback p.expandcollapselink {
+	text-align: right;
+}
+
+.specificfeedback p.expandcollapselink a {
+	margin-left: 15px;
+}
+
 .qtype_moopt_answertext{
     margin-bottom: 30px;
 }
