@@ -326,7 +326,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $output = '';
                 $output .= html_writer::start_tag('div', array('class' => "qtype_moopt_answertext",
-                            'id' => "qtype_moopt_answertext_$i",
+                            'id' => "qtype_moopt_answertext_" . $qa->get_question_id() . "_$i",
                             'style' => 'display:none;'));
                 $output .= html_writer::start_div('answertextfilename');
                 $output .= html_writer::label(get_string('filename', 'qtype_moopt') . ":", $filenameid);
@@ -355,13 +355,13 @@ class qtype_moopt_renderer extends qtype_renderer {
             }
             $renderedarea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
             $renderedarea .= html_writer::tag('button', get_string('addanswertext', 'qtype_moopt'),
-                            ['id' => 'addAnswertextButton']);
+                            ['id' => 'addAnswertextButton_' . $qa->get_question_id()]);
             $renderedarea .= html_writer::tag('button', get_string('removelastanswertext', 'qtype_moopt'),
-                            ['id' => 'removeLastAnswertextButton', 'style' => 'margin-left: 10px']);
+                            ['id' => 'removeLastAnswertextButton_' . $qa->get_question_id(), 'style' => 'margin-left: 10px']);
             $renderedarea .= html_writer::end_div();
 
             $PAGE->requires->js_call_amd('qtype_moopt/manage_answer_texts', 'init',
-                    [(int)$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, (int)$questionoptions->ftsnuminitialfields)]);
+                    [(int)$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, (int)$questionoptions->ftsnuminitialfields), $qa->get_question_id()]);
         }
 
         if ($renderedarea == '') {

@@ -4,32 +4,32 @@ define([], function () {
     var currentNumberFields;
     return {
 
-        init: function (maxFields, initialNumberFields) {
+        init: function (maxFields, initialNumberFields, questionid) {
 
             maxNumberFields = maxFields;
             currentNumberFields = initialNumberFields;
 
-            this.adjustVisibility();
+            this.adjustVisibility(questionid);
             var self = this;
-            document.querySelector("#addAnswertextButton").addEventListener("click", function (event) {
+            document.querySelector("#addAnswertextButton_" + questionid).addEventListener("click", function (event) {
                 if (currentNumberFields < maxNumberFields) {
                     currentNumberFields++;
-                    self.adjustVisibility();
+                    self.adjustVisibility(questionid);
                 }
                 event.preventDefault();
             });
-            document.querySelector("#removeLastAnswertextButton").addEventListener("click", function (event) {
+            document.querySelector("#removeLastAnswertextButton_" + questionid).addEventListener("click", function (event) {
                 if (currentNumberFields > 1) {
                     currentNumberFields--;
-                    self.adjustVisibility();
+                    self.adjustVisibility(questionid);
                 }
                 event.preventDefault();
             });
         },
 
-        adjustVisibility: function () {
+        adjustVisibility: function (questionid) {
             for (var i = 0; i < maxNumberFields; i++) {
-                var id = "#qtype_moopt_answertext_" + i;
+                var id = "#qtype_moopt_answertext_" + questionid + "_" + i;
                 if (i < currentNumberFields) {
                     document.querySelector(id).style.display = "block";
                 } else {
@@ -37,15 +37,15 @@ define([], function () {
                 }
             }
             if (currentNumberFields == maxNumberFields) {
-                document.querySelector("#addAnswertextButton").disabled = true;
+                document.querySelector("#addAnswertextButton_" + questionid).disabled = true;
             } else {
-                document.querySelector("#addAnswertextButton").disabled = false;
+                document.querySelector("#addAnswertextButton_" + questionid).disabled = false;
             }
 
             if (currentNumberFields <= 1) {
-                document.querySelector("#removeLastAnswertextButton").disabled = true;
+                document.querySelector("#removeLastAnswertextButton_" + questionid).disabled = true;
             } else {
-                document.querySelector("#removeLastAnswertextButton").disabled = false;
+                document.querySelector("#removeLastAnswertextButton_" + questionid).disabled = false;
             }
 
         }
