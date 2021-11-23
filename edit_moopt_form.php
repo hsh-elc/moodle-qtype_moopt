@@ -74,6 +74,7 @@ class qtype_moopt_edit_form extends question_edit_form {
                 array('rows' => 10), array('maxfiles' => 0,
             'noclean' => true, 'context' => $this->context, 'subdirs' => true));
         $mform->setType('internaldescription', PARAM_RAW); // No XSS prevention here, users must be trusted.
+        $mform->addHelpButton('internaldescription', 'internaldescription', 'qtype_moopt');
 
         $this->availableGraders = array();
         try {
@@ -88,6 +89,7 @@ class qtype_moopt_edit_form extends question_edit_form {
         }
         $this->graderselect = $mform->addElement('select', 'graderid', get_string('grader', 'qtype_moopt'),
             $this->availableGraders);
+        $mform->addHelpButton('graderid', 'grader', 'qtype_moopt');
 
         $this->gradererrorlabel = $mform->addElement('static', 'gradernotavailableerrorlabel', '', '');
         $this->set_class_attribute_of_label($this->gradererrorlabel, 'errorlabel');
@@ -103,6 +105,7 @@ class qtype_moopt_edit_form extends question_edit_form {
             PROFORMA_RESULT_SPEC_FORMAT_ZIP => PROFORMA_RESULT_SPEC_FORMAT_ZIP,
             PROFORMA_RESULT_SPEC_FORMAT_XML => PROFORMA_RESULT_SPEC_FORMAT_XML)
         );
+        $mform->addHelpButton('resultspecformat', 'resultspecformat', 'qtype_moopt');
         $select->setSelected(PROFORMA_RESULT_SPEC_FORMAT_ZIP); // this default could be changed by a grader- or question-specific value in the near future
         $mform->setType('resultspecformat', PARAM_TEXT);
 
@@ -110,6 +113,7 @@ class qtype_moopt_edit_form extends question_edit_form {
             PROFORMA_MERGED_FEEDBACK_TYPE => PROFORMA_MERGED_FEEDBACK_TYPE,
             PROFORMA_SEPARATE_FEEDBACK_TYPE => PROFORMA_SEPARATE_FEEDBACK_TYPE)
         );
+        $mform->addHelpButton('resultspecstructure', 'resultspecstructure', 'qtype_moopt');
         $select->setSelected(PROFORMA_SEPARATE_FEEDBACK_TYPE); // this default could be changed by a grader- or question-specific value in the near future
         $mform->setType('resultspecstructure', PARAM_TEXT);
 
@@ -122,18 +126,23 @@ class qtype_moopt_edit_form extends question_edit_form {
             PROFORMA_FEEDBACK_LEVEL_NOTSPECIFIED => get_string('notspecified', 'qtype_moopt')
         );
         $select = $mform->addElement('select', 'studentfeedbacklevel', get_string('studentfeedbacklevel', 'qtype_moopt'), $feedbackleveloptions);
+        $mform->addHelpButton('studentfeedbacklevel', 'studentfeedbacklevel', 'qtype_moopt');
         $select->setSelected(PROFORMA_FEEDBACK_LEVEL_INFO); // this default could be changed by a grader- or question-specific value in the near future
         $mform->setType('studentfeedbacklevel', PARAM_TEXT);
         $select = $mform->addElement('select', 'teacherfeedbacklevel', get_string('teacherfeedbacklevel', 'qtype_moopt'), $feedbackleveloptions);
+        $mform->addHelpButton('teacherfeedbacklevel', 'teacherfeedbacklevel', 'qtype_moopt');
         $mform->setType('teacherfeedbacklevel', PARAM_TEXT);
         $select->setSelected(PROFORMA_FEEDBACK_LEVEL_DEBUG); // this default could be changed by a grader- or question-specific value in the near future
 
         $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_moopt'), array("size" => '36'));
+        $mform->addHelpButton('taskuuid', 'taskuuid', 'qtype_moopt');
         $mform->setType('taskuuid', PARAM_TEXT);
         $mform->addRule('taskuuid', get_string('taskuuidrequired', 'qtype_moopt'), 'required');
 
         $mform->addElement('advcheckbox', 'showstudscorecalcscheme',
                 get_string('showstudscorecalcscheme', 'qtype_moopt'), ' ');
+        $mform->addHelpButton('showstudscorecalcscheme', 'showstudscorecalcscheme', 'qtype_moopt');
+        $mform->setDefault('showstudscorecalcscheme', true);
 
         $mform->addElement('header', 'submissionsettings', get_string('submissionsettings', 'qtype_moopt'));
 
