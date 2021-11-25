@@ -72,17 +72,21 @@ class qtype_moopt_renderer extends qtype_renderer {
             $o .= "</div><br>";
         }
 
-        $onlinegraders = communicator_factory::get_instance()->get_graders();
-        $graderforthistask = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id], 'graderid')
-            ->graderid;
-        $found = false;
-        foreach($onlinegraders['graders'] as $grader) {
-            foreach($grader as $graderKey => $graderName) {
-                if($graderKey === $graderforthistask) {
-                    $found = true;
-                    break 2;
+        try {
+            $onlinegraders = communicator_factory::get_instance()->get_graders();
+            $graderforthistask = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id], 'graderid')
+                ->graderid;
+            $found = false;
+            foreach($onlinegraders['graders'] as $grader) {
+                foreach($grader as $graderKey => $graderName) {
+                    if($graderKey === $graderforthistask) {
+                        $found = true;
+                        break 2;
+                    }
                 }
             }
+        } catch (Exception $ex) {
+            $found= false;
         }
 
         if(!$found) {
@@ -619,4 +623,19 @@ class qtype_moopt_renderer extends qtype_renderer {
         return '';
     }
 
+    /**
+     * Generates the output of an errormessage and also adds a button that will redirect to a specific url
+     * @param string $err_msg The message that should be shown
+     * @param string $redirect_url The url to which the button should redirect the user
+     * @return string The html output of the errormessage
+     * @throws coding_exception
+     */
+    public function render_error_msg(string $err_msg, string $redirect_url, int $courseid): string {
+        $output = "<div class='box py-3 errorbox alert alert-danger'>" . $err_msg . "</div>";
+        $output .= "<form method='get' action='$redirect_url'>";
+        $output .= "<input type='hidden' id='id' name='id' value='$courseid'>";
+        $output .= "<button class='btn btn-primary' type='submit'>" . get_string('continue', 'qtype_moopt') . "</button>";
+        $output .= "</form></div>";
+        return $output;
+    }
 }

@@ -76,5 +76,13 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2021101401, 'qtype', 'moopt');
     }
 
+    if ($oldversion < 2021110601) {
+        $DB->set_field('quiz', 'preferredbehaviour', 'immediatefeedback', array('preferredbehaviour' => 'immediatemoopt'));
+        $DB->set_field('quiz', 'preferredbehaviour', 'deferredfeedback', array('preferredbehaviour' => 'deferredmoopt'));
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2021110601, 'qtype', 'moopt');
+    }
+
     return true;
 }
