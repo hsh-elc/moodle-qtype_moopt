@@ -242,16 +242,17 @@ class qtype_moopt_renderer extends qtype_renderer {
                         $proglang = $customoptions->ftslang;
                     }
 
+                    $textarea_id = "answertext_" . $qa->get_question_id() . "_" . $i;
                     $renderedfreetext .= html_writer::start_div('answertextreadonly');
                     $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ' (' .
                                     PROFORMA_ACE_PROGLANGS[$proglang] . ')' . ':');
-                    $renderedfreetext .= html_writer::tag('div', html_writer::tag('textarea', $text, array('id' => "answertext$i",
+                    $renderedfreetext .= html_writer::tag('div', html_writer::tag('textarea', $text, array('id' => $textarea_id,
                                         'style' => 'width: 100%;padding-left: 10px;height:400px;', 'class' => 'edit_code',
                                         'data-lang' => $proglang, 'readonly' => '')));
                     $renderedfreetext .= html_writer::end_div();
 
                     $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper',
-                            ['ace', "answertext$i"]);
+                            ['ace', $textarea_id]);
                 }
             }
 
