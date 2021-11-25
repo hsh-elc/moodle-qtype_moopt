@@ -246,7 +246,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                         $proglang = $customoptions->ftslang;
                     }
 
-                    $textarea_id = "answertext_" . $qa->get_question_id() . "_" . $i;
+                    $textarea_id = "qtype_moopt_answertext_" . $qa->get_question_id() . "_" . $i;
                     $renderedfreetext .= html_writer::start_div('answertextreadonly');
                     $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ' (' .
                                     PROFORMA_ACE_PROGLANGS[$proglang] . ')' . ':');
