@@ -246,12 +246,15 @@ class qtype_moopt_renderer extends qtype_renderer {
                         $proglang = $customoptions->ftslang;
                     }
 
+                    // Adjust the height of the textarea based on the content of the textarea
+                    $textareaheight = (max($customoptions->initialdisplayrows, count(explode(PHP_EOL, $text))) + 1.5) * ACE_EDITOR_LINE_HEIGHT;
+
                     $textarea_id = "qtype_moopt_answertext_" . $qa->get_question_id() . "_" . $i;
                     $renderedfreetext .= html_writer::start_div('answertextreadonly');
                     $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ' (' .
                                     PROFORMA_ACE_PROGLANGS[$proglang] . ')' . ':');
                     $renderedfreetext .= html_writer::tag('div', html_writer::tag('textarea', $text, array('id' => $textarea_id,
-                                        'style' => 'width: 100%;padding-left: 10px;height:400px;', 'class' => 'edit_code',
+                                        'style' => 'width: 100%;padding-left: 10px;height:' . $textareaheight . 'px;', 'class' => 'edit_code',
                                         'data-lang' => $proglang, 'readonly' => '')));
                     $renderedfreetext .= html_writer::end_div();
 
@@ -340,13 +343,17 @@ class qtype_moopt_renderer extends qtype_renderer {
                 if ($disablefilenameinput) {
                     $inputoptions['disabled'] = true;
                 }
+
+                // Adjust the height of the textarea based on the content of the textarea
+                $textareaheight = (max($customoptions->initialdisplayrows, count(explode(PHP_EOL, $answertextresponse))) + 1.5) * ACE_EDITOR_LINE_HEIGHT;
+
                 $output .= html_writer::tag('input', '', $inputoptions);
                 $output .= html_writer::end_div();
                 $output .= html_writer::div(get_string('yourcode', 'qtype_moopt') . ' (' .
                                 get_string('programminglanguage', 'qtype_moopt') . ': ' .
                                 PROFORMA_ACE_PROGLANGS[$proglang] . '):');
                 $output .= html_writer::tag('div', html_writer::tag('textarea', $answertextresponse, array('id' => $answertextid,
-                                    'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height:250px;',
+                                    'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height:' . $textareaheight . 'px;',
                                     'class' => 'edit_code', 'data-lang' => $proglang)));
                 $output .= html_writer::end_tag('div');
 

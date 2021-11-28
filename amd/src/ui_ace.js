@@ -77,6 +77,10 @@ define(['jquery'], function ($) {
             });
             this.editor.$blockScrolling = Infinity;
 
+            //Set the height manually to calculate the textarea height correctly in renderer.php
+            this.editor.container.style.lineHeight = "14px"; //When changed: ACE_EDITOR_LINE_HEIGHT constant must be changed also
+            this.editor.renderer.updateFontSize();
+
             session = this.editor.getSession();
             session.setValue(this.textarea.val());
 

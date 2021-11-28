@@ -49,7 +49,8 @@ class qtype_moopt_external extends external_api {
                                 'usefixedfilename'    => new external_value(PARAM_BOOL, 'Use fixed file name'),
                                 'defaultfilename'    => new external_value(PARAM_TEXT, 'Default file name'),
                                 'proglang'    => new external_value(PARAM_TEXT, 'Programming language for syntax highlighting'),
-                                'filecontent'    => new external_value(PARAM_RAW, 'File content to use as a template')
+                                'filecontent'    => new external_value(PARAM_RAW, 'File content to use as a template'),
+                                'initialdisplayrows'    => new external_value(PARAM_INT, 'The initial display rows of a textfield')
                             )
                         )
                     ,'Free text settings', VALUE_OPTIONAL),
@@ -174,7 +175,11 @@ class qtype_moopt_external extends external_api {
                             if(array_key_exists($lang, PROFORMA_ACE_PROGLANGS))
                                 $proglang = $lang;
                         }
-                        $settings = array('fixedfilename' => $fixedfilename, 'proglang' => $proglang);
+                        $initialdisplayrows = DEFAULT_INITIAL_DISPLAY_ROWS;
+                        if($child->hasAttribute('initial-display-rows')) {
+                            $initialdisplayrows = $child->attributes->getNamedItem('initial-display-rows')->nodeValue;
+                        }
+                        $settings = array('fixedfilename' => $fixedfilename, 'proglang' => $proglang, 'initialdisplayrows' => $initialdisplayrows);
                         $lmsinputfieldsettings[$child->attributes->getNamedItem('file-ref')->nodeValue] = $settings;
                     }
                 }
@@ -191,6 +196,7 @@ class qtype_moopt_external extends external_api {
                 $usefixedfilename = true;
                 $defaultfilename = '';
                 $proglang = ''; // TODO: should be the task's proglang initially
+                $initialdisplayrows = DEFAULT_INITIAL_DISPLAY_ROWS;
                 $fileid = '';
                 foreach ($file->childNodes as $child) {
                     if($file->attributes->getNamedItem('visible')->nodeValue == 'yes' &&
@@ -219,12 +225,14 @@ class qtype_moopt_external extends external_api {
                     if(array_key_exists($fileid, $lmsinputfieldsettings)) {
                         $usefixedfilename = $lmsinputfieldsettings[$fileid]['fixedfilename'];
                         $proglang = $lmsinputfieldsettings[$fileid]['proglang'];
+                        $initialdisplayrows = $lmsinputfieldsettings[$fileid]['initialdisplayrows'];
                     }
                     $freetextfilesettings = array("enablecustomsettings" => $enablecustomsettings,
                         "usefixedfilename" => $usefixedfilename,
                         "defaultfilename" => $defaultfilename,
                         "proglang" => $proglang,
-                        "filecontent" => $filecontent);
+                        "filecontent" => $filecontent,
+                        "initialdisplayrows" => $initialdisplayrows);
 
                     array_push($returnval["freetextfilesettings"], $freetextfilesettings);
                 }

@@ -106,6 +106,9 @@ define('PROFORMA_ACE_PROGLANGS', [
     'yaml' => 'YAML'
 ]);
 
+define('DEFAULT_INITIAL_DISPLAY_ROWS', 5);
+define('ACE_EDITOR_LINE_HEIGHT', 14);
+
 require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');

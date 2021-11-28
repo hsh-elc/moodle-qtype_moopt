@@ -66,6 +66,7 @@ $string['gradercurrentlynotavailable'] = 'The grader for this task is currently 
 $string['gradersettings'] = 'Grader settings';
 $string['gradeprocessfinished'] = 'At least one grade process finished. Do you want to reload the page to display the results?';
 $string['hasbeennullified'] = 'has been nullified';
+$string['initialdisplayrows'] = 'Initial Display Rows:';
 $string['initialnumberfreetextfieldsgreaterthanmax'] = 'Initial number of free text input fields must not be greater than maximal number of free text input fields';
 $string['internaldescription'] = 'Internal description';
 $string['internaldescription_help'] = 'The internal description contains text dedicated to teachers only.';

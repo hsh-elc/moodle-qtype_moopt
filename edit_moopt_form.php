@@ -215,6 +215,12 @@ class qtype_moopt_edit_form extends question_edit_form {
             $mform->hideIf("ftsoverwrittenlang$i", 'enablefreetextsubmissions');
             $mform->hideIf("ftsoverwrittenlang$i", "enablecustomsettingsforfreetextinputfields");
 
+            $mform->addElement('text', "ftsinitialdisplayrows$i", get_string('initialdisplayrows', 'qtype_moopt'));
+            $mform->setDefault("ftsinitialdisplayrows$i", DEFAULT_INITIAL_DISPLAY_ROWS);
+            $mform->hideIf("ftsinitialdisplayrows$i", "enablecustomsettingsforfreetextinputfield$i");
+            $mform->hideIf("ftsinitialdisplayrows$i", 'enablefreetextsubmissions');
+            $mform->hideIf("ftsinitialdisplayrows$i", "enablecustomsettingsforfreetextinputfields");
+
             // static form elements don't work with hideIf
             // use workaround in https://tracker.moodle.org/browse/MDL-66251
             $lblgroup = [];
@@ -276,6 +282,7 @@ class qtype_moopt_edit_form extends question_edit_form {
                     }
                     $question->{"ftsoverwrittenlang$indx"} = $value->ftslang;
                     $question->{"freetextinputfieldtemplate$indx"} = $value->filecontent;
+                    $question->{"ftsinitialdisplayrows$indx"} = $value->initialdisplayrows;
                 }
             }
         }
@@ -323,7 +330,6 @@ class qtype_moopt_edit_form extends question_edit_form {
             $errors['ftsmaxnumfields'] = get_string('ftsmaxnumfieldslegalrange','qtype_moopt',
                 ['beg' => $fromform['ftsnuminitialfields'], 'end' => $pluginsettingsmaxnumfields]);
         }
-
         return $errors;
     }
 
