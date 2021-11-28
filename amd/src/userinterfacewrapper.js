@@ -112,7 +112,7 @@
 
 define(['jquery'], function ($) {
 
-    function InterfaceWrapper(uiname, textareaId) {
+    function InterfaceWrapper(uiname, textareaId, lineHeight) {
         // Constructor for a new user interface.
         // uiname is the name of the interface element (e.g. ace, graph, etc)
         // which should be in file ui_ace.js, ui_graph.js etc.
@@ -145,6 +145,7 @@ define(['jquery'], function ($) {
             this.templateParams = {};
         }
         this.templateParams.lang = this.textArea.attr('data-lang');
+        this.templateParams.lineHeight = lineHeight;
         this.readOnly = this.textArea.prop('readonly');
         this.isLoading = false;  // True if we're busy loading a UI element
         this.loadFailed = false;  // True if UI failed to initialise properly
@@ -332,11 +333,12 @@ define(['jquery'], function ($) {
      *  The external entry point from the PHP.
      * @param string uiname, e.g. 'ace'
      * @param string textareaId
+     * @param int the height of a editor line
      * @returns {userinterfacewrapperL#111.InterfaceWrapper}
      */
-    function newUiWrapper(uiname, textareaId) {
+    function newUiWrapper(uiname, textareaId, lineHeight) {
         if (uiname) {
-            return new InterfaceWrapper(uiname, textareaId);
+            return new InterfaceWrapper(uiname, textareaId, lineHeight);
         } else {
             return null;
         }

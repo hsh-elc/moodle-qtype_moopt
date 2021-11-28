@@ -259,7 +259,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                     $renderedfreetext .= html_writer::end_div();
 
                     $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper',
-                            ['ace', $textarea_id]);
+                            ['ace', $textarea_id, ACE_EDITOR_LINE_HEIGHT]);
                 }
             }
 
@@ -363,7 +363,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                     $maxindexoffieldwithcontent = $i + 1;
                 }
 
-                $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper', ['ace', $answertextid]);
+                $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper', ['ace', $answertextid, ACE_EDITOR_LINE_HEIGHT]);
             }
             $renderedarea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
             $renderedarea .= html_writer::tag('button', get_string('addanswertext', 'qtype_moopt'),
