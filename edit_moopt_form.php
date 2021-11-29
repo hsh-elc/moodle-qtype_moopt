@@ -183,7 +183,7 @@ class qtype_moopt_edit_form extends question_edit_form {
 
         for ($i = 0; $i < get_config("qtype_moopt", "max_number_free_text_inputs"); $i++) {
             $mform->addElement('advcheckbox', "enablecustomsettingsforfreetextinputfield$i",
-                get_string('enablecustomsettingsforfreetextinputfield', 'qtype_moopt') . ($i + 1), ' ');
+                get_string('enablecustomsettingsforfreetextinputfield', 'qtype_moopt', $i + 1), ' ');
             $mform->hideIf("enablecustomsettingsforfreetextinputfield$i", 'enablefreetextsubmissions');
             $mform->hideIf("enablecustomsettingsforfreetextinputfield$i", "enablecustomsettingsforfreetextinputfields");
             $hidearr = [];
@@ -198,50 +198,47 @@ class qtype_moopt_edit_form extends question_edit_form {
             $namesettingsarray[] = $mform->createElement('radio', "namesettingsforfreetextinput$i", '',
                 get_string('freetextinputstudentname', 'qtype_moopt'), 1);
             $mform->addGroup($namesettingsarray, "namesettingsforfreetextinputgroup$i", '', array(' '), false);
-            $mform->hideIf("namesettingsforfreetextinputgroup$i", "enablecustomsettingsforfreetextinputfield$i");
-            $mform->hideIf("namesettingsforfreetextinputgroup$i", 'enablefreetextsubmissions');
-            $mform->hideIf("namesettingsforfreetextinputgroup$i", "enablecustomsettingsforfreetextinputfields");
+            $this->hide_custom_fts_conditionally($mform, "namesettingsforfreetextinputgroup", $i);
 
             $mform->addElement('text', "freetextinputfieldname$i", '');
             $mform->setType("freetextinputfieldname$i", PARAM_PATH);
             $mform->setDefault("freetextinputfieldname$i", "File" . ($i + 1) . ".txt");
             $mform->hideIf("freetextinputfieldname$i", "namesettingsforfreetextinput$i", 'neq', 0);
-            $mform->hideIf("freetextinputfieldname$i", "enablecustomsettingsforfreetextinputfield$i");
-            $mform->hideIf("freetextinputfieldname$i", 'enablefreetextsubmissions');
-            $mform->hideIf("freetextinputfieldname$i", "enablecustomsettingsforfreetextinputfields");
+            $this->hide_custom_fts_conditionally($mform, "freetextinputfieldname", $i);
+
+            $plgroup = [];
+            $plgroup[] =& $mform->createElement('static', "ftsproglangtitle$i", '', get_string('ftsprogramminglanguage_i', 'qtype_moopt', $i + 1));
+            $mform->addGroup($plgroup, "ftsproglanglblgroup$i", '', ' ', false);
+            $this->hide_custom_fts_conditionally($mform, "ftsproglanglblgroup", $i);
 
             $mform->addElement('select', "ftsoverwrittenlang$i", '', $proglangs);
-            $mform->hideIf("ftsoverwrittenlang$i", "enablecustomsettingsforfreetextinputfield$i");
-            $mform->hideIf("ftsoverwrittenlang$i", 'enablefreetextsubmissions');
-            $mform->hideIf("ftsoverwrittenlang$i", "enablecustomsettingsforfreetextinputfields");
+            $this->hide_custom_fts_conditionally($mform, "ftsoverwrittenlang", $i);
 
-            $mform->addElement('text', "ftsinitialdisplayrows$i", get_string('initialdisplayrows', 'qtype_moopt'));
+            $idrgroup = [];
+            $idrgroup[] =& $mform->createElement('static', "ftsinitialdisplayrowstitle$i", '', get_string('ftsinitialdisplayrows_i', 'qtype_moopt', $i + 1));
+            $mform->addGroup($idrgroup, "ftsinitialdisplayrowslblgroup$i", '', ' ', false);
+            $this->hide_custom_fts_conditionally($mform, "ftsinitialdisplayrowslblgroup", $i);
+
+            $mform->addElement('text', "ftsinitialdisplayrows$i", '');
+            $mform->setType("ftsinitialdisplayrows$i", PARAM_INT);
             $mform->setDefault("ftsinitialdisplayrows$i", DEFAULT_INITIAL_DISPLAY_ROWS);
-            $mform->hideIf("ftsinitialdisplayrows$i", "enablecustomsettingsforfreetextinputfield$i");
-            $mform->hideIf("ftsinitialdisplayrows$i", 'enablefreetextsubmissions');
-            $mform->hideIf("ftsinitialdisplayrows$i", "enablecustomsettingsforfreetextinputfields");
+            $this->hide_custom_fts_conditionally($mform, "ftsinitialdisplayrows", $i);
 
             // static form elements don't work with hideIf
             // use workaround in https://tracker.moodle.org/browse/MDL-66251
             $lblgroup = [];
-            $lblgroup[] =& $mform->createElement('static', "freetextinputfieldtemplatetitle$i", '', 'Template:');
-            $mform->addGroup($lblgroup, 'lblgroup', '', ' ', false);
-            $mform->hideIf('lblgroup', "enablecustomsettingsforfreetextinputfield$i");
-            $mform->hideIf('lblgroup', 'enablefreetextsubmissions');
-            $mform->hideIf('lblgroup', "enablecustomsettingsforfreetextinputfields");
-//            $mform->addElement('static', "freetextinputfieldtemplatetitle$i", '', 'Template:');
-//            $mform->hideIf("freetextinputfieldtemplatetitle$i", "enablecustomsettingsforfreetextinputfield$i");
-//            $mform->hideIf("freetextinputfieldtemplatetitle$i", 'enablefreetextsubmissions');
-//            $mform->hideIf("freetextinputfieldtemplatetitle$i", "enablecustomsettingsforfreetextinputfields");
+            $lblgroup[] =& $mform->createElement('static', "freetextinputfieldtemplatetitle$i", '', get_string('ftstemplate_i', 'qtype_moopt', $i + 1));
+            $mform->addGroup($lblgroup, "ftstemplatelblgroup$i", '', ' ', false);
+            $this->hide_custom_fts_conditionally($mform, "ftstemplatelblgroup", $i);
+//            $mform->addElement('static', "freetextinputfieldtemplatetitle$i", '', get_string('ftstemplate_i', 'qtype_moopt', $i + 1));
+//            $this->hide_custom_fts_conditionally($mform, "freetextinputfieldtemplatetitle", $i);
 
             $mform->addElement('textarea', "freetextinputfieldtemplate$i", '', 'wrap="virtual" rows="3" cols="50"');
 //            $mform->addElement('editor', "freetextinputfieldtemplate$i", '',
 //                array('rows' => 10), array('maxfiles' => 0,
 //                    'noclean' => true, 'context' => $this->context, 'subdirs' => true));
 //            $mform->setType("freetextinputfieldtemplate$i", PARAM_RAW);
-            $mform->hideIf("freetextinputfieldtemplate$i", "enablecustomsettingsforfreetextinputfield$i");
-            $mform->hideIf("freetextinputfieldtemplate$i", 'enablefreetextsubmissions');
-            $mform->hideIf("freetextinputfieldtemplate$i", "enablecustomsettingsforfreetextinputfields");
+            $this->hide_custom_fts_conditionally($mform, "freetextinputfieldtemplate", $i);
         }
     }
 
@@ -308,6 +305,12 @@ class qtype_moopt_edit_form extends question_edit_form {
         }
 
         $label->setAttributes($attribs);
+    }
+
+    private function hide_custom_fts_conditionally($mform, string $name, int $i) {
+        $mform->hideIf($name . $i, "enablecustomsettingsforfreetextinputfield$i");
+        $mform->hideIf($name . $i, 'enablefreetextsubmissions');
+        $mform->hideIf($name . $i, "enablecustomsettingsforfreetextinputfields");
     }
 
     public function validation($fromform, $files) {

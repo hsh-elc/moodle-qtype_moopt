@@ -246,20 +246,22 @@ class qtype_moopt_renderer extends qtype_renderer {
                         $proglang = $customoptions->ftslang;
                     }
 
-                    // Adjust the height of the textarea based on the content of the textarea
-                    $textareaheight = (max($customoptions->initialdisplayrows, count(explode(PHP_EOL, $text))) + 1.5) * ACE_EDITOR_LINE_HEIGHT;
+                    // Adjust the height of the textarea based on the content of the textarea.
+                    // The 'rows' attribute will be interpreted by the javascript userinterfacewrapper.js
+                    // to adapt the CSS height of the editor.
+                    $textarearows = $this->calc_rows($customoptions->initialdisplayrows, $text);
 
                     $textarea_id = "qtype_moopt_answertext_" . $qa->get_question_id() . "_" . $i;
                     $renderedfreetext .= html_writer::start_div('answertextreadonly');
                     $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ' (' .
                                     PROFORMA_ACE_PROGLANGS[$proglang] . ')' . ':');
                     $renderedfreetext .= html_writer::tag('div', html_writer::tag('textarea', $text, array('id' => $textarea_id,
-                                        'style' => 'width: 100%;padding-left: 10px;height:' . $textareaheight . 'px;', 'class' => 'edit_code',
-                                        'data-lang' => $proglang, 'readonly' => '')));
+                                        'style' => 'width: 100%;padding-left: 10px;height: ' . MINIMUM_FREETEXTAREA_HEIGHT . ';', 'class' => 'edit_code',
+                                        'data-lang' => $proglang, 'readonly' => '', 'rows' => $textarearows)));
                     $renderedfreetext .= html_writer::end_div();
 
                     $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper',
-                            ['ace', $textarea_id, ACE_EDITOR_LINE_HEIGHT]);
+                            ['ace', $textarea_id]);
                 }
             }
 
@@ -334,8 +336,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $output = '';
                 $output .= html_writer::start_tag('div', array('class' => "qtype_moopt_answertext",
-                            'id' => "qtype_moopt_answertext_" . $qa->get_question_id() . "_$i",
-                            'style' => 'display:none;'));
+                            'id' => "qtype_moopt_answertext_" . $qa->get_question_id() . "_$i"));
                 $output .= html_writer::start_div('answertextfilename');
                 $output .= html_writer::label(get_string('filename', 'qtype_moopt') . ":", $filenameid);
                 $inputoptions = ['id' => $filenameid, 'name' => $filenameinputname, 'style' => 'width: 100%;padding-left: 10px;',
@@ -345,7 +346,9 @@ class qtype_moopt_renderer extends qtype_renderer {
                 }
 
                 // Adjust the height of the textarea based on the content of the textarea
-                $textareaheight = (max($customoptions->initialdisplayrows, count(explode(PHP_EOL, $answertextresponse))) + 1.5) * ACE_EDITOR_LINE_HEIGHT;
+                // The 'rows' attribute will be interpreted by the javascript userinterfacewrapper.js
+                // to adapt the CSS height of the editor.
+                $textarearows = $this->calc_rows($customoptions->initialdisplayrows, $answertextresponse);
 
                 $output .= html_writer::tag('input', '', $inputoptions);
                 $output .= html_writer::end_div();
@@ -353,8 +356,8 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 get_string('programminglanguage', 'qtype_moopt') . ': ' .
                                 PROFORMA_ACE_PROGLANGS[$proglang] . '):');
                 $output .= html_writer::tag('div', html_writer::tag('textarea', $answertextresponse, array('id' => $answertextid,
-                                    'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height:' . $textareaheight . 'px;',
-                                    'class' => 'edit_code', 'data-lang' => $proglang)));
+                                    'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height:' . MINIMUM_FREETEXTAREA_HEIGHT . ';',
+                                    'class' => 'edit_code', 'data-lang' => $proglang, 'rows' => $textarearows)));
                 $output .= html_writer::end_tag('div');
 
                 $renderedarea .= $output;
@@ -363,7 +366,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                     $maxindexoffieldwithcontent = $i + 1;
                 }
 
-                $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper', ['ace', $answertextid, ACE_EDITOR_LINE_HEIGHT]);
+                $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper', ['ace', $answertextid]);
             }
             $renderedarea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
             $renderedarea .= html_writer::tag('button', get_string('addanswertext', 'qtype_moopt'),
@@ -618,7 +621,6 @@ class qtype_moopt_renderer extends qtype_renderer {
                                     $responsefileinfos['filearea'], $responsefileinfos['itemid'], $responsefileinfos['filepath'],
                                     $responsefileinfos['filename'], true);
                     $downloadable_responsefilename= $responsefileinfos['filename'];
-                    // TODO: put following string in lang
                     $html .= "<a href='$url' style='display:block;text-align:right;'>" .
                             " <span style='font-family: FontAwesome; display:inline-block;" .
                             "margin-right: 5px'>&#xf019;</span> " .
@@ -644,5 +646,15 @@ class qtype_moopt_renderer extends qtype_renderer {
         $output .= "<button class='btn btn-primary' type='submit'>" . get_string('continue', 'qtype_moopt') . "</button>";
         $output .= "</form></div>";
         return $output;
+    }
+
+	/**
+	 * Calculates the editor rows when displaying a given content
+	 * @param {int} minrows
+	 * @param {string} content
+	 * @return {int} the number of rows
+	 */
+    public function calc_rows(int $minrows, string $content): int {
+        return max($minrows, count(explode(PHP_EOL, $content)));
     }
 }

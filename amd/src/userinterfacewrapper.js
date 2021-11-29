@@ -112,7 +112,7 @@
 
 define(['jquery'], function ($) {
 
-    function InterfaceWrapper(uiname, textareaId, lineHeight) {
+    function InterfaceWrapper(uiname, textareaId) {
         // Constructor for a new user interface.
         // uiname is the name of the interface element (e.g. ace, graph, etc)
         // which should be in file ui_ace.js, ui_graph.js etc.
@@ -145,7 +145,7 @@ define(['jquery'], function ($) {
             this.templateParams = {};
         }
         this.templateParams.lang = this.textArea.attr('data-lang');
-        this.templateParams.lineHeight = lineHeight;
+        this.minLines = this.textArea.attr('rows');
         this.readOnly = this.textArea.prop('readonly');
         this.isLoading = false;  // True if we're busy loading a UI element
         this.loadFailed = false;  // True if UI failed to initialise properly
@@ -178,6 +178,13 @@ define(['jquery'], function ($) {
         // Add event handlers.
         $(document).mousemove(function () {
             t.checkForResize();
+        });
+        $(document).ready(function () {
+            // The lineHeight, which is needed to calculate the initial height of the
+            // wrapper element, is not available before complete startup of ace.
+            // Unfortunately there is no ready event of the ace editor.
+            // So we wait a while and call resize then ...
+            setTimeout(function() { t.checkForResize(true); }, 1000);
         });
         $(window).resize(function () {
             t.checkForResize();
@@ -270,6 +277,7 @@ define(['jquery'], function ($) {
                         } else {
                             t.hLast = 0;  // Force resize (and hence redraw)
                             t.wLast = 0;  // ... on first call to checkForResize.
+                            t.lhLast = 0;
                             t.textArea.hide();
                             t.wrapperNode.show();
                             t.wrapperNode.append(uiInstance.getElement());
@@ -309,36 +317,41 @@ define(['jquery'], function ($) {
         }
     };
 
-    InterfaceWrapper.prototype.checkForResize = function () {
+    InterfaceWrapper.prototype.checkForResize = function (force = false) {
         // Check for wrapper resize - propagate to ui element.
-        var h, hAdjusted, w, wAdjusted, xLeft, maxWidth;
+        var h, hAdjusted, w, wAdjusted, xLeft, maxWidth, lh;
         var SIZE_HACK = 25;  // Horrible but best I can do. TODO: FIXME.
+        var HSCROLL_HEIGHT = 1.5;  // lines
 
         if (this.uiInstance) {
             h = this.wrapperNode.innerHeight();
             w = this.wrapperNode.innerWidth();
-            if (h != this.hLast || w != this.wLast) {
+            lh = this.uiInstance.getLineHeight();
+            if (h != this.hLast || w != this.wLast || lh != this.lhLast) {
                 xLeft = this.wrapperNode.offset().left;
                 maxWidth = $(window).innerWidth() - xLeft - SIZE_HACK;
                 hAdjusted = h - this.GUTTER;
                 wAdjusted = Math.min(maxWidth, w);
-                this.uiInstance.resize(wAdjusted, hAdjusted);
+                if (lh != 0) { // lh is 0 until initialization of ace editor is complete
+                    hAdjusted = Math.max( (parseFloat(this.minLines) + HSCROLL_HEIGHT) * lh, hAdjusted );
+                }
+                this.uiInstance.resize(wAdjusted, hAdjusted, force);
                 this.hLast = this.wrapperNode.innerHeight();
                 this.wLast = this.wrapperNode.innerWidth();
+                this.lhLast = lh;
             }
         }
     };
 
     /**
      *  The external entry point from the PHP.
-     * @param string uiname, e.g. 'ace'
-     * @param string textareaId
-     * @param int the height of a editor line
+     * @param {string} uiname, e.g. 'ace'
+     * @param {string} textareaId
      * @returns {userinterfacewrapperL#111.InterfaceWrapper}
      */
-    function newUiWrapper(uiname, textareaId, lineHeight) {
+    function newUiWrapper(uiname, textareaId) {
         if (uiname) {
-            return new InterfaceWrapper(uiname, textareaId, lineHeight);
+            return new InterfaceWrapper(uiname, textareaId);
         } else {
             return null;
         }

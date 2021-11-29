@@ -47,7 +47,7 @@ This section does also only explain the minification based on a Windows system, 
 #### Installation of Grunt
 At first you need to install Node.js on your system (https://nodejs.org/). The Node.js version that is supported by Moodle is [documented here](https://docs.moodle.org/dev/Javascript_Modules#Install_NVM_and_Node). In the Windows installer check "Automatically install the necessary tools".
 
-If you missed the automatic installation of necessary tools, after installation you can run "Install additional tools for Node.js" from the start menu.
+If you missed the automatic installation of necessary tools, after installation you can run "Install additional tools for Node.js" from the Windows start menu.
 
 Then as administrator open CMD and navigate to the directory in which Moodle is installed.
 From there execute the following two commands:  
@@ -68,6 +68,15 @@ When these "problematic patterns" in the code are no real problems you can also 
 instead to minify the files even when the Code Analysis Tool finds problematic code.
 
 After that the minified files should be under amd/build/.
+
+#### Running Grunt automatically on changes
+
+Use CMD and move into the AMD directory of the plugin and run the following command:   
+```grunt --verbose watch```  
+
+You might have to install watchman first. Therefore as an administrator start the Node.js command prompt via the Windows start menu and type:
+```choco install watchman```
+
 
 
 ----------

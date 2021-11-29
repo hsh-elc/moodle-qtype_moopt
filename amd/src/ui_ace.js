@@ -77,10 +77,6 @@ define(['jquery'], function ($) {
             });
             this.editor.$blockScrolling = Infinity;
 
-            //Set the height manually to calculate the textarea height correctly in renderer.php
-            this.editor.container.style.lineHeight = params.lineHeight + "px";
-            this.editor.renderer.updateFontSize();
-
             session = this.editor.getSession();
             session.setValue(this.textarea.val());
 
@@ -258,10 +254,14 @@ define(['jquery'], function ($) {
         return undefined;
     };
 
-    AceWrapper.prototype.resize = function (w, h) {
+    AceWrapper.prototype.resize = function (w, h, force) {
         this.editNode.outerHeight(h);
         this.editNode.outerWidth(w);
-        this.editor.resize();
+        this.editor.resize(force);
+    };
+
+    AceWrapper.prototype.getLineHeight = function () {
+        return this.editor.renderer.layerConfig.lineHeight;
     };
 
     return {

@@ -106,8 +106,11 @@ define('PROFORMA_ACE_PROGLANGS', [
     'yaml' => 'YAML'
 ]);
 
+// Free text input fields will show 5 rows by default:
 define('DEFAULT_INITIAL_DISPLAY_ROWS', 5);
-define('ACE_EDITOR_LINE_HEIGHT', 14);
+
+// Free text input fields won't display less height than this CSS dimension:
+define('MINIMUM_FREETEXTAREA_HEIGHT', '50px');
 
 require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
