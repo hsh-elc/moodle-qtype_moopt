@@ -838,6 +838,72 @@ function check_if_task_file_is_valid($draftareaid) {
     return null;
 }
 
+function readLmsInputFieldSettingsFromTaskXml(\DOMDocument $doc) {
+    // prepare return values:
+	$includeenablefileinput = false;
+	$enablefileinput = false;
+	$lmsinputfieldsettings = array();
+
+	// TODO: fix hard coded namespace
+	$lmsinputfieldsV01 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.1', 'lms-input-fields');
+	$lmsinputfieldsV02 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.2', 'lms-input-fields');
+	if (1 <= $lmsinputfieldsV01->length &&  1 <= $lmsinputfieldsV02->length) {
+        throw new Exception('Task meta-data contains more than one lms-input-fields element.');
+	}
+	if(1 == $lmsinputfieldsV01->length) {
+		$lmsinputfields = $lmsinputfieldsV01;
+		$version = "0.1";
+	} else if (1 == $lmsinputfieldsV02->length) {
+		$lmsinputfields = $lmsinputfieldsV02;
+		$version = "0.2";
+	}
+	if(1 < $lmsinputfields->length) {
+		throw new Exception('Task meta-data contains more than one lms-input-fields element.');
+	}
+	if(1 == $lmsinputfields->length) {
+		$includeenablefileinput = true;
+		foreach ($lmsinputfields[0]->childNodes as $child) {
+			if ($child->localName == 'fileinput') {
+				// Moopt doesn't support multiple fileinputs, meaning multiple draft areas for file upload.
+				// If at least one fileinput is configured in lms-input-fields, use that as an indicator to
+				// use one draft area and that's it. Moopt also doesn't  support the fixedfilename and
+				// proglang attributes of the fileinput element.
+				$enablefileinput = true;
+			} else if ($child->localName == 'textfield') {
+				// fixedfilename is true by default if not set via lmsinputfields
+				$fixedfilename = true;
+				if($child->hasAttribute('fixedfilename')) {
+					$fixedfilename = filter_var($child->attributes->getNamedItem('fixedfilename')->nodeValue,
+						FILTER_VALIDATE_BOOLEAN);
+				}
+				$proglang = 'txt';
+				if($child->hasAttribute('proglang')) {
+					$lang = $child->attributes->getNamedItem('proglang')->nodeValue;
+					// make sure the task's lmsinputfields contains a valid proglang value
+					if(array_key_exists($lang, PROFORMA_ACE_PROGLANGS))
+						$proglang = $lang;
+				}
+				$initialdisplayrows = DEFAULT_INITIAL_DISPLAY_ROWS;
+				if (strcmp("0.2", $version) <= 0) {
+					if($child->hasAttribute('initial-display-rows')) {
+						$initialdisplayrows = $child->attributes->getNamedItem('initial-display-rows')->nodeValue;
+					}
+				}
+				$settings = array('fixedfilename' => $fixedfilename, 'proglang' => $proglang, 'initialdisplayrows' => $initialdisplayrows);
+				$lmsinputfieldsettings[$child->attributes->getNamedItem('file-ref')->nodeValue] = $settings;
+			}
+		}
+	}
+
+    return array(
+        $includeenablefileinput,
+        $enablefileinput,
+        $lmsinputfieldsettings);
+}
+
+
+
+
 // Copied from zip_archive::mangle_pathname.
 function mangle_pathname($filename) {
     $filename = trim($filename, '/');
