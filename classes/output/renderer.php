@@ -174,7 +174,14 @@ class qtype_moopt_renderer extends qtype_renderer {
                 $anythingtodisplay = true;
                 $url = moodle_url::make_pluginfile_url($question->contextid, 'question', $file->filearea,
                                 "$qubaid/$slot/$questionid", $file->filepath, $file->filename, true);
-                $linkdisplay = ($file->filearea == PROFORMA_ATTACHED_TASK_FILES_FILEAREA ? $file->filepath : '') . $file->filename;
+                if ($file->filearea == PROFORMA_ATTACHED_TASK_FILES_FILEAREA) {
+                    $folderdisplay = $file->filepath;
+                    // remove leading slash:
+                    if (strlen($folderdisplay) > 0 && $folderdisplay[0] == '/') $folderdisplay = substr($folderdisplay, 1);
+                } else {
+                    $folderdisplay = '';
+                }
+                $linkdisplay = $folderdisplay . $file->filename;
                 $downloadurls .= '<li><a href="' . $url . '">' . $linkdisplay . '</a></li>';
             }
             $downloadurls .= '</ul>';
@@ -229,7 +236,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                 if(is_null($text)) { // TODO: test this code block
                     $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
                         'inputindex' => $i]);
-                    if ($customoptions && !not_null($customoptions->filecontent)) {
+                    if ($customoptions && !is_null($customoptions->filecontent)) {
                         $text = $customoptions->filecontent;
                     }
                 }

@@ -346,7 +346,7 @@ function save_task_and_according_files($question) {
                 $record->visibletostudents = $file->attributes->getNamedItem('visible')->nodeValue;
                 $record->usagebylms = $file->attributes->getNamedItem('usage-by-lms') != null ?
                         $file->attributes->getNamedItem('usage-by-lms')->nodeValue : 'download';
-                $record->filepath = $pathinfo['dirname'] . '/';
+                $record->filepath = $pathinfo['basename'] == $child->nodeValue ? '/' : $pathinfo['dirname'] . '/';
                 $record->filename = $pathinfo['basename'];
                 $record->filearea = PROFORMA_ATTACHED_TASK_FILES_FILEAREA;
                 $filesfordb[] = $record;
