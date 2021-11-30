@@ -256,7 +256,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                     $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ' (' .
                                     PROFORMA_ACE_PROGLANGS[$proglang] . ')' . ':');
                     $renderedfreetext .= html_writer::tag('div', html_writer::tag('textarea', $text, array('id' => $textarea_id,
-                                        'style' => 'width: 100%;padding-left: 10px;height: ' . MINIMUM_FREETEXTAREA_HEIGHT . ';', 'class' => 'edit_code',
+                                        'style' => 'width: 100%;padding-left: 10px;height: 14px;', 'class' => 'edit_code',
                                         'data-lang' => $proglang, 'readonly' => '', 'rows' => $textarearows)));
                     $renderedfreetext .= html_writer::end_div();
 
@@ -356,7 +356,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 get_string('programminglanguage', 'qtype_moopt') . ': ' .
                                 PROFORMA_ACE_PROGLANGS[$proglang] . '):');
                 $output .= html_writer::tag('div', html_writer::tag('textarea', $answertextresponse, array('id' => $answertextid,
-                                    'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height:' . MINIMUM_FREETEXTAREA_HEIGHT . ';',
+                                    'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height: 14px;',
                                     'class' => 'edit_code', 'data-lang' => $proglang, 'rows' => $textarearows)));
                 $output .= html_writer::end_tag('div');
 

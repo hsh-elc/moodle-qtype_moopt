@@ -133,7 +133,6 @@ define(['jquery'], function ($) {
                 t = this; // For use by embedded functions.
 
         this.GUTTER = 14;  // Size of gutter at base of wrapper Node (pixels).
-        this.MIN_WRAPPER_HEIGHT = 50;
 
         this.taId = textareaId;
         this.loadFailId = textareaId + '_loadfailerr';
@@ -145,13 +144,13 @@ define(['jquery'], function ($) {
             this.templateParams = {};
         }
         this.templateParams.lang = this.textArea.attr('data-lang');
-        this.minLines = this.textArea.attr('rows');
+        this.minLines = parseFloat(this.textArea.attr('rows'));
         this.readOnly = this.textArea.prop('readonly');
         this.isLoading = false;  // True if we're busy loading a UI element
         this.loadFailed = false;  // True if UI failed to initialise properly
         this.retries = 0;        // Number of failed attempts to load a UI component.
 
-        h = Math.max(parseInt(this.textArea.css("height")), this.MIN_WRAPPER_HEIGHT);
+        h = Math.max(parseInt(this.textArea.css("height")), this.GUTTER);
 
         // Construct an empty hidden wrapper div, inserted directly after the
         // textArea, ready to contain the actual UI.
@@ -165,6 +164,8 @@ define(['jquery'], function ($) {
             width: "100%",
             border: "1px solid darkgrey"
         });
+        this.wrapperNodeMouseDown = false;
+        this.wrapperNodeWasManuallyResizedAtLeastOnce = false;
 
         // Record a reference to this wrapper in the text area's data attribute
         // for use by external javascript that needs to interact with the
@@ -184,10 +185,24 @@ define(['jquery'], function ($) {
             // wrapper element, is not available before complete startup of ace.
             // Unfortunately there is no ready event of the ace editor.
             // So we wait a while and call resize then ...
-            setTimeout(function() { t.checkForResize(true); }, 1000);
+            setTimeout(function() {
+                t.checkForResize(true);
+
+                // we need to call resize twice, because the horizontal scrollbar's
+                // height, which is needed to calculate the initial height of the
+                // wrapper element, is not available before the previous resize operation
+                // has completed.
+                t.checkForResize(true);
+            }, 1000);
         });
         $(window).resize(function () {
             t.checkForResize();
+        });
+        this.wrapperNode.mousedown(function () {
+            t.wrapperNodeMouseDown = true;
+        });
+        this.wrapperNode.mouseup(function () {
+            t.wrapperNodeMouseDown = false;
         });
         this.textArea.closest('form').submit(function () {
             if (t.uiInstance !== null) {
@@ -278,6 +293,7 @@ define(['jquery'], function ($) {
                             t.hLast = 0;  // Force resize (and hence redraw)
                             t.wLast = 0;  // ... on first call to checkForResize.
                             t.lhLast = 0;
+                            t.hshLast = 0;
                             t.textArea.hide();
                             t.wrapperNode.show();
                             t.wrapperNode.append(uiInstance.getElement());
@@ -319,26 +335,40 @@ define(['jquery'], function ($) {
 
     InterfaceWrapper.prototype.checkForResize = function (force = false) {
         // Check for wrapper resize - propagate to ui element.
-        var h, hAdjusted, w, wAdjusted, xLeft, maxWidth, lh;
+        var h, hAdjusted, w, wAdjusted, xLeft, maxWidth, lh, hsh, ml;
         var SIZE_HACK = 25;  // Horrible but best I can do. TODO: FIXME.
-        var HSCROLL_HEIGHT = 1.5;  // lines
 
         if (this.uiInstance) {
             h = this.wrapperNode.innerHeight();
             w = this.wrapperNode.innerWidth();
             lh = this.uiInstance.getLineHeight();
-            if (h != this.hLast || w != this.wLast || lh != this.lhLast) {
+            hsh = this.uiInstance.getHScrollHeight();
+            if (h != this.hLast || w != this.wLast || lh != this.lhLast || hsh != this.hshLast) {
+                if (this.wrapperNodeMouseDown) {
+                    // well, we got a new size and the mouse is currently pressed down inside the
+                    // wrapper node. We interpret this as the user currently trying to resize
+                    // the wrapper node manually:
+                    this.wrapperNodeWasManuallyResizedAtLeastOnce = true;
+                }
+                if (this.wrapperNodeWasManuallyResizedAtLeastOnce) {
+                    // when the user currently resizes or finished resizing the wrapper manually,
+                    // he probably doesn't want to see a minimum number of lines.
+                    ml = 1;
+                } else {
+                    ml = this.minLines;
+                }
                 xLeft = this.wrapperNode.offset().left;
                 maxWidth = $(window).innerWidth() - xLeft - SIZE_HACK;
-                hAdjusted = h - this.GUTTER;
+                hAdjusted = h;
                 wAdjusted = Math.min(maxWidth, w);
                 if (lh != 0) { // lh is 0 until initialization of ace editor is complete
-                    hAdjusted = Math.max( (parseFloat(this.minLines) + HSCROLL_HEIGHT) * lh, hAdjusted );
+                    hAdjusted = Math.max( ml * lh + hsh, hAdjusted );
                 }
                 this.uiInstance.resize(wAdjusted, hAdjusted, force);
                 this.hLast = this.wrapperNode.innerHeight();
                 this.wLast = this.wrapperNode.innerWidth();
                 this.lhLast = lh;
+                this.hshLast = hsh;
             }
         }
     };
