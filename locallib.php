@@ -841,7 +841,6 @@ function readLmsInputFieldSettingsFromTaskXml(\DOMDocument $doc) {
 	$enablefileinput = false;
 	$lmsinputfieldsettings = array();
 
-	// TODO: fix hard coded namespace
 	$lmsinputfieldsV01 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.1', 'lms-input-fields');
 	$lmsinputfieldsV02 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.2', 'lms-input-fields');
 	if (1 <= $lmsinputfieldsV01->length &&  1 <= $lmsinputfieldsV02->length) {
