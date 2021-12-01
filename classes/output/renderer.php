@@ -521,28 +521,23 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 $feedbackblockid = "moopt-feedbackblock-" . $qa->get_usage_id() . "-" . $qa->get_slot();
                                 $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_separate_feedback_buttons', 'init', [$feedbackblockid]);
 
-                                if (!$separatefeedbackhelper->get_detailed_feedback()->has_internal_error() ||
-                                        has_capability('mod/quiz:grade', $PAGE->context)) {
-                                    $separatefeedbackrenderersummarised = new separate_feedback_text_renderer(
-                                            $separatefeedbackhelper->get_summarised_feedback(),
-                                            has_capability('mod/quiz:grade', $PAGE->context), $fileinfos,
-                                            $qa->get_question()->showstudscorecalcscheme);
-                                    $html .= "<p class='expandcollapselink'><a href='#' id='" . $feedbackblockid . "-expand-all-button'>" 
-                                             . get_string('expand_all', 'qtype_moopt') . "</a> ";
-                                    $html .= "<a href='#' id='" . $feedbackblockid . "-collapse-all-button'>"
-                                             . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
-                                    
-                                    $html .= "<div id='" . $feedbackblockid . "'>";
-                                    $html .=    $separatefeedbackrenderersummarised->render();
-                                    $html .=    '<p/>'; // vertical space between summarized and detailed feedback buttons
-                                    $separatefeedbackrendererdetailed = new separate_feedback_text_renderer(
-                                            $separatefeedbackhelper->get_detailed_feedback(), has_capability('mod/quiz:grade',
-                                                    $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
-                                    $html .= $separatefeedbackrendererdetailed->render();
-                                    $html .= '</div>';
-                                } else {
-                                    $html .= '<p>' . get_string('needsgradingbyteacher', 'qtype_moopt') . '</p>';
-                                }
+                                $separatefeedbackrenderersummarised = new separate_feedback_text_renderer(
+                                        $separatefeedbackhelper->get_summarised_feedback(),
+                                        has_capability('mod/quiz:grade', $PAGE->context), $fileinfos,
+                                        $qa->get_question()->showstudscorecalcscheme);
+                                $html .= "<p class='expandcollapselink'><a href='#' id='" . $feedbackblockid . "-expand-all-button'>"
+                                         . get_string('expand_all', 'qtype_moopt') . "</a> ";
+                                $html .= "<a href='#' id='" . $feedbackblockid . "-collapse-all-button'>"
+                                         . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
+
+                                $html .= "<div id='" . $feedbackblockid . "'>";
+                                $html .=    $separatefeedbackrenderersummarised->render();
+                                $html .=    '<p/>'; // vertical space between summarized and detailed feedback buttons
+                                $separatefeedbackrendererdetailed = new separate_feedback_text_renderer(
+                                        $separatefeedbackhelper->get_detailed_feedback(), has_capability('mod/quiz:grade',
+                                                $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
+                                $html .= $separatefeedbackrendererdetailed->render();
+                                $html .= '</div>';
                             } else {
                                 // Merged test feedback.
                                 $studentfb= $doc->getElementsByTagNameNS($namespace, "student-feedback")[0];

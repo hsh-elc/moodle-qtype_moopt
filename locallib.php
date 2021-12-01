@@ -498,6 +498,7 @@ function internal_retrieve_grading_results($qubaid) {
 
         if($response) {
             $internalerror = false;
+            $hasdisplayablefeedback = false;
             try {
                 // We take care of this grade process therefore we will delete it afterwards.
                 $finishedgradingprocesses[] = $gradeprocrecord->id;
@@ -612,6 +613,7 @@ function internal_retrieve_grading_results($qubaid) {
                                 } else {
                                     $score = $overallresult->getElementsByTagNameNS($namespace, 'score')[0]->nodeValue;
                                 }
+                                $hasdisplayablefeedback = true;
                             } else {
                                 // Separate test feedback.
                                 $question = $quba->get_question($slot);
@@ -644,6 +646,7 @@ function internal_retrieve_grading_results($qubaid) {
                                 } else {
                                     $internalerror = true;
                                 }
+                                $hasdisplayablefeedback = true;
                             }
                         }
                     } else {
@@ -665,7 +668,19 @@ function internal_retrieve_grading_results($qubaid) {
                         $er->getMessage() . ')');
             }
 
-            if (!$couldsaveresponsetodisk || !isset($score) || $internalerror) {
+            if ($hasdisplayablefeedback && $internalerror) {
+                // Even when the grader is unavailable or failing because of internal errors, there might
+                // be displayable feedback. We record this in order to display that feedback when rendering.
+                // We don't have a score.
+                $quba->process_action($slot, ['-gradingresult' => 1, 'gradeprocessdbid' => $gradeprocrecord->id]);
+                question_engine::save_questions_usage_by_activity($quba);
+
+                // fall through now and proceed with updating the total mark etc.
+
+                // TODO: The ProFormA whitepaper states, that internal error responses shouldn't increase
+                // the attempt counter. Unfortunately, MooPT doesn't handle this correctly at the moment.
+
+            } else if (!$couldsaveresponsetodisk || !isset($score) || $internalerror) {
                 if (!$internalerror) {
                     debugging("Received invalid response from grader");
                 }
@@ -675,11 +690,11 @@ function internal_retrieve_grading_results($qubaid) {
                 question_engine::save_questions_usage_by_activity($quba);
 
                 continue;
+            } else {
+                // Apply the grading result to the question attempt
+                $quba->process_action($slot, ['-gradingresult' => 1, 'score' => $score, 'gradeprocessdbid' => $gradeprocrecord->id]);
+                question_engine::save_questions_usage_by_activity($quba);
             }
-
-            // Apply the grading result to the question attempt
-            $quba->process_action($slot, ['-gradingresult' => 1, 'score' => $score, 'gradeprocessdbid' => $gradeprocrecord->id]);
-            question_engine::save_questions_usage_by_activity($quba);
 
             // make sure we are in the context of a quiz and not a preview before proceeding with updating the quizze's
             // attempt data with a total mark

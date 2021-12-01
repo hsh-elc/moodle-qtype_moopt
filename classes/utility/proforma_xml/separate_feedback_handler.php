@@ -127,6 +127,7 @@ class separate_feedback_handler {
 
         $this->summarisedfeedback = new separate_feedback_text_node('summarised_feedback',
                 get_string('summarizedfeedback', 'qtype_moopt'));
+        $this->summarisedfeedback->set_has_internal_error($this->detailedfeedback->has_internal_error());
         $this->fill_feedback_node_with_feedback_list($this->summarisedfeedback,
                 $this->separatetestfeedback->getElementsByTagNameNS($this->namespacefeedback, 'submission-feedback-list')[0]);
     }
@@ -199,7 +200,7 @@ class separate_feedback_handler {
             }
 
             if (is_array($value)) {
-                // According to the specification there musst not be a subresult that is not specified in the grading hints.
+                // According to the specification there must not be a subresult that is not specified in the grading hints.
                 // If we are here  we don't have any grading hints at all
                 // hence there musst not be any subresult.
                 throw new service_communicator_exception("Grader returned subresult(s) for test result with id '$key' but there were no" .
@@ -334,12 +335,16 @@ class separate_feedback_handler {
         }
 
         if ($elem->hasAttribute('sub-ref')) {
-            if(!isset($this->testresults[$refid][$elem->getAttribute('sub-ref')])) {
-                // TODO: get_string
-                $errormsg = "Missing subtest-response: The response file does not contain a subtest-response with ID '" . $elem->getAttribute('sub-ref') . "' in test-response with ID '" . $refid . "'.";
-                throw new \Exception($errormsg);
+            $tmp = $this->testresults[$refid];
+            if(is_array($tmp) && isset($tmp[$elem->getAttribute('sub-ref')])) {
+                $testresult = $tmp[$elem->getAttribute('sub-ref')];
+            } else {
+                // The ProFormA whitepaper allows test results without sub results even if the grading hints
+                // section has sub-ref references. A common use case is that the grader cannot start the
+                // respective test at all so it doesn't make sense to report individual sub-test results,
+                // because none of sub-tests has succeeded.
+                $testresult = $tmp;
             }
-            $testresult = $this->testresults[$refid][$elem->getAttribute('sub-ref')];
         } else {
             $testresult = $this->testresults[$refid];
             if (is_array($testresult)) {
@@ -348,8 +353,13 @@ class separate_feedback_handler {
             }
         }
 
-        $result = $testresult->getElementsByTagNameNS($this->namespacefeedback, 'result')[0];
-        $score = $result->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
+        if (isset($testresult)) {
+            $result = $testresult->getElementsByTagNameNS($this->namespacefeedback, 'result')[0];
+            $score = $result->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
+        } else {
+            $result = null;
+            $score = 0;
+        }
         $weight = 1;
         if ($elem->hasAttribute('weight')) {
             $weight = $elem->getAttribute('weight');
@@ -357,7 +367,7 @@ class separate_feedback_handler {
         $detailedfeedbacknode->set_heading(get_string('test', 'qtype_moopt') . ' ');
         $this->fill_feedback_node_with_test_infos($elem, $detailedfeedbacknode, $testresult);
 
-        if ($result->hasAttribute('is-internal-error')) {
+        if (isset($result) && $result->hasAttribute('is-internal-error')) {
             $detailedfeedbacknode->set_has_internal_error($result->getAttribute('is-internal-error') == "true");
         }
 
@@ -369,7 +379,7 @@ class separate_feedback_handler {
     }
 
     private function fill_feedback_node_with_test_infos(\DOMElement $elem, separate_feedback_text_node $node,
-            \DOMElement $testresult) {
+            ?\DOMElement $testresult) {
         $refid = $elem->getAttribute('ref');
         if (($titlelist = $elem->getElementsByTagNameNS($this->namespacegradinghints, 'title'))->length == 1) {
             $node->set_title($titlelist[0]->nodeValue);
@@ -392,8 +402,10 @@ class separate_feedback_handler {
             }
         }
 
-        $this->fill_feedback_node_with_feedback_list($node, $testresult->getElementsByTagNameNS($this->namespacefeedback,
-                        'feedback-list')[0]);
+        if (isset($testresult)) {
+            $this->fill_feedback_node_with_feedback_list($node, $testresult->getElementsByTagNameNS($this->namespacefeedback,
+                            'feedback-list')[0]);
+        }
     }
 
     private function fill_feedback_node_with_feedback_list(separate_feedback_text_node $node, \DOMElement $feedbacklist) {
