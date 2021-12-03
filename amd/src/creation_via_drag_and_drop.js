@@ -68,6 +68,7 @@ define(['core/ajax',
                                     elem = document.querySelector("#id_ftsmaxnumfields");
                                     elem.value = ftsmaxnumfields;
                                     elem.click();
+                                    elem.dispatchEvent(new Event('change')); // trigger hideIf rules in edit_moopt_form
                                     elem = document.querySelector("#id_enablecustomsettingsforfreetextinputfields");
                                     elem.checked = false;
                                     elem.click();
