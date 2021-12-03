@@ -84,5 +84,20 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2021110601, 'qtype', 'moopt');
     }
 
+    if ($oldversion < 2021112700) {
+
+        // Define field initialdisplayrows to be added to qtype_moopt_freetexts.
+        $table = new xmldb_table('qtype_moopt_freetexts');
+        $field = new xmldb_field('initialdisplayrows', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '5', 'filecontent');
+
+        // Conditionally launch add field initialdisplayrows.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2021112700, 'qtype', 'moopt');
+    }
+
     return true;
 }

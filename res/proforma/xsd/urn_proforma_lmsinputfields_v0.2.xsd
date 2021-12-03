@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:proforma:lmsinputfields:v0.2" xmlns:tns="urn:proforma:lmsinputfields:v0.2" elementFormDefault="qualified">
+  <xs:element name="lms-input-fields" type="tns:lms-input-fieldsType"/>
+  <xs:complexType name="fileinputType">
+    <xs:attribute name="filename" type="xs:string"/>
+    <xs:attribute name="fixedfilename" type="xs:boolean" default="true"/>
+    <xs:attribute name="proglang" type="xs:string" />
+  </xs:complexType>
+  <xs:complexType name="textfieldType">
+    <xs:attribute name="file-ref" type="xs:string" use="required"/>
+    <xs:attribute name="fixedfilename" type="xs:boolean" default="true"/>
+    <xs:attribute name="proglang" type="xs:string"/>
+    <xs:attribute name="initial-display-rows" type="xs:int"/>
+  </xs:complexType>
+  <xs:complexType name="lms-input-fieldsType">
+    <xs:sequence>
+      <xs:element name="fileinput" type="tns:fileinputType" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="textfield" type="tns:textfieldType" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

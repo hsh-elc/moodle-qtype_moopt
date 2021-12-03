@@ -49,7 +49,8 @@ class qtype_moopt_external extends external_api {
                                 'usefixedfilename'    => new external_value(PARAM_BOOL, 'Use fixed file name'),
                                 'defaultfilename'    => new external_value(PARAM_TEXT, 'Default file name'),
                                 'proglang'    => new external_value(PARAM_TEXT, 'Programming language for syntax highlighting'),
-                                'filecontent'    => new external_value(PARAM_RAW, 'File content to use as a template')
+                                'filecontent'    => new external_value(PARAM_RAW, 'File content to use as a template'),
+                                'initialdisplayrows'    => new external_value(PARAM_INT, 'The initial display rows of a textfield')
                             )
                         )
                     ,'Free text settings', VALUE_OPTIONAL),
@@ -146,40 +147,7 @@ class qtype_moopt_external extends external_api {
             $returnval['maxscoregradinghints'] = $maxscoregradinghints;
 
             // Process lms-input-fields
-            $includeenablefileinput = false;
-            $enablefileinput = false;
-            $lmsinputfieldsettings = array();
-            // TODO: fix hard coded namespace
-            $lmsinputfields = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.1', 'lms-input-fields');
-            if(1 == $lmsinputfields->length) {
-                $includeenablefileinput = true;
-                foreach ($lmsinputfields[0]->childNodes as $child) {
-                    if ($child->localName == 'fileinput') {
-                        // Moopt doesn't support multiple fileinputs, meaning multiple draft areas for file upload.
-                        // If at least one fileinput is configured in lms-input-fields, use that as an indicator to
-                        // use one draft area and that's it. Moopt also doesn't  support the fixedfilename and
-                        // proglang attributes of the fileinput element.
-                        $enablefileinput = true;
-                    } else if ($child->localName == 'textfield') {
-                        // fixedfilename is true by default if not set via lmsinputfields
-                        $fixedfilename = true;
-                        if($child->hasAttribute('fixedfilename')) {
-                            $fixedfilename = filter_var($child->attributes->getNamedItem('fixedfilename')->nodeValue,
-                                FILTER_VALIDATE_BOOLEAN);
-                        }
-                        $proglang = 'txt';
-                        if($child->hasAttribute('proglang')) {
-                            $lang = $child->attributes->getNamedItem('proglang')->nodeValue;
-                            // make sure the task's lmsinputfields contains a valid proglang value
-                            if(array_key_exists($lang, PROFORMA_ACE_PROGLANGS))
-                                $proglang = $lang;
-                        }
-                        $settings = array('fixedfilename' => $fixedfilename, 'proglang' => $proglang);
-                        $lmsinputfieldsettings[$child->attributes->getNamedItem('file-ref')->nodeValue] = $settings;
-                    }
-                }
-            } else if(1 < $lmsinputfields->length)
-                throw new Exception('Task meta-data contains more than one lms-input-fields element.');
+            list($includeenablefileinput, $enablefileinput, $lmsinputfieldsettings) = readLmsInputFieldSettingsFromTaskXml($doc);
             $returnval["enablefileinput"] = $includeenablefileinput ? $enablefileinput : true;
             $returnval["freetextfilesettings"] = array();
             foreach ($doc->getElementsByTagNameNS($namespace, 'file') as $file) {
@@ -191,6 +159,7 @@ class qtype_moopt_external extends external_api {
                 $usefixedfilename = true;
                 $defaultfilename = '';
                 $proglang = ''; // TODO: should be the task's proglang initially
+                $initialdisplayrows = DEFAULT_INITIAL_DISPLAY_ROWS;
                 $fileid = '';
                 foreach ($file->childNodes as $child) {
                     if($file->attributes->getNamedItem('visible')->nodeValue == 'yes' &&
@@ -219,12 +188,14 @@ class qtype_moopt_external extends external_api {
                     if(array_key_exists($fileid, $lmsinputfieldsettings)) {
                         $usefixedfilename = $lmsinputfieldsettings[$fileid]['fixedfilename'];
                         $proglang = $lmsinputfieldsettings[$fileid]['proglang'];
+                        $initialdisplayrows = $lmsinputfieldsettings[$fileid]['initialdisplayrows'];
                     }
                     $freetextfilesettings = array("enablecustomsettings" => $enablecustomsettings,
                         "usefixedfilename" => $usefixedfilename,
                         "defaultfilename" => $defaultfilename,
                         "proglang" => $proglang,
-                        "filecontent" => $filecontent);
+                        "filecontent" => $filecontent,
+                        "initialdisplayrows" => $initialdisplayrows);
 
                     array_push($returnval["freetextfilesettings"], $freetextfilesettings);
                 }

@@ -93,6 +93,9 @@ define(['core/ajax',
 
                                         document.querySelector("#id_ftsoverwrittenlang"+i)
                                             .value = result.freetextfilesettings[i]['proglang'];
+
+                                        document.querySelector("#id_ftsinitialdisplayrows"+i)
+                                            .value = result.freetextfilesettings[i]['initialdisplayrows'];
                                     }
                                 }
 

@@ -254,10 +254,21 @@ define(['jquery'], function ($) {
         return undefined;
     };
 
-    AceWrapper.prototype.resize = function (w, h) {
-        this.editNode.outerHeight(h);
-        this.editNode.outerWidth(w);
-        this.editor.resize();
+    AceWrapper.prototype.resize = function (w, h, force) {
+        this.editNode.height(h);
+        this.editNode.width(w);
+        this.editor.resize(force);
+    };
+
+    AceWrapper.prototype.getLineHeight = function () {
+        return this.editor.renderer.layerConfig.lineHeight;
+    };
+
+    AceWrapper.prototype.getHScrollHeight = function () {
+        if (this.editor.renderer.$horizScroll) {
+            return this.editor.renderer.scrollBarH.getHeight();
+        }
+        return 0;
     };
 
     return {

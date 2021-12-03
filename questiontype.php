@@ -107,6 +107,7 @@ class qtype_moopt extends question_type {
                     $data->presetfilename = $question->{"namesettingsforfreetextinput$i"} == 0;
                     $data->filename = $data->presetfilename ? $question->{"freetextinputfieldname$i"} : null;
                     $data->filecontent = $question->{"freetextinputfieldtemplate$i"};
+                    $data->initialdisplayrows = $question->{"ftsinitialdisplayrows$i"};
                     $DB->insert_record('qtype_moopt_freetexts', $data);
                 }
             }
