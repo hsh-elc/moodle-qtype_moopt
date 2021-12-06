@@ -148,6 +148,14 @@ class qtype_moopt_external extends external_api {
 
             // Process lms-input-fields
             list($includeenablefileinput, $enablefileinput, $lmsinputfieldsettings) = readLmsInputFieldSettingsFromTaskXml($doc);
+
+            $allinputfieldfilerefs = array();
+            if (is_array($lmsinputfieldsettings)) {
+                $allinputfieldfilerefs = array_keys($lmsinputfieldsettings);
+            }
+            // If not all $allinputfieldfilerefs elements are found among the files,
+            // we will print a warning message.
+
             $returnval["enablefileinput"] = $includeenablefileinput ? $enablefileinput : true;
             $returnval["freetextfilesettings"] = array();
             foreach ($doc->getElementsByTagNameNS($namespace, 'file') as $file) {
@@ -198,7 +206,25 @@ class qtype_moopt_external extends external_api {
                         "initialdisplayrows" => $initialdisplayrows);
 
                     array_push($returnval["freetextfilesettings"], $freetextfilesettings);
+
+                    // remove the fileid
+                    $index = array_search($fileid, $allinputfieldfilerefs);
+                    if ($index !== false) {
+                        array_splice($allinputfieldfilerefs, $index, 1);
+                    }
                 }
+            }
+
+            // Print warning, if there are textfields referencing unsuited files:
+            if (!empty($allinputfieldfilerefs)) {
+                if (!array_key_exists('moodleValidationWarnings', $returnval) || !is_array($returnval['moodleValidationWarnings'])) {
+                    $returnval['moodleValidationWarnings'] = array();
+                }
+                $returnval['moodleValidationWarnings'][] =
+                    array('msg' =>
+                        htmlspecialchars('There are <textfield> elements below <lms-input-fields> ' .
+                            'referencing either unknown or invisible or non-editable files: "' .
+                            implode('", "', $allinputfieldfilerefs) . '"'));
             }
 
             // Fill in the question's general feedback

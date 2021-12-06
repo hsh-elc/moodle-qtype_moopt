@@ -118,7 +118,7 @@ define(['core/ajax',
                                 document.querySelector("#id_error_ajaxwarninglabel")
                                     .parentNode.children.item(0).innerHTML = warnings;
 
-                                document.querySelector("#id_name").focus();
+                                document.querySelector("#loadproformataskfilebutton").focus();
                             },
                             fail: function (errorObject) {
                                 console.log(errorObject);
