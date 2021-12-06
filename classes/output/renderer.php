@@ -256,7 +256,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                     // Adjust the height of the textarea based on the content of the textarea.
                     // The 'rows' attribute will be interpreted by the javascript userinterfacewrapper.js
                     // to adapt the CSS height of the editor.
-                    $textarearows = $this->calc_rows($customoptions->initialdisplayrows, $text);
+                    $textarearows = $this->calc_rows(($customoptions ? $customoptions->initialdisplayrows : DEFAULT_INITIAL_DISPLAY_ROWS), $text);
 
                     $textarea_id = "qtype_moopt_answertext_" . $qa->get_question_id() . "_" . $i;
                     $renderedfreetext .= html_writer::start_div('answertextreadonly');
@@ -355,7 +355,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                 // Adjust the height of the textarea based on the content of the textarea
                 // The 'rows' attribute will be interpreted by the javascript userinterfacewrapper.js
                 // to adapt the CSS height of the editor.
-                $textarearows = $this->calc_rows($customoptions->initialdisplayrows, $answertextresponse);
+                $textarearows = $this->calc_rows(($customoptions ? $customoptions->initialdisplayrows : DEFAULT_INITIAL_DISPLAY_ROWS), $answertextresponse);
 
                 $output .= html_writer::tag('input', '', $inputoptions);
                 $output .= html_writer::end_div();
