@@ -3,8 +3,13 @@
 After downloading the plugin to the folder `moodle/question/type/` you need to rename the plugin folder itself to `moopt`.
 Example: If you used `git clone` to clone the repository you probably have the following hierarchy: `moodle/question/type/moodle-qtype_moopt/`. Rename this to `moodle/question/type/moopt/`.
 
-# Programmieraufgabe #
+# Moodle configuration #
 
+For this plugin to work properly, you need to change two settings in moodle after installation: 
+* site administration -> Security -> HTTP Security -> cURL blocked hosts list -> remove the ip, that is used in the Service URL, from the list -> Save changes
+* site administration -> Security -> HTTP Security -> cURL allowed ports list -> add the port, that is used in the Service URL, to the list -> Save changes
+
+# Programmieraufgabe #
 
 The attempt overview for the teacher is partly wrong for programming tasks, because mod_quiz isn't intended to be used with asynchronously graded questions. This results in a mismatch between the actual question state and the question state that is display to the user. The main problem is that in moodle there is no such state as "the student has submitted the answer, the question is therefore answered and finished but not yet graded". Some existing states do almost match on this but not entirely. This results in a display problem that is explained in the following:
 * ![](doc/img/x.png) 
