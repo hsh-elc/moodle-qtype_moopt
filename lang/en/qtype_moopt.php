@@ -24,6 +24,7 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+$string['ace_ui_notready'] = 'Ace editor not ready. Perhaps reload page?';
 $string['addanswertext'] = 'Add answer field';
 $string['addfreetextfieldsettings'] = 'Add settings for another free text input field';
 $string['chose_communicator'] = 'Service Communicator';
@@ -143,5 +144,6 @@ $string['test'] = 'Test';
 $string['testgroup'] = 'Testgroup';
 $string['testresult'] = 'Test result';
 $string['timeout'] = 'Service Timeout';
+$string['ui_fallback'] = 'Falling back to raw text area.';
 $string['xmlvalidationerrormsg'] = '{$a->message} (Code {$a->code}) on line {$a->line}';
 $string['yourcode'] = 'Your code';
