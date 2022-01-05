@@ -104,8 +104,8 @@ class qtype_moopt_question extends question_graded_automatically {
      * @return question_behaviour the new behaviour object.
      */
     public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
-        $prefixtocheck = 'immediate';
-        if (substr($preferredbehaviour, 0, strlen($prefixtocheck)) === $prefixtocheck) {
+        $resolvetommediatemoopt = ['immediate', 'interactive'];
+        if(preg_match("/^".implode("|", $resolvetommediatemoopt)."/", $preferredbehaviour)) {
             $preferredbehaviour = 'immediatemoopt';
         } else {
             // No need to check whether it starts with 'deferred' because this is also the default cause if
