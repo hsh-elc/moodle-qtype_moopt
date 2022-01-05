@@ -613,11 +613,11 @@ class qtype_moopt_renderer extends qtype_renderer {
                         $responsefileinfos = array(
                             'component' => COMPONENT_NAME,
                             'filearea' => PROFORMA_RESPONSE_FILE_AREA . "_{$qa->get_database_id()}",
-                            'itemid' => "{$qa->get_usage_id()}/$slot/{$qa->get_usage_id()}", // see questionlib.php\question_pluginfile(...)
                             'contextid' => $qubarecord->contextid,
                             'filepath' => "/",
                             'filename' => 'response.xml');
                     }
+                    $responsefileinfos['itemid'] = "{$qa->get_usage_id()}/$slot/{$qa->get_usage_id()}"; // see questionlib.php\question_pluginfile(...)
                     
                     $url = moodle_url::make_pluginfile_url($responsefileinfos['contextid'], $responsefileinfos['component'],
                                     $responsefileinfos['filearea'], $responsefileinfos['itemid'], $responsefileinfos['filepath'],
