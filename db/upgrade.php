@@ -99,7 +99,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2021112700, 'qtype', 'moopt');
     }
 
-    if ($oldversion < 2022010400) {
+    if ($oldversion < 2022010500) {
         // Fix wrong component name to the correct qtype name 'qtype_moopt'.
         // Also update the pathnamehash to a new value with the new component name.
 
@@ -116,18 +116,18 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
 
         foreach($filesrecords as $record => $file) {
             $file->timemodified = time();
-            $file->component = COMPONENT_NAME; // fix component name to 'qtype_moopt'
+            $file->component = 'qtype_moopt'; // fix component name to 'qtype_moopt'
             // Since pathnamehash is partly based on the component column,
             // we also update pathnamehash to a new value, see function
             // quiz_question_pluginfile in moodle/mod/quiz/lib.php.
-            // fullpath looks like this: "/$context->id/$component/$filearea/$itemid.$filepath.$filename";
+            //  looks like this: "/$context->id/$component/$filearea/$itemid.$filepath.$filename";
             $fullpath = "/" . $file->contextid . "/" . $file->component . "/" . $file->filearea
                             . "/" . $file->itemid . $file->filepath . $file->filename;
             $file->pathnamehash = sha1($fullpath);;
             $DB->update_record('files', $file);
         }
         // Moopt savepoint reached.
-        upgrade_plugin_savepoint(true, 2022010400, 'qtype', 'moopt');
+        upgrade_plugin_savepoint(true, 2022010500, 'qtype', 'moopt');
     }
 
     return true;
