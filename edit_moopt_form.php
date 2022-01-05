@@ -249,7 +249,13 @@ class qtype_moopt_edit_form extends question_edit_form {
 
         if (isset($question->id)) {
             $draftitemid = file_get_submitted_draft_itemid('proformataskfileupload');
-            file_prepare_draft_area($draftitemid, $this->context->id, COMPONENT_NAME, PROFORMA_TASKZIP_FILEAREA,
+
+            $fs = get_file_storage();
+            $sourcefilearea = PROFORMA_TASKZIP_FILEAREA;
+            if (empty($fs->get_area_files($this->context->id, COMPONENT_NAME, $sourcefilearea, $question->id))) {
+                $sourcefilearea = PROFORMA_TASKXML_FILEAREA;
+            }
+            file_prepare_draft_area($draftitemid, $this->context->id, COMPONENT_NAME, $sourcefilearea,
                     $question->id, array('subdirs' => 0));
             $question->proformataskfileupload = $draftitemid;
         }

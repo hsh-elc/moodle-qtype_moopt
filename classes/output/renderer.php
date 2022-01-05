@@ -485,8 +485,8 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                                 // Load task.xml to get grading hints and tests.
                                 $fs = get_file_storage();
-                                $taskxmlfile = $fs->get_file($qa->get_question()->contextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA,
-                                        $qa->get_question()->id, '/', 'task.xml');
+
+                                $taskxmlfile = get_task_xml_file_from_filearea($qa->get_question());
                                 $taskdoc = new DOMDocument();
                                 $taskdoc->loadXML($taskxmlfile->get_content());
                                 $taskxmlnamespace = detect_proforma_namespace($taskdoc);
@@ -650,12 +650,12 @@ class qtype_moopt_renderer extends qtype_renderer {
         return $output;
     }
 
-	/**
-	 * Calculates the editor rows when displaying a given content
-	 * @param {int} minrows
-	 * @param {string} content
-	 * @return {int} the number of rows
-	 */
+    /**
+     * Calculates the editor rows when displaying a given content
+     * @param {int} minrows
+     * @param {string} content
+     * @return {int} the number of rows
+     */
     public function calc_rows(int $minrows, string $content): int {
         return max($minrows, count(explode(PHP_EOL, $content)));
     }

@@ -227,13 +227,26 @@ class qtype_moopt_question extends question_graded_automatically {
 
         // Get filename of task file if necessary but don't load it yet.
         $taskfilename = '';
+        $sourcearea = '';
+        $taskreftype = '';
         if ($includetaskfile) {
-            $taskfilename = $DB->get_record('qtype_moopt_files', array('questionid' => $this->id,
-                        'filearea' => PROFORMA_TASKZIP_FILEAREA), 'filename')->filename;
+            $sourcearea = PROFORMA_TASKZIP_FILEAREA;
+            $taskreftype = 'zip';
+            $rec = $DB->get_record('qtype_moopt_files', array('questionid' => $this->id,
+                        'filearea' => $sourcearea), 'filename');
+            if (!$rec) {
+                $sourcearea = PROFORMA_TASKXML_FILEAREA;
+                $taskreftype = 'xml';
+                $rec = $DB->get_record('qtype_moopt_files', array('questionid' => $this->id,
+                        'filearea' => $sourcearea), 'filename');
+            }
+            $taskfilename = $rec->filename;
+        } else {
+            $taskreftype = 'uuid';
         }
 
         // Load task.xml file because we need the grading_hints if feedback-mode is merged-test-feedback.
-        $taskxmlfile = $fs->get_file($this->contextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA, $this->id, '/', 'task.xml');
+        $taskxmlfile = get_task_xml_file_from_filearea($this);
         $taskdoc = new DOMDocument();
         $taskdoc->loadXML($taskxmlfile->get_content());
         $taskxmlnamespace = detect_proforma_namespace($taskdoc);
@@ -242,13 +255,13 @@ class qtype_moopt_question extends question_graded_automatically {
 
         // Create the submission.xml file.
         $submissionxmlcreator = new proforma_submission_xml_creator();
-        $submissionxml = $submissionxmlcreator->create_submission_xml($includetaskfile, $includetaskfile ?
+        $submissionxml = $submissionxmlcreator->create_submission_xml($taskreftype, $includetaskfile ?
                 $taskfilename : $this->taskuuid, $files, $this->resultspecformat, $this->resultspecstructure, $this->studentfeedbacklevel, $this->teacherfeedbacklevel,
                 $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark(), $USER->id, $COURSE->id);
 
         // Load task file and add it to the files that go into the zip file.
         if ($includetaskfile) {
-            $taskfile = $fs->get_file($this->contextid, COMPONENT_NAME, PROFORMA_TASKZIP_FILEAREA, $this->id, '/', $taskfilename);
+            $taskfile = $fs->get_file($this->contextid, COMPONENT_NAME, $sourcearea, $this->id, '/', $taskfilename);
             $files["task/$taskfilename"] = $taskfile;
         }
 

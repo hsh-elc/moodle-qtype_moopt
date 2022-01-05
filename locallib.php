@@ -124,7 +124,12 @@ use qtype_moopt\exceptions\resource_not_found_exception;
  *
  * @param type $draftareaid
  * @param type $usercontext
- * @return string the name of the task file
+ * @return array the name of the task zip file and the task xml file.
+ *      [
+ *        'zip' => (string) the name of the zip file, if any (the key 'zip' is optional)
+ *        'xml' => (string) the name of the xml file (mandatory)
+ *      ]
+ *      Returns false, if there is no file in the given draft area.
  * @throws invalid_parameter_exception
  */
 function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
@@ -156,15 +161,20 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     if (array_key_exists('extension', $fileinfo)) {
         $filetype = strtolower($fileinfo['extension']);
     }
-    if ($filetype != 'zip') {
-        throw new invalid_parameter_exception('Supplied file must be a zip file.');
+    if ($filetype == 'xml') {
+        return array('xml' => $filename);
     }
+    if ($filetype != 'zip') {
+        throw new invalid_parameter_exception('Supplied file must be a xml or zip file.');
+    }
+    $zipfilename = $filename;
+    $result = array('zip' => $zipfilename);
 
     // Unzip file - basically copied from draftfiles_ajax.php.
     $zipper = get_file_packer('application/zip');
 
     // Find unused name for directory to extract the archive.
-    $temppath = $fs->get_unused_dirname($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($filename,
+    $temppath = $fs->get_unused_dirname($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($zipfilename,
                     PATHINFO_FILENAME) . '/');
     $donotremovedirs = array();
     $doremovedirs = array($temppath);
@@ -190,6 +200,9 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
                 $doremovedirs[] = $exfile->get_filepath();
                 $donotremovedirs[] = $realpath;
             }
+            if (!$exfile->is_directory() && $realpath == '/'  && $exfile->get_filename() == 'task.xml') {
+                $result['xml'] = $exfile->get_filename();
+            }
         }
     } else {
         return null;
@@ -202,7 +215,10 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
         }
     }
 
-    return $filename;
+    if (!array_key_exists('xml', $result)) {
+        throw new invalid_parameter_exception('Supplied zip file must contain the file task.xml.');
+    }
+    return $result;
 }
 
 /**
@@ -228,14 +244,15 @@ function remove_all_files_from_draft_area($draftareaid, $usercontext, $excludedf
  *
  * @param type $user_context
  * @param type $draftareaid
- * @param type $zipfilename
+ * @param type $xmlfilename
+ * @param type $zipfilename (optional, only if user uploaded a zip)
  * @return \DOMDocument
  * @throws invalid_parameter_exception
  */
 
-function create_domdocument_from_task_xml($usercontext, $draftareaid, $zipfilename) {
+function create_domdocument_from_task_xml($usercontext, $draftareaid, $xmlfilename, $zipfilename) {
     $fs = get_file_storage();
-    $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, "/", 'task.xml');
+    $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, "/", $xmlfilename);
     if (!$file) {
         remove_all_files_from_draft_area($draftareaid, $usercontext, $zipfilename);
         throw new invalid_parameter_exception('Supplied zip file doesn\'t contain task.xml file.');
@@ -244,7 +261,7 @@ function create_domdocument_from_task_xml($usercontext, $draftareaid, $zipfilena
     $doc = new DOMDocument();
     if (!$doc->loadXML($file->get_content())) {
         remove_all_files_from_draft_area($draftareaid, $usercontext, $zipfilename);
-        throw new invalid_parameter_exception('Error parsing the supplied task.xml file. See server log for details.');
+        throw new invalid_parameter_exception('Error parsing the supplied ' . $xmlfilename . ' file. See server log for details.');
     }
 
     return $doc;
@@ -255,18 +272,18 @@ function create_domdocument_from_task_xml($usercontext, $draftareaid, $zipfilena
  *
  * @param $usercontext
  * @param $draftareaid
- * @param $zipfilename
+ * @param $keepfilename
  * @param $filepath
  * @param $filename
  * @return string
  * @throws invalid_parameter_exception
  */
-function get_text_content_from_file($usercontext, $draftareaid, $zipfilename, $filepath, $filename) {
+function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $filepath, $filename) {
     $fs = get_file_storage();
     $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, $filepath, $filename);
     if (!$file) {
-        remove_all_files_from_draft_area($draftareaid, $usercontext, $zipfilename);
-        throw new invalid_parameter_exception('Supplied zip file doesn\'t contain file '. $filepath . $filename . '.');
+        remove_all_files_from_draft_area($draftareaid, $usercontext, $keepfilename);
+        throw new invalid_parameter_exception('Supplied file doesn\'t contain file '. $filepath . $filename . '.');
     }
 
     // TODO: make sure the mimetype is plain text
@@ -274,6 +291,23 @@ function get_text_content_from_file($usercontext, $draftareaid, $zipfilename, $f
 
     return $file->get_content();
 }
+
+
+/**
+ * Get the stored_file from the file area PROFORMA_TASKXML_FILEAREA, if any.
+ * @return stored_file|bool the file or false, if not found.
+ * @throws Exception if there is more than one file in that area.
+ */
+function get_task_xml_file_from_filearea($question) {
+    $fs = get_file_storage();
+    $files = $fs->get_area_files($question->contextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA, $question->id, "", false);
+    if (empty($files)) return false;
+    if (count($files) > 1) {
+        throw new Exception('Internal error. Unexpected ' + count($files) + ' in file area ' + PROFORMA_TASKXML_FILEAREA + ' of question ' + $question->id);
+    }
+    return reset($files); // first value
+}
+
 
 function save_task_and_according_files($question) {
     global $USER, $DB;
@@ -285,17 +319,20 @@ function save_task_and_according_files($question) {
 
     $usercontext = context_user::instance($USER->id);
 
-    $taskfilename = unzip_task_file_in_draft_area($draftareaid, $usercontext);
-    if (!$taskfilename) {
+    $unzipinfo = unzip_task_file_in_draft_area($draftareaid, $usercontext);
+    if (!$unzipinfo) {
         // Seems like no task file was submitted.
         return false;
     }
+    $taskxmlfilename = $unzipinfo['xml'];
+    $taskzipfilename = $unzipinfo['zip'] ?? null;
+    $keepfilename = $taskzipfilename != null ? $taskzipfilename : $taskxmlfilename;
 
     // Copy all extracted files to the corresponding file area.
     file_save_draft_area_files($draftareaid, $question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA,
             $question->id, array('subdirs' => true));
 
-    $doc = create_domdocument_from_task_xml($usercontext, $draftareaid, $taskfilename);
+    $doc = create_domdocument_from_task_xml($usercontext, $draftareaid, $taskxmlfilename, $taskzipfilename);
     $namespace = detect_proforma_namespace($doc);
 
     $filesfordb = array();
@@ -366,14 +403,14 @@ function save_task_and_according_files($question) {
 
     // Now move the task xml file to the designated area.
     $file = $fs->get_file($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id,
-            '/', 'task.xml');
+            '/', $taskxmlfilename);
     $newfilerecord = array(
         'component' => COMPONENT_NAME,
         'filearea' => PROFORMA_TASKXML_FILEAREA,
         'itemid' => $question->id,
         'contextid' => $question->context->id,
         'filepath' => '/',
-        'filename' => 'task.xml');
+        'filename' => $taskxmlfilename);
     $fs->create_file_from_storedfile($newfilerecord, $file);
     $file->delete();
 
@@ -384,38 +421,40 @@ function save_task_and_according_files($question) {
     $record->visibletostudents = 'no';
     $record->usagebylms = 'download';
     $record->filepath = '/';
-    $record->filename = 'task.xml';
+    $record->filename = $taskxmlfilename;
     $record->filearea = PROFORMA_TASKXML_FILEAREA;
     $filesfordb[] = $record;
 
-    // Now move the task zip file to the designated area.
-    $file = $fs->get_file($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id, '/', $taskfilename);
-    $newfilerecord = array(
-        'component' => COMPONENT_NAME,
-        'filearea' => PROFORMA_TASKZIP_FILEAREA,
-        'itemid' => $question->id,
-        'contextid' => $question->context->id,
-        'filepath' => '/',
-        'filename' => $taskfilename);
-    $fs->create_file_from_storedfile($newfilerecord, $file);
-    $file->delete();
+    if ($taskzipfilename != null) {
+        // Now move the task zip file to the designated area.
+        $file = $fs->get_file($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id, '/', $taskzipfilename);
+        $newfilerecord = array(
+            'component' => COMPONENT_NAME,
+            'filearea' => PROFORMA_TASKZIP_FILEAREA,
+            'itemid' => $question->id,
+            'contextid' => $question->context->id,
+            'filepath' => '/',
+            'filename' => $taskzipfilename);
+        $fs->create_file_from_storedfile($newfilerecord, $file);
+        $file->delete();
 
-    $record = new stdClass();
-    $record->questionid = $question->id;
-    $record->fileid = 'task';
-    $record->usedbygrader = 0;
-    $record->visibletostudents = 'no';
-    $record->usagebylms = 'download';
-    $record->filepath = '/';
-    $record->filename = $taskfilename;
-    $record->filearea = PROFORMA_TASKZIP_FILEAREA;
-    $filesfordb[] = $record;
+        $record = new stdClass();
+        $record->questionid = $question->id;
+        $record->fileid = 'task';
+        $record->usedbygrader = 0;
+        $record->visibletostudents = 'no';
+        $record->usagebylms = 'download';
+        $record->filepath = '/';
+        $record->filename = $taskzipfilename;
+        $record->filearea = PROFORMA_TASKZIP_FILEAREA;
+        $filesfordb[] = $record;
+    }
 
     // Save all records in database.
     $DB->insert_records('qtype_moopt_files', $filesfordb);
 
     // Do a little bit of cleanup and remove everything from the file area we extracted.
-    remove_all_files_from_draft_area($draftareaid, $usercontext, $taskfilename);
+    remove_all_files_from_draft_area($draftareaid, $usercontext, $keepfilename);
 }
 
 /**
@@ -504,6 +543,7 @@ function internal_retrieve_grading_results($qubaid) {
         if($response) {
             $internalerror = false;
             $hasdisplayablefeedback = false;
+			$couldsaveresponsetodisk = false;
             try {
                 // We take care of this grade process therefore we will delete it afterwards.
                 $finishedgradingprocesses[] = $gradeprocrecord->id;
@@ -626,9 +666,7 @@ function internal_retrieve_grading_results($qubaid) {
                                 $separatetestfeedback = $doc->getElementsByTagNameNS($namespace, 'separate-test-feedback')[0];
 
                                 // Load task.xml to get grading hints and tests.
-                                $fs = get_file_storage();
-                                $taskxmlfile = $fs->get_file($question->contextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA,
-                                        $question->id, '/', 'task.xml');
+                                $taskxmlfile = get_task_xml_file_from_filearea($question);
                                 $taskdoc = new DOMDocument();
                                 $taskdoc->loadXML($taskxmlfile->get_content());
                                 $taskxmlnamespace = detect_proforma_namespace($taskdoc);
@@ -794,119 +832,125 @@ function check_if_task_file_is_valid($draftareaid) {
     if (array_key_exists('extension', $fileinfo)) {
         $filetype = strtolower($fileinfo['extension']);
     }
-    if ($filetype != 'zip') {
-        return get_string('taskfilezipexpected', 'qtype_moopt');
-    }
 
-    // Unzip file - basically copied from draftfiles_ajax.php.
-    $zipper = get_file_packer('application/zip');
-
-    // Find unused name for directory to extract the archive.
-    $temppath = $fs->get_unused_dirname($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($filename,
-                    PATHINFO_FILENAME) . '/');
-
-    // Extract archive and move all files from $temppath to $filepath.
-    if ($file->extract_to_storage($zipper, $usercontext->id, 'user', 'draft', $draftareaid, $temppath, $USER->id)) {
-        $extractedfiles = $fs->get_directory_files($usercontext->id, 'user', 'draft', $draftareaid, $temppath, true);
-        $taskfilecontents = null;
-        foreach ($extractedfiles as $exfile) {
-            if ($exfile->get_filename() == 'task.xml') {
-                $taskfilecontents = $exfile->get_content();
-                break;
-            }
-        }
-
-        foreach ($extractedfiles as $exfile) {
-            $exfile->delete();
-        }
-        $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($filename, PATHINFO_FILENAME) .
-                '/', '.')->delete();
-
-        if ($taskfilecontents == null) {
-            return get_string('taskziplackstaskxml', 'qtype_moopt');
-        }
-
-        // TODO: Uncomment this to enable validation of task.xml file itself. Currently commented out because most task files
-        // don't validate against the schema.
-        /*
-        $doc = new DOMDocument();
-        $doc->loadXML($taskfilecontents);
-        $namespace = detect_proforma_namespace($doc);
-        if ($namespace == null) {
-            return "<p>" . get_string('invalidproformanamespace', 'qtype_moopt',
-                    implode(", ", PROFORMA_TASK_XML_NAMESPACES)) . "</p>";
-        }
-        if (!empty(($errors = validate_proforma_file_against_schema($doc, $namespace)))) {
-            $ret = "<p>" . get_string('proformavalidationerrorintro', 'qtype_moopt', $namespace) . "</p><ul>";
-            foreach ($errors as $er) {
-                $ret .= '<li>' . $er . '</li>';
-            }
-            $ret .= '</ul>';
-            return $ret;
-        }
-        */
+    if ($filetype == 'xml') {
+        $taskfilecontents = $file->get_content();
     } else {
-        return get_string('suppliedzipinvalid', 'qtype_moopt');
+        if ($filetype != 'zip') {
+            return get_string('taskfileziporxmlexpected', 'qtype_moopt');
+        }
+        $zipfilename = $filename;
+
+        // Unzip file - basically copied from draftfiles_ajax.php.
+        $zipper = get_file_packer('application/zip');
+
+        // Find unused name for directory to extract the archive.
+        $temppath = $fs->get_unused_dirname($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($zipfilename,
+                        PATHINFO_FILENAME) . '/');
+
+        // Extract archive and move all files from $temppath to $filepath.
+        if ($file->extract_to_storage($zipper, $usercontext->id, 'user', 'draft', $draftareaid, $temppath, $USER->id)) {
+            $extractedfiles = $fs->get_directory_files($usercontext->id, 'user', 'draft', $draftareaid, $temppath, true);
+            $taskfilecontents = null;
+            foreach ($extractedfiles as $exfile) {
+                if ($exfile->get_filename() == 'task.xml') {
+                    $taskfilecontents = $exfile->get_content();
+                    break;
+                }
+            }
+
+            foreach ($extractedfiles as $exfile) {
+                $exfile->delete();
+            }
+            $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($zipfilename, PATHINFO_FILENAME) .
+                    '/', '.')->delete();
+
+            if ($taskfilecontents == null) {
+                return get_string('taskziplackstaskxml', 'qtype_moopt');
+            }
+
+        } else {
+            return get_string('suppliedzipinvalid', 'qtype_moopt');
+        }
     }
+    // TODO: Uncomment this to enable validation of task.xml file itself. Currently commented out because most task files
+    // don't validate against the schema.
+    /*
+    $doc = new DOMDocument();
+    $doc->loadXML($taskfilecontents);
+    $namespace = detect_proforma_namespace($doc);
+    if ($namespace == null) {
+        return "<p>" . get_string('invalidproformanamespace', 'qtype_moopt',
+                implode(", ", PROFORMA_TASK_XML_NAMESPACES)) . "</p>";
+    }
+    if (!empty(($errors = validate_proforma_file_against_schema($doc, $namespace)))) {
+        $ret = "<p>" . get_string('proformavalidationerrorintro', 'qtype_moopt', $namespace) . "</p><ul>";
+        foreach ($errors as $er) {
+            $ret .= '<li>' . $er . '</li>';
+        }
+        $ret .= '</ul>';
+        return $ret;
+    }
+    */
 
     return null;
 }
 
 function readLmsInputFieldSettingsFromTaskXml(\DOMDocument $doc) {
     // prepare return values:
-	$includeenablefileinput = false;
-	$enablefileinput = false;
-	$lmsinputfieldsettings = array();
+    $includeenablefileinput = false;
+    $enablefileinput = false;
+    $lmsinputfieldsettings = array();
 
-	$lmsinputfieldsV01 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.1', 'lms-input-fields');
-	$lmsinputfieldsV02 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.2', 'lms-input-fields');
-	if (1 <= $lmsinputfieldsV01->length &&  1 <= $lmsinputfieldsV02->length) {
+    $lmsinputfieldsV01 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.1', 'lms-input-fields');
+    $lmsinputfieldsV02 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.2', 'lms-input-fields');
+    if (1 <= $lmsinputfieldsV01->length &&  1 <= $lmsinputfieldsV02->length) {
         throw new Exception('Task meta-data contains more than one lms-input-fields element.');
-	}
-	if(1 == $lmsinputfieldsV01->length) {
-		$lmsinputfields = $lmsinputfieldsV01;
-		$version = "0.1";
-	} else if (1 == $lmsinputfieldsV02->length) {
-		$lmsinputfields = $lmsinputfieldsV02;
-		$version = "0.2";
-	}
-	if(1 < $lmsinputfields->length) {
-		throw new Exception('Task meta-data contains more than one lms-input-fields element.');
-	}
-	if(1 == $lmsinputfields->length) {
-		$includeenablefileinput = true;
-		foreach ($lmsinputfields[0]->childNodes as $child) {
-			if ($child->localName == 'fileinput') {
-				// Moopt doesn't support multiple fileinputs, meaning multiple draft areas for file upload.
-				// If at least one fileinput is configured in lms-input-fields, use that as an indicator to
-				// use one draft area and that's it. Moopt also doesn't  support the fixedfilename and
-				// proglang attributes of the fileinput element.
-				$enablefileinput = true;
-			} else if ($child->localName == 'textfield') {
-				// fixedfilename is true by default if not set via lmsinputfields
-				$fixedfilename = true;
-				if($child->hasAttribute('fixedfilename')) {
-					$fixedfilename = filter_var($child->attributes->getNamedItem('fixedfilename')->nodeValue,
-						FILTER_VALIDATE_BOOLEAN);
-				}
-				$proglang = 'txt';
-				if($child->hasAttribute('proglang')) {
-					$lang = $child->attributes->getNamedItem('proglang')->nodeValue;
-					// make sure the task's lmsinputfields contains a valid proglang value
-					if(array_key_exists($lang, PROFORMA_ACE_PROGLANGS))
-						$proglang = $lang;
-				}
-				$initialdisplayrows = DEFAULT_INITIAL_DISPLAY_ROWS;
-				if (strcmp("0.2", $version) <= 0) {
-					if($child->hasAttribute('initial-display-rows')) {
-						$initialdisplayrows = $child->attributes->getNamedItem('initial-display-rows')->nodeValue;
-					}
-				}
-				$settings = array('fixedfilename' => $fixedfilename, 'proglang' => $proglang, 'initialdisplayrows' => $initialdisplayrows);
-				$lmsinputfieldsettings[$child->attributes->getNamedItem('file-ref')->nodeValue] = $settings;
-			}
-		}
-	}
+    }
+    if(1 == $lmsinputfieldsV01->length) {
+        $lmsinputfields = $lmsinputfieldsV01;
+        $version = "0.1";
+    } else if (1 == $lmsinputfieldsV02->length) {
+        $lmsinputfields = $lmsinputfieldsV02;
+        $version = "0.2";
+    }
+    if(1 < $lmsinputfields->length) {
+        throw new Exception('Task meta-data contains more than one lms-input-fields element.');
+    }
+    if(1 == $lmsinputfields->length) {
+        $includeenablefileinput = true;
+        foreach ($lmsinputfields[0]->childNodes as $child) {
+            if ($child->localName == 'fileinput') {
+                // Moopt doesn't support multiple fileinputs, meaning multiple draft areas for file upload.
+                // If at least one fileinput is configured in lms-input-fields, use that as an indicator to
+                // use one draft area and that's it. Moopt also doesn't  support the fixedfilename and
+                // proglang attributes of the fileinput element.
+                $enablefileinput = true;
+            } else if ($child->localName == 'textfield') {
+                // fixedfilename is true by default if not set via lmsinputfields
+                $fixedfilename = true;
+                if($child->hasAttribute('fixedfilename')) {
+                    $fixedfilename = filter_var($child->attributes->getNamedItem('fixedfilename')->nodeValue,
+                        FILTER_VALIDATE_BOOLEAN);
+                }
+                $proglang = 'txt';
+                if($child->hasAttribute('proglang')) {
+                    $lang = $child->attributes->getNamedItem('proglang')->nodeValue;
+                    // make sure the task's lmsinputfields contains a valid proglang value
+                    if(array_key_exists($lang, PROFORMA_ACE_PROGLANGS))
+                        $proglang = $lang;
+                }
+                $initialdisplayrows = DEFAULT_INITIAL_DISPLAY_ROWS;
+                if (strcmp("0.2", $version) <= 0) {
+                    if($child->hasAttribute('initial-display-rows')) {
+                        $initialdisplayrows = $child->attributes->getNamedItem('initial-display-rows')->nodeValue;
+                    }
+                }
+                $settings = array('fixedfilename' => $fixedfilename, 'proglang' => $proglang, 'initialdisplayrows' => $initialdisplayrows);
+                $lmsinputfieldsettings[$child->attributes->getNamedItem('file-ref')->nodeValue] = $settings;
+            }
+        }
+    }
 
     return array(
         $includeenablefileinput,
