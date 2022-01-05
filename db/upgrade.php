@@ -100,10 +100,11 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
     }
 
     if ($oldversion < 2022010400) {
-        // fix the wrong component name to the correct qtype name 'qtype_moopt'
-        $updatesql = "UPDATE {files}
-                      SET component = 'qtype_moopt'
-                      WHERE component = 'question' AND ( 
+        // Fix wrong component name to the correct qtype name 'qtype_moopt'.
+        // Also update the pathnamehash to a new value with the new component name.
+
+        $filesrecords = $DB->get_records_sql("SELECT * FROM mdl_files
+                           WHERE component = 'question' AND (
                          filearea = 'taskfile' OR
                          filearea = 'taskxmlfile' OR
                          filearea = 'attachedtaskfiles' OR
@@ -111,9 +112,20 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
                          filearea = 'submissionzip' OR
                          filearea LIKE 'responsefilesresponsefile%' OR
                          filearea LIKE'responsefiles%' OR
-                         filearea LIKE 'responsefilesembedded%')";
-        $DB->execute($updatesql);
+                         filearea LIKE 'responsefilesembedded%')");
 
+        foreach($filesrecords as $record => $file) {
+            $file->timemodified = time();
+            $file->component = COMPONENT_NAME; // fix component name to 'qtype_moopt'
+            // Since pathnamehash is partly based on the component column,
+            // we also update pathnamehash to a new value, see function
+            // quiz_question_pluginfile in moodle/mod/quiz/lib.php.
+            // fullpath looks like this: "/$context->id/$component/$filearea/$itemid.$filepath.$filename";
+            $fullpath = "/" . $file->contextid . "/" . $file->component . "/" . $file->filearea
+                            . "/" . $file->itemid . $file->filepath . $file->filename;
+            $file->pathnamehash = sha1($fullpath);;
+            $DB->update_record('files', $file);
+        }
         // Moopt savepoint reached.
         upgrade_plugin_savepoint(true, 2022010400, 'qtype', 'moopt');
     }

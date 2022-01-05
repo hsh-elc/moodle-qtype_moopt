@@ -31,5 +31,8 @@ defined('MOODLE_INTERNAL') || die();
 function qtype_moopt_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload) {
     global $DB, $CFG;
     require_once($CFG->libdir . '/questionlib.php');
+
+    // Note: do not use the constant COMPONENT_NAME, the interpreter will not be able to resolve it
+    // due to the way this function is called by moodle
     question_pluginfile($course, $context, 'qtype_moopt', $filearea, $args, $forcedownload);
 }
