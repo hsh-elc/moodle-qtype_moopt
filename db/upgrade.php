@@ -99,5 +99,24 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2021112700, 'qtype', 'moopt');
     }
 
+    if ($oldversion < 2022010400) {
+        // fix the wrong component name to the correct qtype name 'qtype_moopt'
+        $updatesql = "UPDATE {files}
+                      SET component = 'qtype_moopt'
+                      WHERE component = 'question' AND ( 
+                         filearea = 'taskfile' OR
+                         filearea = 'taskxmlfile' OR
+                         filearea = 'attachedtaskfiles' OR
+                         filearea = 'embeddedtaskfiles' OR
+                         filearea = 'submissionzip' OR
+                         filearea LIKE 'responsefilesresponsefile%' OR
+                         filearea LIKE'responsefiles%' OR
+                         filearea LIKE 'responsefilesembedded%')";
+        $DB->execute($updatesql);
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2022010400, 'qtype', 'moopt');
+    }
+
     return true;
 }

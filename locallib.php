@@ -16,6 +16,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+define('COMPONENT_NAME', 'qtype_moopt');
+
 // Name of file areas.
 
 // The following four file areas store files that are attached to a question.
@@ -290,7 +292,7 @@ function save_task_and_according_files($question) {
     }
 
     // Copy all extracted files to the corresponding file area.
-    file_save_draft_area_files($draftareaid, $question->context->id, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA,
+    file_save_draft_area_files($draftareaid, $question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA,
             $question->id, array('subdirs' => true));
 
     $doc = create_domdocument_from_task_xml($usercontext, $draftareaid, $taskfilename);
@@ -316,7 +318,7 @@ function save_task_and_according_files($question) {
                         $child->attributes->getNamedItem('filename')->nodeValue);
 
                 $fileinfo = array(
-                    'component' => 'question',
+                    'component' => COMPONENT_NAME,
                     'filearea' => PROFORMA_EMBEDDED_TASK_FILES_FILEAREA,
                     'itemid' => $question->id,
                     'contextid' => $question->context->id,
@@ -363,10 +365,10 @@ function save_task_and_according_files($question) {
     }
 
     // Now move the task xml file to the designated area.
-    $file = $fs->get_file($question->context->id, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id,
+    $file = $fs->get_file($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id,
             '/', 'task.xml');
     $newfilerecord = array(
-        'component' => 'question',
+        'component' => COMPONENT_NAME,
         'filearea' => PROFORMA_TASKXML_FILEAREA,
         'itemid' => $question->id,
         'contextid' => $question->context->id,
@@ -387,9 +389,9 @@ function save_task_and_according_files($question) {
     $filesfordb[] = $record;
 
     // Now move the task zip file to the designated area.
-    $file = $fs->get_file($question->context->id, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id, '/', $taskfilename);
+    $file = $fs->get_file($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id, '/', $taskfilename);
     $newfilerecord = array(
-        'component' => 'question',
+        'component' => COMPONENT_NAME,
         'filearea' => PROFORMA_TASKZIP_FILEAREA,
         'itemid' => $question->id,
         'contextid' => $question->context->id,
@@ -508,11 +510,11 @@ function internal_retrieve_grading_results($qubaid) {
 
                 // Remove old extracted files in case this is a regrade.
                 $oldexractedfiles = array_merge(
-                        $fs->get_directory_files($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
+                        $fs->get_directory_files($qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA .
                                 "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", true, true),
-                        $fs->get_directory_files($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE .
+                        $fs->get_directory_files($qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE .
                                 "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", true, true),
-                        $fs->get_directory_files($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA_EMBEDDED .
+                        $fs->get_directory_files($qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA_EMBEDDED .
                                 "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", true, true)
                 );
                 foreach ($oldexractedfiles as $f) {
@@ -524,7 +526,7 @@ function internal_retrieve_grading_results($qubaid) {
                     // ZIP file.
                     // Write response to file system.
                     $filerecord = array(
-                        'component' => 'question',
+                        'component' => COMPONENT_NAME,
                         'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$gradeprocrecord->questionattemptdbid}",
                         'itemid' => $qubaid,
                         'contextid' => $qubarecord->contextid,
@@ -534,12 +536,12 @@ function internal_retrieve_grading_results($qubaid) {
                     $file = $fs->create_file_from_string($filerecord, $response);
                     $zipper = get_file_packer('application/zip');
 
-                    $couldsaveresponsetodisk = $file->extract_to_storage($zipper, $qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
+                    $couldsaveresponsetodisk = $file->extract_to_storage($zipper, $qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA .
                             "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/");
                 } else {
                     // XML file.
                     $filerecord = array(
-                        'component' => 'question',
+                        'component' => COMPONENT_NAME,
                         'filearea' => PROFORMA_RESPONSE_FILE_AREA . "_{$gradeprocrecord->questionattemptdbid}",
                         'itemid' => $qubaid,
                         'contextid' => $qubarecord->contextid,
@@ -553,7 +555,7 @@ function internal_retrieve_grading_results($qubaid) {
                 // Apply the grade from the response.
                 if ($couldsaveresponsetodisk) {
                     $doc = new DOMDocument();
-                    $responsexmlfile = $fs->get_file($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
+                    $responsexmlfile = $fs->get_file($qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA .
                             "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", 'response.xml');
                     if ($responsexmlfile) {
 
@@ -595,7 +597,7 @@ function internal_retrieve_grading_results($qubaid) {
                                 $pathinfo = pathinfo('/' . $responsefile->getAttribute('id') . '/' .
                                         $elem->getAttribute('filename'));
                                 $fileinfo = array(
-                                    'component' => 'question',
+                                    'component' => COMPONENT_NAME,
                                     'filearea' => PROFORMA_RESPONSE_FILE_AREA_EMBEDDED . "_{$gradeprocrecord->questionattemptdbid}",
                                     'itemid' => $qubaid,
                                     'contextid' => $qubarecord->contextid,
@@ -625,7 +627,7 @@ function internal_retrieve_grading_results($qubaid) {
 
                                 // Load task.xml to get grading hints and tests.
                                 $fs = get_file_storage();
-                                $taskxmlfile = $fs->get_file($question->contextid, 'question', PROFORMA_TASKXML_FILEAREA,
+                                $taskxmlfile = $fs->get_file($question->contextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA,
                                         $question->id, '/', 'task.xml');
                                 $taskdoc = new DOMDocument();
                                 $taskdoc->loadXML($taskxmlfile->get_content());

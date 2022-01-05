@@ -162,7 +162,7 @@ class qtype_moopt_question extends question_graded_automatically {
                 (substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) ===
                 PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) {
             return true;
-        } else if ($component == 'question' && $filearea == 'response_answer') {
+        } else if ($component == COMPONENT_NAME && $filearea == 'response_answer') {
             return true;
         }
 
@@ -233,7 +233,7 @@ class qtype_moopt_question extends question_graded_automatically {
         }
 
         // Load task.xml file because we need the grading_hints if feedback-mode is merged-test-feedback.
-        $taskxmlfile = $fs->get_file($this->contextid, 'question', PROFORMA_TASKXML_FILEAREA, $this->id, '/', 'task.xml');
+        $taskxmlfile = $fs->get_file($this->contextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA, $this->id, '/', 'task.xml');
         $taskdoc = new DOMDocument();
         $taskdoc->loadXML($taskxmlfile->get_content());
         $taskxmlnamespace = detect_proforma_namespace($taskdoc);
@@ -248,7 +248,7 @@ class qtype_moopt_question extends question_graded_automatically {
 
         // Load task file and add it to the files that go into the zip file.
         if ($includetaskfile) {
-            $taskfile = $fs->get_file($this->contextid, 'question', PROFORMA_TASKZIP_FILEAREA, $this->id, '/', $taskfilename);
+            $taskfile = $fs->get_file($this->contextid, COMPONENT_NAME, PROFORMA_TASKZIP_FILEAREA, $this->id, '/', $taskfilename);
             $files["task/$taskfilename"] = $taskfile;
         }
 
@@ -256,7 +256,7 @@ class qtype_moopt_question extends question_graded_automatically {
         $files['submission.xml'] = array($submissionxml);       // Syntax to use a string as file contents.
         // Create submission.zip file.
         $zipper = get_file_packer('application/zip');
-        $zipfile = $zipper->archive_to_storage($files, $this->contextid, 'question', PROFORMA_SUBMISSION_ZIP_FILEAREA .
+        $zipfile = $zipper->archive_to_storage($files, $this->contextid, COMPONENT_NAME, PROFORMA_SUBMISSION_ZIP_FILEAREA .
                 "_{$qa->get_slot()}", $qubaid, '/', 'submission.zip');
         if (!$zipfile) {
             throw new invalid_state_exception('Couldn\'t create submission.zip file.');
@@ -273,7 +273,7 @@ class qtype_moopt_question extends question_graded_automatically {
             $returnstate = question_state::$needsgrading;
         } finally {
             $fs = get_file_storage();
-            $success = $fs->delete_area_files($this->contextid, 'question', PROFORMA_SUBMISSION_ZIP_FILEAREA .
+            $success = $fs->delete_area_files($this->contextid, COMPONENT_NAME, PROFORMA_SUBMISSION_ZIP_FILEAREA .
                     "_{$qa->get_slot()}", $qubaid);
             if (!$success) {
                 throw new invalid_state_exception("Couldn't delete submission.zip after sending it to grappa." .

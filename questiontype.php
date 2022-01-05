@@ -82,10 +82,10 @@ class qtype_moopt extends question_type {
         // First remove all old files and db entries.
         $DB->delete_records('qtype_moopt_files', array('questionid' => $question->id));
         $fs = get_file_storage();
-        $fs->delete_area_files($question->context->id, 'question', PROFORMA_TASKZIP_FILEAREA, $question->id);
-        $fs->delete_area_files($question->context->id, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id);
-        $fs->delete_area_files($question->context->id, 'question', PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $question->id);
-        $fs->delete_area_files($question->context->id, 'question', PROFORMA_TASKXML_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, COMPONENT_NAME, PROFORMA_TASKZIP_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, COMPONENT_NAME, PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA, $question->id);
         save_task_and_according_files($question);
 
         // Store custom settings for free text input fields.
@@ -121,10 +121,10 @@ class qtype_moopt extends question_type {
 
         $DB->delete_records('qtype_moopt_files', array('questionid' => $questionid));
         $fs = get_file_storage();
-        $fs->delete_area_files($contextid, 'question', PROFORMA_TASKZIP_FILEAREA, $questionid);
-        $fs->delete_area_files($contextid, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $questionid);
-        $fs->delete_area_files($contextid, 'question', PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $questionid);
-        $fs->delete_area_files($contextid, 'question', PROFORMA_TASKXML_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, COMPONENT_NAME, PROFORMA_TASKZIP_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, COMPONENT_NAME, PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA, $questionid);
 
         parent::delete_question($questionid, $contextid);
     }

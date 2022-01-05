@@ -172,7 +172,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                 }
 
                 $anythingtodisplay = true;
-                $url = moodle_url::make_pluginfile_url($question->contextid, 'question', $file->filearea,
+                $url = moodle_url::make_pluginfile_url($question->contextid, COMPONENT_NAME, $file->filearea,
                                 "$qubaid/$slot/$questionid", $file->filepath, $file->filename, true);
                 if ($file->filearea == PROFORMA_ATTACHED_TASK_FILES_FILEAREA) {
                     $folderdisplay = $file->filepath;
@@ -454,7 +454,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $html = '';
 
-                $responsexmlfile = $fs->get_file($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
+                $responsexmlfile = $fs->get_file($qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA .
                         "_{$qa->get_database_id()}", $qa->get_usage_id(),
                         "/", 'response.xml');
                 if ($responsexmlfile) {
@@ -485,7 +485,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                                 // Load task.xml to get grading hints and tests.
                                 $fs = get_file_storage();
-                                $taskxmlfile = $fs->get_file($qa->get_question()->contextid, 'question', PROFORMA_TASKXML_FILEAREA,
+                                $taskxmlfile = $fs->get_file($qa->get_question()->contextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA,
                                         $qa->get_question()->id, '/', 'task.xml');
                                 $taskdoc = new DOMDocument();
                                 $taskdoc->loadXML($taskxmlfile->get_content());
@@ -529,7 +529,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 //         - filename: the filename inside the response.zip  (or the name of the zip file in case of filearea=responsefilesresponsefile)
 
                                 $fileinfos = [
-                                    'component' => 'question',
+                                    'component' => COMPONENT_NAME,
                                     'itemid' => $qa->get_usage_id(),
                                     'fileareasuffix' => "_{$qa->get_database_id()}",
                                     'contextid' => $qubarecord->contextid,
@@ -596,7 +596,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                     
                     // check, if we have a response.zip file
                     $zipfileinfos = array(
-                        'component' => 'question',
+                        'component' => COMPONENT_NAME,
                         'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$qa->get_database_id()}",
                         'itemid' => $qa->get_usage_id(),
                         'contextid' => $qubarecord->contextid,
@@ -611,7 +611,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                     } else {
                         // response.xml
                         $responsefileinfos = array(
-                            'component' => 'question',
+                            'component' => COMPONENT_NAME,
                             'filearea' => PROFORMA_RESPONSE_FILE_AREA . "_{$qa->get_database_id()}",
                             'itemid' => "{$qa->get_usage_id()}/$slot/{$qa->get_usage_id()}", // see questionlib.php\question_pluginfile(...)
                             'contextid' => $qubarecord->contextid,
