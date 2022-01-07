@@ -162,7 +162,9 @@ class qtype_moopt_question extends question_graded_automatically {
                 (substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) ===
                 PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) {
             return true;
-        } else if ($component == COMPONENT_NAME && $filearea == 'response_answer') {
+        } else if ($component == 'question' && $filearea == 'response_answer') {
+            // the component is hard-wired to 'question' for filearea 'response_answer'
+            // do not change it to 'qtype_moopt'
             return true;
         }
 
