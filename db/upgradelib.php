@@ -37,3 +37,14 @@ function qtype_moopt_helper_function() {
       https://docs.moodle.org/dev/Upgrade_API
      */
 }
+
+function pathnamehash($contextid, $component, $filearea, $itemid, $filepath, $filename) {
+    // A mdl_file record's pathnamehash value is based on multiple columns,
+    // forming a complex path that looks like this:
+    // "/$context->id/$component/$filearea/$itemid.$filepath.$filename"
+    // See function quiz_question_pluginfile in moodle/mod/quiz/lib.php
+    $fullpath = "/" . $contextid . "/" . $component . "/" . $filearea
+        . "/" . $itemid . $filepath . $filename;
+    return sha1($fullpath);
+}
+
