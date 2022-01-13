@@ -106,9 +106,9 @@ class backup_qtype_moopt_plugin extends backup_qtype_plugin
             'attachedtaskfiles' => 'question_created',
             'embeddedtaskfiles' => 'question_created',
             'submissionzip' => 'question_created',
-            'responsefilesresponsefile' => 'question_created',
-            'responsefiles' => 'question_created',
-            'responsefilesembedded' => 'question_created'
+            'responsefilesresponsefile' => 'question_attempt',
+            'responsefiles' => 'question_attempt',
+            'responsefilesembedded' => 'question_attempt'
         );
     }
 }
