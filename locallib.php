@@ -49,12 +49,10 @@ define('PROFORMA_RESPONSE_FILE_AREA_EMBEDDED', 'responsefilesembedded');
 
 // All of the above PROFORMA_RESPONSE_FILE_AREA* file areas store files
 // with the following key values:
-// - component: question
-// - context: a context of level 70 (=module)
-// - filearea: <key>_<qa-id>, 
-//             where <key> is one of the labels responsefilesresponsefile, responsefiles or responsefilesembedded
-//             and <qa-id> is the database id of a mdl_question_attempt
-// - itemid: <quba-id>, i. e. the database id of a mdl_question_usages
+// - component: qtype
+// - context: a context of level 50 (question related)
+// - filearea: the labels responsefilesresponsefile, responsefiles or responsefilesembedded
+// - itemid: question attempt db id
 // - filepath: the path inside a response.zip file  (or / in case of responsefilesresponsefile)
 // - filename: the filename inside the response.zip  (or the name of the zip file in case of responsefilesresponsefile)
 
@@ -143,7 +141,7 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
         return false;
     } else if ($area['filecount'] > 1 || $area['foldercount'] != 0) {
         throw new invalid_parameter_exception(
-                'Only one file is allowed to be in this draft area: A ProFormA-Task as either ZIP or XML file.');
+            'Only one file is allowed to be in this draft area: A ProFormA-Task as either ZIP or XML file.');
     }
 
     // Get name of the file.
@@ -175,7 +173,7 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
 
     // Find unused name for directory to extract the archive.
     $temppath = $fs->get_unused_dirname($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($zipfilename,
-                    PATHINFO_FILENAME) . '/');
+            PATHINFO_FILENAME) . '/');
     $donotremovedirs = array();
     $doremovedirs = array($temppath);
     // Extract archive and move all files from $temppath to $filepath.
@@ -186,7 +184,7 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
             $realpath = preg_replace('|^' . $xtemppath . '|', '/', $exfile->get_filepath());
             if (!$exfile->is_directory()) {
                 // Set the source to the extracted file to indicate that it came from archive.
-                $exfile->set_source(serialize((object) array('source' => '/')));
+                $exfile->set_source(serialize((object)array('source' => '/')));
             }
             if (!$fs->file_exists($usercontext->id, 'user', 'draft', $draftareaid, $realpath, $exfile->get_filename())) {
                 // File or directory did not exist, just move it.
@@ -194,13 +192,13 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
             } else if (!$exfile->is_directory()) {
                 // File already existed, overwrite it.
                 repository::overwrite_existing_draftfile($draftareaid, $realpath, $exfile->get_filename(), $exfile->get_filepath(),
-                        $exfile->get_filename());
+                    $exfile->get_filename());
             } else {
                 // Directory already existed, remove temporary dir but make sure we don't remove the existing dir.
                 $doremovedirs[] = $exfile->get_filepath();
                 $donotremovedirs[] = $realpath;
             }
-            if (!$exfile->is_directory() && $realpath == '/'  && $exfile->get_filename() == 'task.xml') {
+            if (!$exfile->is_directory() && $realpath == '/' && $exfile->get_filename() == 'task.xml') {
                 $result['xml'] = $exfile->get_filename();
             }
         }
@@ -218,6 +216,7 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     if (!array_key_exists('xml', $result)) {
         throw new invalid_parameter_exception('Supplied zip file must contain the file task.xml.');
     }
+
     return $result;
 }
 
@@ -228,7 +227,8 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
  * @param type $user_context
  * @param type $excluded_file_name
  */
-function remove_all_files_from_draft_area($draftareaid, $usercontext, $excludedfilename) {
+function remove_all_files_from_draft_area($draftareaid, $usercontext, $excludedfilename)
+{
     $fs = get_file_storage();
     $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftareaid);
     foreach ($files as $fi) {
@@ -250,7 +250,8 @@ function remove_all_files_from_draft_area($draftareaid, $usercontext, $excludedf
  * @throws invalid_parameter_exception
  */
 
-function create_domdocument_from_task_xml($usercontext, $draftareaid, $xmlfilename, $zipfilename) {
+function create_domdocument_from_task_xml($usercontext, $draftareaid, $xmlfilename, $zipfilename)
+{
     $fs = get_file_storage();
     $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, "/", $xmlfilename);
     if (!$file) {
@@ -278,12 +279,13 @@ function create_domdocument_from_task_xml($usercontext, $draftareaid, $xmlfilena
  * @return string
  * @throws invalid_parameter_exception
  */
-function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $filepath, $filename) {
+function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $filepath, $filename)
+{
     $fs = get_file_storage();
     $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, $filepath, $filename);
     if (!$file) {
         remove_all_files_from_draft_area($draftareaid, $usercontext, $keepfilename);
-        throw new invalid_parameter_exception('Supplied file doesn\'t contain file '. $filepath . $filename . '.');
+        throw new invalid_parameter_exception('Supplied file doesn\'t contain file ' . $filepath . $filename . '.');
     }
 
     // TODO: make sure the mimetype is plain text
@@ -298,7 +300,8 @@ function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $
  * @return stored_file|bool the file or false, if not found.
  * @throws Exception if there is more than one file in that area.
  */
-function get_task_xml_file_from_filearea($question) {
+function get_task_xml_file_from_filearea($question)
+{
     $fs = get_file_storage();
     $files = $fs->get_area_files($question->contextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA, $question->id, "", false);
     if (empty($files)) return false;
@@ -309,7 +312,8 @@ function get_task_xml_file_from_filearea($question) {
 }
 
 
-function save_task_and_according_files($question) {
+function save_task_and_according_files($question)
+{
     global $USER, $DB;
 
     if (!isset($question->proformataskfileupload)) {
@@ -330,7 +334,7 @@ function save_task_and_according_files($question) {
 
     // Copy all extracted files to the corresponding file area.
     file_save_draft_area_files($draftareaid, $question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA,
-            $question->id, array('subdirs' => true));
+        $question->id, array('subdirs' => true));
 
     $doc = create_domdocument_from_task_xml($usercontext, $draftareaid, $taskxmlfilename, $taskzipfilename);
     $namespace = detect_proforma_namespace($doc);
@@ -352,7 +356,7 @@ function save_task_and_according_files($question) {
 
                 // Compensate the fact that the filename might contain a relative path.
                 $pathinfo = pathinfo('/' . $file->attributes->getNamedItem('id')->nodeValue . '/' .
-                        $child->attributes->getNamedItem('filename')->nodeValue);
+                    $child->attributes->getNamedItem('filename')->nodeValue);
 
                 $fileinfo = array(
                     'component' => COMPONENT_NAME,
@@ -369,7 +373,7 @@ function save_task_and_according_files($question) {
                 $record->usedbygrader = $file->attributes->getNamedItem('used-by-grader')->nodeValue == 'true' ? 1 : 0;
                 $record->visibletostudents = $file->attributes->getNamedItem('visible')->nodeValue;
                 $record->usagebylms = $file->attributes->getNamedItem('usage-by-lms') != null ?
-                        $file->attributes->getNamedItem('usage-by-lms')->nodeValue : 'download';
+                    $file->attributes->getNamedItem('usage-by-lms')->nodeValue : 'download';
                 $record->filepath = '/' . $file->attributes->getNamedItem('id')->nodeValue . '/';
                 $record->filename = $child->attributes->getNamedItem('filename')->nodeValue;
                 $record->filearea = PROFORMA_EMBEDDED_TASK_FILES_FILEAREA;
@@ -387,7 +391,7 @@ function save_task_and_according_files($question) {
                 $record->usedbygrader = $file->attributes->getNamedItem('used-by-grader')->nodeValue == 'true' ? 1 : 0;
                 $record->visibletostudents = $file->attributes->getNamedItem('visible')->nodeValue;
                 $record->usagebylms = $file->attributes->getNamedItem('usage-by-lms') != null ?
-                        $file->attributes->getNamedItem('usage-by-lms')->nodeValue : 'download';
+                    $file->attributes->getNamedItem('usage-by-lms')->nodeValue : 'download';
                 $record->filepath = $pathinfo['basename'] == $child->nodeValue ? '/' : $pathinfo['dirname'] . '/';
                 $record->filename = $pathinfo['basename'];
                 $record->filearea = PROFORMA_ATTACHED_TASK_FILES_FILEAREA;
@@ -403,7 +407,7 @@ function save_task_and_according_files($question) {
 
     // Now move the task xml file to the designated area.
     $file = $fs->get_file($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id,
-            '/', $taskxmlfilename);
+        '/', $taskxmlfilename);
     $newfilerecord = array(
         'component' => COMPONENT_NAME,
         'filearea' => PROFORMA_TASKXML_FILEAREA,
@@ -460,10 +464,11 @@ function save_task_and_according_files($question) {
 /**
  * Checks if any of the grade processes belonging to the given $qubaid finished. If so retrieves the grading results and
  * writes them to the system.
- * @return bool whether any of grade process finished
  * @param type $qubaid
+ * @return bool whether any of grade process finished
  */
-function retrieve_grading_results($qubaid) {
+function retrieve_grading_results($qubaid)
+{
 
     /*
      * This function is called from both the webservice and the task api therefore it might happen that both calls happen at
@@ -492,7 +497,8 @@ function retrieve_grading_results($qubaid) {
 /**
  * Do not call this function unless you know what you are doing. Use retrieve_grading_results instead
  */
-function internal_retrieve_grading_results($qubaid) {
+function internal_retrieve_grading_results($qubaid)
+{
     global $DB, $USER;
     $communicator = communicator_factory::get_instance();
     $fs = get_file_storage();
@@ -540,22 +546,22 @@ function internal_retrieve_grading_results($qubaid) {
             debugging($e->getMessage());
         }
 
-        if($response) {
+        if ($response) {
             $internalerror = false;
             $hasdisplayablefeedback = false;
-			$couldsaveresponsetodisk = false;
+            $couldsaveresponsetodisk = false;
             try {
                 // We take care of this grade process therefore we will delete it afterwards.
                 $finishedgradingprocesses[] = $gradeprocrecord->id;
 
                 // Remove old extracted files in case this is a regrade.
                 $oldexractedfiles = array_merge(
-                        $fs->get_directory_files($qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA .
-                                "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", true, true),
-                        $fs->get_directory_files($qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE .
-                                "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", true, true),
-                        $fs->get_directory_files($qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA_EMBEDDED .
-                                "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", true, true)
+                    $fs->get_directory_files($quba->get_question_attempt($slot)->get_question()->contextid,
+                        COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA,
+                        $gradeprocrecord->questionattemptdbid, "/", true, true),
+                    $fs->get_directory_files($quba->get_question_attempt($slot)->get_question()->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE,
+                        $gradeprocrecord->questionattemptdbid, "/", true, true),
+                    $fs->get_directory_files($quba->get_question_attempt($slot)->get_question()->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA_EMBEDDED, $gradeprocrecord->questionattemptdbid, "/", true, true)
                 );
                 foreach ($oldexractedfiles as $f) {
                     $f->delete();
@@ -567,24 +573,25 @@ function internal_retrieve_grading_results($qubaid) {
                     // Write response to file system.
                     $filerecord = array(
                         'component' => COMPONENT_NAME,
-                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$gradeprocrecord->questionattemptdbid}",
-                        'itemid' => $qubaid,
-                        'contextid' => $qubarecord->contextid,
+                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE,
+                        'itemid' => $gradeprocrecord->questionattemptdbid,
+                        'contextid' => $quba->get_question($slot)->contextid,
                         'filepath' => "/",
                         'filename' => 'response.zip');
 
                     $file = $fs->create_file_from_string($filerecord, $response);
                     $zipper = get_file_packer('application/zip');
 
-                    $couldsaveresponsetodisk = $file->extract_to_storage($zipper, $qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA .
-                            "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/");
+                    $couldsaveresponsetodisk = $file->extract_to_storage($zipper, $quba->get_question($slot)->contextid,
+                        COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA,
+                        $quba->get_question_attempt($slot)->get_database_id(), "/");
                 } else {
                     // XML file.
                     $filerecord = array(
                         'component' => COMPONENT_NAME,
-                        'filearea' => PROFORMA_RESPONSE_FILE_AREA . "_{$gradeprocrecord->questionattemptdbid}",
-                        'itemid' => $qubaid,
-                        'contextid' => $qubarecord->contextid,
+                        'filearea' => PROFORMA_RESPONSE_FILE_AREA,
+                        'itemid' => $gradeprocrecord->questionattemptdbid,
+                        'contextid' => $quba->get_question($slot)->contextid,
                         'filepath' => "/",
                         'filename' => 'response.xml');
 
@@ -595,11 +602,12 @@ function internal_retrieve_grading_results($qubaid) {
                 // Apply the grade from the response.
                 if ($couldsaveresponsetodisk) {
                     $doc = new DOMDocument();
-                    $responsexmlfile = $fs->get_file($qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA .
-                            "_{$gradeprocrecord->questionattemptdbid}", $qubaid, "/", 'response.xml');
+                    $responsexmlfile = $fs->get_file($quba->get_question($slot)->contextid,
+                        COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA,
+                        $gradeprocrecord->questionattemptdbid, "/", 'response.xml');
                     if ($responsexmlfile) {
 
-                        set_error_handler(function($number, $error) {
+                        set_error_handler(function ($number, $error) {
                             if (preg_match('/^DOMDocument::loadXML\(\): (.+)$/', $error, $m) === 1) {
                                 throw new Exception($m[1]);
                             }
@@ -635,12 +643,12 @@ function internal_retrieve_grading_results($qubaid) {
 
                                 // Compensate the fact that the filename might contain a relative path.
                                 $pathinfo = pathinfo('/' . $responsefile->getAttribute('id') . '/' .
-                                        $elem->getAttribute('filename'));
+                                    $elem->getAttribute('filename'));
                                 $fileinfo = array(
                                     'component' => COMPONENT_NAME,
-                                    'filearea' => PROFORMA_RESPONSE_FILE_AREA_EMBEDDED . "_{$gradeprocrecord->questionattemptdbid}",
-                                    'itemid' => $qubaid,
-                                    'contextid' => $qubarecord->contextid,
+                                    'filearea' => PROFORMA_RESPONSE_FILE_AREA_EMBEDDED,
+                                    'itemid' => $gradeprocrecord->questionattemptdbid,
+                                    'contextid' => $quba->get_question($slot)->contextid,
                                     'filepath' => $pathinfo['dirname'] . '/',
                                     'filename' => $pathinfo['basename']);
                                 $fs->create_file_from_string($fileinfo, $content);
@@ -653,7 +661,7 @@ function internal_retrieve_grading_results($qubaid) {
                                 $overallresult = $mtf[0]->getElementsByTagNameNS($namespace, 'overall-result')[0];
 
                                 if ($overallresult->hasAttribute('is-internal-error') &&
-                                        $overallresult->getAttribute('is-internal-error') == 'true') {
+                                    $overallresult->getAttribute('is-internal-error') == 'true') {
                                     $internalerror = true;
                                 } else {
                                     $score = $overallresult->getElementsByTagNameNS($namespace, 'score')[0]->nodeValue;
@@ -680,8 +688,8 @@ function internal_retrieve_grading_results($qubaid) {
                                 $xpathresponse->registerNamespace('p', $namespace);
 
                                 $separatefeedbackhelper = new separate_feedback_handler($gradinghints, $tests,
-                                        $separatetestfeedback, $feedbackfiles, $taskxmlnamespace, $namespace,
-                                        $quba->get_question_max_mark($slot), $xpathtask, $xpathresponse);
+                                    $separatetestfeedback, $feedbackfiles, $taskxmlnamespace, $namespace,
+                                    $quba->get_question_max_mark($slot), $xpathtask, $xpathresponse);
 
                                 $separatefeedbackhelper->process_result();
                                 if (!$separatefeedbackhelper->get_detailed_feedback()->has_internal_error()) {
@@ -708,7 +716,7 @@ function internal_retrieve_grading_results($qubaid) {
                 // Catch anything weird that might happend during processing of the response.
                 $internalerror = true;
                 debugging('Error while processing response from grader. Error code: ' . $er->getCode() . '. Message: ' .
-                        $er->getMessage() . ')');
+                    $er->getMessage() . ')');
             }
 
             if ($hasdisplayablefeedback && $internalerror) {
@@ -742,7 +750,7 @@ function internal_retrieve_grading_results($qubaid) {
             // make sure we are in the context of a quiz and not a preview before proceeding with updating the quizze's
             // attempt data with a total mark
             $attemptrecord = $DB->get_record('quiz_attempts', ['uniqueid' => $qubaid]);
-            if(!$attemptrecord)
+            if (!$attemptrecord)
                 continue;
             $attempt = quiz_attempt::create_from_usage_id($qubaid)->get_attempt();
             $attempt->timemodified = time();
@@ -762,24 +770,26 @@ function internal_retrieve_grading_results($qubaid) {
     return !empty($finishedgradingprocesses);
 }
 
-function detect_proforma_namespace(DOMDocument $doc) {
+function detect_proforma_namespace(DOMDocument $doc)
+{
     foreach (PROFORMA_TASK_XML_NAMESPACES as $namespace) {
         if ($doc->getElementsByTagNameNS($namespace, "task")->length != 0 ||
-                $doc->getElementsByTagNameNS($namespace, "submission")->length != 0 ||
-                $doc->getElementsByTagNameNS($namespace, "response")->length != 0) {
+            $doc->getElementsByTagNameNS($namespace, "submission")->length != 0 ||
+            $doc->getElementsByTagNameNS($namespace, "response")->length != 0) {
             return $namespace;
         }
     }
     return null;
 }
 
-function validate_proforma_file_against_schema(DOMDocument $doc, $namespace): array {
+function validate_proforma_file_against_schema(DOMDocument $doc, $namespace): array
+{
     $msgs = [];
     $namespace = str_replace(":", "_", $namespace);
     $schema = file_get_contents(__DIR__ . "/res/proforma/xsd/$namespace.xsd");
     if (!$schema) {
-        $msgs[] = get_string('proformanamespaceinvalidorunknown', 'qtype_moopt', $namespace) . '<br/>' 
-                . get_string('proformanamespacesvalid', 'qtype_moopt', implode(", ", PROFORMA_TASK_XML_NAMESPACES));
+        $msgs[] = get_string('proformanamespaceinvalidorunknown', 'qtype_moopt', $namespace) . '<br/>'
+            . get_string('proformanamespacesvalid', 'qtype_moopt', implode(", ", PROFORMA_TASK_XML_NAMESPACES));
         return $msgs;
     }
 
@@ -787,7 +797,7 @@ function validate_proforma_file_against_schema(DOMDocument $doc, $namespace): ar
     if (!$doc->schemaValidateSource($schema)) {
         $errors = libxml_get_errors();
         foreach ($errors as $error) {
-            $msgs[] = get_string('xmlvalidationerrormsg', 'qtype_moopt', ['message' => $error->message, 'code' => $error->code, 'line' => $error->line ]);
+            $msgs[] = get_string('xmlvalidationerrormsg', 'qtype_moopt', ['message' => $error->message, 'code' => $error->code, 'line' => $error->line]);
         }
         libxml_clear_errors();
     }
@@ -798,11 +808,12 @@ function validate_proforma_file_against_schema(DOMDocument $doc, $namespace): ar
 
 /**
  *  Checks whether supplied zip file is valid.
- * @global type $USER
  * @param type $draftareaid
  * @return string null if there are no errors. The error message otherwise
+ * @global type $USER
  */
-function check_if_task_file_is_valid($draftareaid) {
+function check_if_task_file_is_valid($draftareaid)
+{
     global $USER;
 
     $usercontext = context_user::instance($USER->id);
@@ -846,7 +857,7 @@ function check_if_task_file_is_valid($draftareaid) {
 
         // Find unused name for directory to extract the archive.
         $temppath = $fs->get_unused_dirname($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($zipfilename,
-                        PATHINFO_FILENAME) . '/');
+                PATHINFO_FILENAME) . '/');
 
         // Extract archive and move all files from $temppath to $filepath.
         if ($file->extract_to_storage($zipper, $usercontext->id, 'user', 'draft', $draftareaid, $temppath, $USER->id)) {
@@ -863,7 +874,7 @@ function check_if_task_file_is_valid($draftareaid) {
                 $exfile->delete();
             }
             $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($zipfilename, PATHINFO_FILENAME) .
-                    '/', '.')->delete();
+                '/', '.')->delete();
 
             if ($taskfilecontents == null) {
                 return get_string('taskziplackstaskxml', 'qtype_moopt');
@@ -896,7 +907,8 @@ function check_if_task_file_is_valid($draftareaid) {
     return null;
 }
 
-function readLmsInputFieldSettingsFromTaskXml(\DOMDocument $doc) {
+function readLmsInputFieldSettingsFromTaskXml(\DOMDocument $doc)
+{
     // prepare return values:
     $includeenablefileinput = false;
     $enablefileinput = false;
@@ -904,20 +916,20 @@ function readLmsInputFieldSettingsFromTaskXml(\DOMDocument $doc) {
 
     $lmsinputfieldsV01 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.1', 'lms-input-fields');
     $lmsinputfieldsV02 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.2', 'lms-input-fields');
-    if (1 <= $lmsinputfieldsV01->length &&  1 <= $lmsinputfieldsV02->length) {
+    if (1 <= $lmsinputfieldsV01->length && 1 <= $lmsinputfieldsV02->length) {
         throw new Exception('Task meta-data contains more than one lms-input-fields element.');
     }
-    if(1 == $lmsinputfieldsV01->length) {
+    if (1 == $lmsinputfieldsV01->length) {
         $lmsinputfields = $lmsinputfieldsV01;
         $version = "0.1";
     } else if (1 == $lmsinputfieldsV02->length) {
         $lmsinputfields = $lmsinputfieldsV02;
         $version = "0.2";
     }
-    if(1 < $lmsinputfields->length) {
+    if (1 < $lmsinputfields->length) {
         throw new Exception('Task meta-data contains more than one lms-input-fields element.');
     }
-    if(1 == $lmsinputfields->length) {
+    if (1 == $lmsinputfields->length) {
         $includeenablefileinput = true;
         foreach ($lmsinputfields[0]->childNodes as $child) {
             if ($child->localName == 'fileinput') {
@@ -929,20 +941,20 @@ function readLmsInputFieldSettingsFromTaskXml(\DOMDocument $doc) {
             } else if ($child->localName == 'textfield') {
                 // fixedfilename is true by default if not set via lmsinputfields
                 $fixedfilename = true;
-                if($child->hasAttribute('fixedfilename')) {
+                if ($child->hasAttribute('fixedfilename')) {
                     $fixedfilename = filter_var($child->attributes->getNamedItem('fixedfilename')->nodeValue,
                         FILTER_VALIDATE_BOOLEAN);
                 }
                 $proglang = 'txt';
-                if($child->hasAttribute('proglang')) {
+                if ($child->hasAttribute('proglang')) {
                     $lang = $child->attributes->getNamedItem('proglang')->nodeValue;
                     // make sure the task's lmsinputfields contains a valid proglang value
-                    if(array_key_exists($lang, PROFORMA_ACE_PROGLANGS))
+                    if (array_key_exists($lang, PROFORMA_ACE_PROGLANGS))
                         $proglang = $lang;
                 }
                 $initialdisplayrows = DEFAULT_INITIAL_DISPLAY_ROWS;
                 if (strcmp("0.2", $version) <= 0) {
-                    if($child->hasAttribute('initial-display-rows')) {
+                    if ($child->hasAttribute('initial-display-rows')) {
                         $initialdisplayrows = $child->attributes->getNamedItem('initial-display-rows')->nodeValue;
                     }
                 }

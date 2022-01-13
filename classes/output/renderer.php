@@ -454,8 +454,9 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $html = '';
 
-                $responsexmlfile = $fs->get_file($qubarecord->contextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA .
-                        "_{$qa->get_database_id()}", $qa->get_usage_id(),
+                $responsexmlfile = $fs->get_file($qa->get_question()->contextid, COMPONENT_NAME,
+                    PROFORMA_RESPONSE_FILE_AREA,
+                    $qa->get_database_id(),
                         "/", 'response.xml');
                 if ($responsexmlfile) {
                     $doc = new DOMDocument();
@@ -530,10 +531,9 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                                 $fileinfos = [
                                     'component' => COMPONENT_NAME,
-                                    'itemid' => $qa->get_usage_id(),
-                                    'fileareasuffix' => "_{$qa->get_database_id()}",
-                                    'contextid' => $qubarecord->contextid,
-                                    'filepath' => "/{$qa->get_slot()}/{$qa->get_usage_id()}/"
+                                    'itemid' => $qa->get_database_id(),
+                                    'contextid' => $qa->get_question()->contextid,
+                                    'filepath' => "/{$qa->get_usage_id()}/{$qa->get_slot()}/{$qa->get_database_id()}/"
                                 ];
                                 $feedbackblockid = "moopt-feedbackblock-" . $qa->get_usage_id() . "-" . $qa->get_slot();
                                 $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_separate_feedback_buttons', 'init', [$feedbackblockid]);
@@ -593,13 +593,13 @@ class qtype_moopt_renderer extends qtype_renderer {
                 // If teacher, display response.zip for download.
                 if (has_capability('mod/quiz:grade', $PAGE->context)) {
                     $slot = $qa->get_slot();
-                    
+
                     // check, if we have a response.zip file
                     $zipfileinfos = array(
                         'component' => COMPONENT_NAME,
-                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$qa->get_database_id()}",
-                        'itemid' => $qa->get_usage_id(),
-                        'contextid' => $qubarecord->contextid,
+                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE,
+                        'itemid' => $qa->get_database_id(),
+                        'contextid' => $qa->get_question()->contextid,
                         'filepath' => "/",
                         'filename' => 'response.zip');
 
@@ -612,12 +612,12 @@ class qtype_moopt_renderer extends qtype_renderer {
                         // response.xml
                         $responsefileinfos = array(
                             'component' => COMPONENT_NAME,
-                            'filearea' => PROFORMA_RESPONSE_FILE_AREA . "_{$qa->get_database_id()}",
-                            'contextid' => $qubarecord->contextid,
+                            'filearea' => PROFORMA_RESPONSE_FILE_AREA,
+                            'contextid' => $qa->get_question()->contextid,
                             'filepath' => "/",
                             'filename' => 'response.xml');
                     }
-                    $responsefileinfos['itemid'] = "{$qa->get_usage_id()}/$slot/{$qa->get_usage_id()}"; // see questionlib.php\question_pluginfile(...)
+                    $responsefileinfos['itemid'] = "{$qa->get_usage_id()}/$slot/{$qa->get_database_id()}"; // see questionlib.php\question_pluginfile(...)
                     
                     $url = moodle_url::make_pluginfile_url($responsefileinfos['contextid'], $responsefileinfos['component'],
                                     $responsefileinfos['filearea'], $responsefileinfos['itemid'], $responsefileinfos['filepath'],
@@ -628,6 +628,81 @@ class qtype_moopt_renderer extends qtype_renderer {
                             "margin-right: 5px'>&#xf019;</span> " .
                             get_string('downloadcompletefile', 'qtype_moopt', $downloadable_responsefilename) . "</a>";
                 }
+
+//                // We are going to do this slowly. We will update table mdl_files step by step and use
+//                // PHP functions where possible as opposed to using one big SQL statement with possibly
+//                // platform dependent substring functions.
+//
+//
+//                // First, fix the wrong component name: Change moopt related fileareas
+//                // from 'question' to 'qtype_moopt'. Otherwise, the backup and restore
+//                // functions will not work on moopt files.
+//                $filesrecords = $DB->get_records_sql("SELECT * FROM {files}
+//                           WHERE component = 'question' AND (
+//                         filearea = 'taskfile' OR
+//                         filearea = 'taskxmlfile' OR
+//                         filearea = 'attachedtaskfiles' OR
+//                         filearea = 'embeddedtaskfiles' OR
+//                         filearea = 'submissionzip' OR
+//                         filearea LIKE 'responsefilesresponsefile%' OR
+//                         filearea LIKE'responsefiles%' OR
+//                         filearea LIKE 'responsefilesembedded%')");
+//                foreach($filesrecords as $record => $file) {
+//                    $file->timemodified = time();
+//                    $file->component = 'qtype_moopt'; // fix component name to 'qtype_moopt'
+//                    // Note: the file record's pathnamehash is not updated at this point
+//                    $DB->update_record('files', $file);
+//                }
+//
+//                // Next, extract attempt-db-id from the filearea value and
+//                // write that value to itemid. Also fix filearea name
+//                // by removing the _<id> suffix
+//                $filesrecords = $DB->get_records_sql("SELECT id, filearea, itemid
+//               FROM mdl_files WHERE component = 'qtype_moopt'
+//                                AND (filearea LIKE 'responsefilesresponsefile%'
+//                                         OR filearea LIKE'responsefiles%'
+//                                         OR filearea LIKE 'responsefilesembedded%')");
+//                foreach($filesrecords as $record => $file) {
+//                    $file->timemodified = time();
+//                    $separatorpos = strpos($file->filearea, '_');
+//                    if($separatorpos) {
+//                        $attemptdbid = substr($file->filearea, $separatorpos + 1);
+//                        $fixedfilearea = substr($file->filearea, 0, $separatorpos);
+//                        $file->filearea = $fixedfilearea;
+//                        $file->itemid = $attemptdbid;
+//                        // Note: the file record's pathnamehash is not updated at this point
+//                        $DB->update_record('files', $file);
+//                    }
+//                }
+//
+//                // Update the contextid of all fileareas related to response files.
+//                // We need to use the question's contextid instead of the
+//                // one that belongs to a question_usage. The backup restore process
+//                // only recovers files that are directly mapped to contextid belonging
+//                // to the question that is being restored (refer to class
+//                // restore_create_question_files).
+//                //
+//                // Also update the pathnamehash at last, since its value depends on
+//                // the columns that have been changed throughout this upgrade process.
+//                $filesrecords = $DB->get_records_sql(
+//                    "SELECT f.id, f.pathnamehash, f.contextid, mqc.contextid as newctxid, f.component, f.filearea, f.itemid, f.filepath, f.filename
+//                FROM {files} f
+//                INNER join {question_attempts} mqa ON f.itemid  = mqa.id
+//                INNER join {question} mq ON mqa.questionid = mq.id
+//                INNER join {question_categories} mqc ON mq.category = mqc.id
+//                WHERE component = 'qtype_moopt' AND (
+//                         filearea = 'responsefilesresponsefile' OR
+//                         filearea ='responsefiles' OR
+//                         filearea = 'responsefilesembedded')");
+//                foreach($filesrecords as $record => $file) {
+//                    $file->timemodified = time();
+//                    $file->contextid = $file->newctxid;
+//                    // Update pathnamehash at last
+//                    $file->pathnamehash = pathnamehash($file->contextid, $file->component,
+//                        $file->filearea, $file->itemid, $file->filepath, $file->filename);
+//                    $DB->update_record('files', $file);
+//                }
+
                 return $html;
             }
         }
