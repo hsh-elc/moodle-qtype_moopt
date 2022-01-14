@@ -100,14 +100,15 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
     }
 
     if ($oldversion < 2022011200) {
-        // We are going to do this slowly. We will update table mdl_files step by step and use
-        // PHP functions where possible as opposed to using one big SQL statement with possibly
-        // platform dependent substring functions.
-
+        // This upgrade requires correcting Moopt related files in table mdl_files
+        // in order to make the backup and restore process work properly for Moopt.
+        // We are going to do this slowly. We will update table mdl_files step by
+        // step and use PHP functions where possible as opposed to using one big
+        // SQL statement with possibly platform dependent substring functions.
 
         // First, fix the wrong component name: Change moopt related fileareas
         // from 'question' to 'qtype_moopt'. Otherwise, the backup and restore
-        // functions will not work on moopt files.
+        // functions will not work on Moopt files.
         $filesrecords = $DB->get_records_sql("SELECT id, pathnamehash, contextid, component, filearea, itemid, filepath, filename
                            FROM {files} WHERE component = 'question' AND (
                          filearea = 'taskfile' OR
@@ -123,15 +124,20 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
             $file->component = 'qtype_moopt'; // fix component name to 'qtype_moopt'
             // Since the component value changed, we must update the pathnamehash
             // for all of these file records, otherwise we'll end up with broken
-            // file links.
+            // file pathes and links.
             $file->pathnamehash = pathnamehash($file->contextid, $file->component,
                 $file->filearea, $file->itemid, $file->filepath, $file->filename);
             $DB->update_record('files', $file);
         }
 
         // Next, extract attempt-db-id from the filearea value and
-        // write that value to itemid. Also fix filearea name
-        // by removing the _<id> suffix
+        // write that value to itemid, overwriting the old question
+        // usage id. This is because Moopt's response files are mapped
+        // to a question attempt rather than the question usage, and
+        // having the attempt-db-id as a filearea suffix is not going
+        // to work, neither with file pathing nor with the backup/restore
+        // process.
+        // We'll also also need to fix the filearea name by removing the _<id> suffix
         $filesrecords = $DB->get_records_sql("SELECT id, pathnamehash, contextid, component, filearea, itemid, filepath, filename
                FROM {files} WHERE component = 'qtype_moopt' 
                                 AND (filearea LIKE 'responsefilesresponsefile%' 
@@ -146,7 +152,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
                 $file->filearea = $fixedfilearea;
                 $file->itemid = $attemptdbid;
                 // Since we made other changes to response-related files,
-                // update pathnamehash once again for all affected
+                // update pathnamehash once again for all affected files
                 $file->pathnamehash = pathnamehash($file->contextid, $file->component,
                     $file->filearea, $file->itemid, $file->filepath, $file->filename);
                 $DB->update_record('files', $file);
@@ -155,13 +161,10 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
 
         // Update the contextid of all fileareas related to response files.
         // We need to use the question's contextid instead of the
-        // one that belongs to a question_usage. The backup restore process
-        // only recovers files that are directly mapped to contextid belonging
+        // one that belongs to a question_usage. The backup and restore process
+        // only recovers files that are directly mapped to a contextid belonging
         // to the question that is being restored (refer to class
         // restore_create_question_files).
-        //
-        // Also update the pathnamehash at last, since its value depends on
-        // the columns that have been changed throughout this upgrade process.
         $filesrecords = $DB->get_records_sql(
             "SELECT f.id, f.pathnamehash, f.contextid, mqc.contextid as newctxid, f.component, f.filearea, f.itemid, f.filepath, f.filename
                 FROM {files} f 
