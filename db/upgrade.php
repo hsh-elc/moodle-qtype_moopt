@@ -99,7 +99,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2021112700, 'qtype', 'moopt');
     }
 
-    if ($oldversion < 2022011200) {
+    if ($oldversion < 2022022700) {
         // This upgrade requires correcting Moopt related files in table mdl_files
         // in order to make the backup and restore process work properly for Moopt.
         // We are going to do this slowly. We will update table mdl_files step by
@@ -125,7 +125,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
             // Since the component value changed, we must update the pathnamehash
             // for all of these file records, otherwise we'll end up with broken
             // file pathes and links.
-            $file->pathnamehash = pathnamehash($file->contextid, $file->component,
+            $file->pathnamehash = file_storage::get_pathname_hash($file->contextid, $file->component,
                 $file->filearea, $file->itemid, $file->filepath, $file->filename);
             $DB->update_record('files', $file);
         }
@@ -139,10 +139,10 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         // process.
         // We'll also also need to fix the filearea name by removing the _<id> suffix
         $filesrecords = $DB->get_records_sql("SELECT id, pathnamehash, contextid, component, filearea, itemid, filepath, filename
-               FROM {files} WHERE component = 'qtype_moopt' 
-                                AND (filearea LIKE 'responsefilesresponsefile%' 
-                                         OR filearea LIKE'responsefiles%' 
-                                         OR filearea LIKE 'responsefilesembedded%')");
+               FROM {files} WHERE component = 'qtype_moopt'
+                                AND (filearea LIKE 'responsefilesresponsefile%'
+                                  OR filearea LIKE 'responsefiles%'
+                                  OR filearea LIKE 'responsefilesembedded%')");
         foreach($filesrecords as $record => $file) {
             $file->timemodified = time();
             $separatorpos = strpos($file->filearea, '_');
@@ -153,7 +153,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
                 $file->itemid = $attemptdbid;
                 // Since we made other changes to response-related files,
                 // update pathnamehash once again for all affected files
-                $file->pathnamehash = pathnamehash($file->contextid, $file->component,
+                $file->pathnamehash = file_storage::get_pathname_hash($file->contextid, $file->component,
                     $file->filearea, $file->itemid, $file->filepath, $file->filename);
                 $DB->update_record('files', $file);
             }
@@ -168,9 +168,9 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         $filesrecords = $DB->get_records_sql(
             "SELECT f.id, f.pathnamehash, f.contextid, mqc.contextid as newctxid, f.component, f.filearea, f.itemid, f.filepath, f.filename
                 FROM {files} f 
-                INNER join {question_attempts} mqa ON f.itemid  = mqa.id 
-                INNER join {question} mq ON mqa.questionid = mq.id 
-                INNER join {question_categories} mqc ON mq.category = mqc.id
+                INNER JOIN {question_attempts} mqa ON f.itemid  = mqa.id
+                INNER JOIN {question} mq ON mqa.questionid = mq.id
+                INNER JOIN {question_categories} mqc ON mq.category = mqc.id
                 WHERE component = 'qtype_moopt' AND (
                          filearea = 'responsefilesresponsefile' OR
                          filearea ='responsefiles' OR
@@ -178,13 +178,13 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         foreach($filesrecords as $record => $file) {
             $file->timemodified = time();
             $file->contextid = $file->newctxid;
-            $file->pathnamehash = pathnamehash($file->contextid, $file->component,
+            $file->pathnamehash = file_storage::get_pathname_hash($file->contextid, $file->component,
                 $file->filearea, $file->itemid, $file->filepath, $file->filename);
             $DB->update_record('files', $file);
         }
 
         // Moopt savepoint reached.
-        upgrade_plugin_savepoint(true, 2022011200, 'qtype', 'moopt');
+        upgrade_plugin_savepoint(true, 2022022700, 'qtype', 'moopt');
     }
 
     return true;
