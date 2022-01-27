@@ -268,8 +268,8 @@ class qtype_moopt_question extends question_graded_automatically {
         $files['submission.xml'] = array($submissionxml);       // Syntax to use a string as file contents.
         // Create submission.zip file.
         $zipper = get_file_packer('application/zip');
-        $zipfile = $zipper->archive_to_storage($files, $this->contextid, COMPONENT_NAME, PROFORMA_SUBMISSION_ZIP_FILEAREA .
-                "_{$qa->get_slot()}", $qubaid, '/', 'submission.zip');
+        $zipfile = $zipper->archive_to_storage($files, $this->contextid, COMPONENT_NAME, PROFORMA_SUBMISSION_ZIP_FILEAREA,
+            $qa->get_database_id(), '/', 'submission.zip');
         if (!$zipfile) {
             throw new invalid_state_exception('Couldn\'t create submission.zip file.');
         }
@@ -285,11 +285,11 @@ class qtype_moopt_question extends question_graded_automatically {
             $returnstate = question_state::$needsgrading;
         } finally {
             $fs = get_file_storage();
-            $success = $fs->delete_area_files($this->contextid, COMPONENT_NAME, PROFORMA_SUBMISSION_ZIP_FILEAREA .
-                    "_{$qa->get_slot()}", $qubaid);
+            $success = $fs->delete_area_files($this->contextid, COMPONENT_NAME,
+                PROFORMA_SUBMISSION_ZIP_FILEAREA, $qa->get_database_id());
             if (!$success) {
-                throw new invalid_state_exception("Couldn't delete submission.zip after sending it to grappa." .
-                        " QuestionID: {$this->id}, QubaID: $qubaid, Slot: {$qa->get_slot()}");
+                throw new invalid_state_exception("Could not delete submission.zip after sending it to the grader." .
+                        " QuestionID: {$this->id}, QubaID: $qubaid, AttemptID: {$qa->get_database_id()}, SlotID: {$qa->get_slot()}");
             }
         }
 
