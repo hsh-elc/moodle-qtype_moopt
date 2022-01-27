@@ -31,7 +31,7 @@ class remove_leftover_responsefiles extends \core\task\scheduled_task {
         // Delete orphaned response files from file areas responsefiles,
         // responsefilesresponsefile, responsefilesembedded. Orphaned response
         // files without a corresponding question attempt record are just data trash
-        $fileids = $DB->get_records_sql("SELECT distinct itemid  FROM {files} file WHERE component = 'qtype_moopt' AND filearea like 'responsefiles%' AND NOT EXISTS "
+        $fileids = $DB->get_records_sql("SELECT file.id FROM {files} file WHERE component = 'qtype_moopt' AND filearea like 'responsefiles%' AND NOT EXISTS "
             . "(SELECT qa.id FROM {question_attempts} qa WHERE qa.id = file.itemid)");
 
         $fs = get_file_storage();
