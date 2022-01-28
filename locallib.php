@@ -567,34 +567,24 @@ function internal_retrieve_grading_results($qubaid)
                     $f->delete();
                 }
 
+                $filerecord = array(
+                    'component' => COMPONENT_NAME,
+                    'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE,
+                    'itemid' => $gradeprocrecord->questionattemptdbid,
+                    'contextid' => $quba->get_question($slot)->contextid,
+                    'filepath' => "/");
+
                 // Check if response is zip file or xml.
                 if (substr($response, 0, 2) == 'PK') {
-                    // ZIP file.
-                    // Write response to file system.
-                    $filerecord = array(
-                        'component' => COMPONENT_NAME,
-                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE,
-                        'itemid' => $gradeprocrecord->questionattemptdbid,
-                        'contextid' => $quba->get_question($slot)->contextid,
-                        'filepath' => "/",
-                        'filename' => 'response.zip');
-
+                    // ZIP file. Write response to file system.
+                    $filerecord['filename'] = 'response.zip';
                     $file = $fs->create_file_from_string($filerecord, $response);
                     $zipper = get_file_packer('application/zip');
-
                     $couldsaveresponsetodisk = $file->extract_to_storage($zipper, $quba->get_question($slot)->contextid,
                         COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA,
                         $quba->get_question_attempt($slot)->get_database_id(), "/");
-                } else {
-                    // XML file.
-                    $filerecord = array(
-                        'component' => COMPONENT_NAME,
-                        'filearea' => PROFORMA_RESPONSE_FILE_AREA,
-                        'itemid' => $gradeprocrecord->questionattemptdbid,
-                        'contextid' => $quba->get_question($slot)->contextid,
-                        'filepath' => "/",
-                        'filename' => 'response.xml');
-
+                } else { // XML file.
+                    $filerecord['filename'] = 'response.zip';
                     $couldsaveresponsetodisk = $fs->create_file_from_string($filerecord, $response);
                 }
 
