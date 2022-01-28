@@ -456,8 +456,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $responsexmlfile = $fs->get_file($qa->get_question()->contextid, COMPONENT_NAME,
                     PROFORMA_RESPONSE_FILE_AREA,
-                    $qa->get_database_id(),
-                        "/", 'response.xml');
+                    $qa->get_database_id(),"/", 'response.xml');
                 if ($responsexmlfile) {
                     $doc = new DOMDocument();
 
@@ -588,7 +587,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
                     }
                 } else {
-                    $html = html_writer::div('Response didn\'t contain response.xml file', 'gradingstatus');
+                    $html = html_writer::div('Response.zip doesn\'t contain a response.xml file', 'gradingstatus');
                 }
                 // If teacher, display response.zip for download.
                 if (has_capability('mod/quiz:grade', $PAGE->context)) {
