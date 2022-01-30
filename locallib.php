@@ -109,6 +109,9 @@ define('PROFORMA_ACE_PROGLANGS', [
 // Free text input fields will show 5 rows by default:
 define('DEFAULT_INITIAL_DISPLAY_ROWS', 5);
 
+// The character that separates the gradername and the graderversion in the options of the grader selection dropdown
+define('GRADERID_SEPARATOR', '$');
+
 require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
@@ -471,7 +474,7 @@ function internal_retrieve_grading_results($qubaid) {
 
         $slot = $DB->get_record('question_attempts', ['id' => $gradeprocrecord->questionattemptdbid], 'slot')->slot;
         try {
-            $response = $communicator->get_grading_result($gradeprocrecord->graderid, $gradeprocrecord->gradeprocessid);
+            $response = $communicator->get_grading_result($gradeprocrecord->gradername, $gradeprocrecord->graderversion, $gradeprocrecord->gradeprocessid);
         } catch (resource_not_found_exception $e) {
             // A grading result does not exist and won't ever exist for this grade process id.
             // The middleware or grader returned a HTTP 404 NotFound when polling for a
@@ -912,7 +915,33 @@ function readLmsInputFieldSettingsFromTaskXml(\DOMDocument $doc) {
         $lmsinputfieldsettings);
 }
 
+/**
+ * Converts the graderid (gradername and graderversion) of a grader into the html_representation of the grader.
+ * This is needed so that the grader can be identified in the HTML forms
+ * The html representation of a graderid is: {gradername}{GRADERID_SEPARATOR}{graderversion}
+ * @param $gradername
+ * @param $graderversion
+ * @return string the html representation of the gradername and graderversion
+ */
+function get_html_representation_of_graderid($gradername, $graderversion) : string {
+    //if this code is changed, the code of "get_name_and_version_from_graderid_html_representation()" must probably be changed too
+    return $gradername . GRADERID_SEPARATOR . $graderversion;
+}
 
+/**
+ * Converts the html representation of a graderid back into the gradername and graderversion
+ * The html representation of a graderid is: {gradername}{GRADERID_SEPARATOR}{graderversion}
+ * @param $html_representation
+ * @return stdClass an object with the properties: gradername, graderversion
+ */
+function get_name_and_version_from_graderid_html_representation($html_representation) : stdClass {
+    //if this code is changed, the code of "get_html_representation_of_graderid()" must probably be changed too
+    $graderid = new stdClass();
+    $arr = explode(GRADERID_SEPARATOR, $html_representation);
+    $graderid->gradername = $arr[0];
+    $graderid->graderversion = $arr[1];
+    return $graderid;
+}
 
 
 // Copied from zip_archive::mangle_pathname.

@@ -53,7 +53,7 @@ class qtype_moopt extends question_type {
      * @return mixed array as above, or null to tell the base class to do nothing.
      */
     public function extra_question_fields() {
-        return array("qtype_moopt_options", "internaldescription", "graderid", "taskuuid", 'showstudscorecalcscheme',
+        return array("qtype_moopt_options", "internaldescription", "gradername", "graderversion", "taskuuid", 'showstudscorecalcscheme',
             'enablefilesubmissions', 'enablefreetextsubmissions', 'ftsnuminitialfields', 'ftsmaxnumfields',
             'ftsautogeneratefilenames', 'ftsstandardlang', 'resultspecformat', 'resultspecstructure',
             'studentfeedbacklevel', 'teacherfeedbacklevel');
@@ -68,6 +68,11 @@ class qtype_moopt extends question_type {
      *      it is not a standard question object.
      */
     public function save_question_options($question) {
+        // Convert the combined representation of the graderID to graderName and graderVersion
+        $separatedGraderID = get_name_and_version_from_graderid_html_representation($question->graderselect);
+        $question->gradername = $separatedGraderID->gradername;
+        $question->graderversion = $separatedGraderID->graderversion;
+
         if (!isset($question->internaldescription['text'])) {
             $question->internaldescription = '';
         } else {

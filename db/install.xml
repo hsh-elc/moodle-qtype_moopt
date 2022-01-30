@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="question/type/moopt/db" VERSION="20211127" COMMENT="XMLDB file for Moodle qtype_moopt"
+<XMLDB PATH="question/type/moopt/db" VERSION="20220114" COMMENT="XMLDB file for Moodle qtype_moopt"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd"
 >
@@ -9,7 +9,8 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
         <FIELD NAME="internaldescription" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The internal description of the assignment."/>
-        <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="gradername" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="graderversion" TYPE="char" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="taskuuid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="showstudscorecalcscheme" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="enablefilesubmissions" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
@@ -54,7 +55,8 @@
         <FIELD NAME="qubaid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Question usage id of the question"/>
         <FIELD NAME="questionattemptdbid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="database id of the question attempt"/>
         <FIELD NAME="gradeprocessid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false" COMMENT="id of the grade process"/>
-        <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="the id of the grader that is grading the response"/>
+        <FIELD NAME="gradername" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="graderversion" TYPE="char" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

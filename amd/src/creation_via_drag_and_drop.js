@@ -11,14 +11,14 @@ define(['core/ajax',
 
             return {
 
-                init: function () {
+                init: function (availableGraders) {
                     var self = this;
                     document.querySelector("#loadproformataskfilebutton").addEventListener('click', function() {
-                        self.extractInformation();
+                        self.extractInformation(availableGraders);
                     });
                 },
 
-                extractInformation: function () {
+                extractInformation: function (availableGraders) {
                     var fileManager = document.querySelector("#id_proformataskfileupload").parentNode;
                     var itemId = null;
                     fileManager.childNodes.forEach( function (child) {
@@ -52,11 +52,97 @@ define(['core/ajax',
                                 editorEditor.setContentsOfText('id_defaultmark', result.maxscoregradinghints);
                                 editorEditor.setContents('id_generalfeedback', result.filesdisplayedingeneralfeedback);
 
-                                var elem = document.querySelector("#id_enablefilesubmissions");
+                                /*
+                                 * selects a grader that supports the proglang of the task.
+                                 * selects the grader with the higher version number if two or more graders with the same name exist
+                                 * if several graders with different names are supporting the proglang of the task,
+                                 * the first one will be used
+                                 */
+                                if (availableGraders.length > 0) {
+                                    let selectedGrader = availableGraders[0];
+                                    //use the already selected grader in case no grader is found that supports the proglang
+                                    let e = document.querySelector("#id_graderselect");
+                                    let alreadySelectedGraderIDHtmlRepresentation = e.options[e.selectedIndex].value;
+                                    for (let i = 0; i < availableGraders.length; i++) {
+                                        let graderIDHtmlRepresentation = availableGraders[i]['html_representation'];
+                                        if (graderIDHtmlRepresentation === alreadySelectedGraderIDHtmlRepresentation) {
+                                            selectedGrader = availableGraders[i];
+                                            break;
+                                        }
+                                    }
+
+                                    const supportedGraders = [];
+                                    availableGraders.forEach(function (grader) {
+                                        if ('proglangs' in grader) {
+                                            for (let i = 0; i < grader['proglangs'].length; i++) {
+                                                if (grader['proglangs'][i].toLowerCase() === result.proglang.toLowerCase()) {
+                                                    supportedGraders.push(grader);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    });
+
+                                    if (supportedGraders.length > 0) {
+                                        const supportedGradersWithSameName = [];
+                                        const firstName = supportedGraders[0]['name'];
+                                        supportedGraders.forEach(function (grader) {
+                                            if (grader['name'] === firstName) {
+                                                supportedGradersWithSameName.push(grader);
+                                            }
+                                        });
+
+                                        if (supportedGradersWithSameName.length > 0) {
+                                            selectedGrader = supportedGradersWithSameName[0];
+                                            //Algorithm to find the highest graderversion of the grader
+                                            for (let k=1; k < supportedGradersWithSameName.length; k++) {
+                                                const versionNumDigits = supportedGradersWithSameName[k]['version'].split(".");
+                                                const maxVersionNumDigits = selectedGrader['version'].split(".");
+                                                for (let i=0; i < 2; i++) {
+                                                    if (parseInt(versionNumDigits[i]) > parseInt(maxVersionNumDigits[i])) {
+                                                        selectedGrader = supportedGradersWithSameName[k];
+                                                        break;
+                                                    } else if (parseInt(versionNumDigits[i]) < parseInt(maxVersionNumDigits[i])) {
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    let searchVal = selectedGrader["html_representation"];
+                                    let query = "#id_graderselect option[value='" + searchVal + "']";
+                                    document.querySelector(query).selected = true;
+
+                                    if ('result_spec' in selectedGrader) {
+                                        if ('format' in selectedGrader['result_spec']) {
+                                            searchVal = selectedGrader['result_spec']['format'];
+                                            query = "#id_resultspecformat option[value='" + searchVal + "']";
+                                            document.querySelector(query).selected = true;
+                                        }
+                                        if ('structure' in selectedGrader['result_spec']) {
+                                            searchVal = selectedGrader['result_spec']['structure'];
+                                            query = "#id_resultspecstructure option[value='" + searchVal + "']";
+                                            document.querySelector(query).selected = true;
+                                        }
+                                        if ('teacher_feedback_level' in selectedGrader['result_spec']) {
+                                            searchVal = selectedGrader['result_spec']['teacher_feedback_level'];
+                                            query = "#id_teacherfeedbacklevel option[value='" + searchVal + "']";
+                                            document.querySelector(query).selected = true;
+                                        }
+                                        if ('student_feedback_level' in selectedGrader['result_spec']) {
+                                            searchVal = selectedGrader['result_spec']['student_feedback_level'];
+                                            query = "#id_studentfeedbacklevel option[value='" + searchVal + "']";
+                                            document.querySelector(query).selected = true;
+                                        }
+                                    }
+                                }
+
+                                let elem = document.querySelector("#id_enablefilesubmissions");
                                 elem.checked = !result.enablefileinput;
                                 elem.click();
 
-                                var ftsmaxnumfields = result.freetextfilesettings.length;
+                                let ftsmaxnumfields = result.freetextfilesettings.length;
                                 elem = document.querySelector("#id_enablefreetextsubmissions");
                                 elem.checked = !(ftsmaxnumfields > 0);
                                 elem.click();
@@ -73,7 +159,7 @@ define(['core/ajax',
                                     elem.checked = false;
                                     elem.click();
 
-                                    for(var i=0; i<result.freetextfilesettings.length; i++) {
+                                    for(let i=0; i<result.freetextfilesettings.length; i++) {
                                         elem = document.querySelector("#id_enablecustomsettingsforfreetextinputfield"+i);
                                         elem.checked = !result.freetextfilesettings[i]["enablecustomsettings"];
                                         elem.click();
@@ -100,7 +186,7 @@ define(['core/ajax',
                                     }
                                 }
 
-                                var warnings = '';
+                                let warnings = '';
                                 if (typeof result.moodleValidationProformaNamespace !== 'undefined') {
                                     warnings += '<p>Detected ProFormA-version ' + result.moodleValidationProformaNamespace + '</p>';
                                 }

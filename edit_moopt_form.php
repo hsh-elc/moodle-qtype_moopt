@@ -65,7 +65,7 @@ class qtype_moopt_edit_form extends question_edit_form {
 
             parent::definition();
 
-            $PAGE->requires->js_call_amd('qtype_moopt/creation_via_drag_and_drop', 'init');
+            $PAGE->requires->js_call_amd('qtype_moopt/creation_via_drag_and_drop', 'init', [array_values($this->availableGraders)]);
         }
     }
 
@@ -77,19 +77,24 @@ class qtype_moopt_edit_form extends question_edit_form {
         $mform->addHelpButton('internaldescription', 'internaldescription', 'qtype_moopt');
 
         $this->availableGraders = array();
+        $graderSelectOptions = array();
         try {
             $graders = communicator_factory::get_instance()->get_graders()['graders'];
             foreach ($graders as $grader) {
-                $k = key($grader);
-                $this->availableGraders[$k] = $grader[$k];
+                $key = array_push($this->availableGraders, $grader) - 1;
+                $graderid_html_representation = get_html_representation_of_graderid($grader['name'], $grader['version']);
+                //Add this field so creation_via_drag_and_drop.js can select the grader
+                $this->availableGraders[$key]['html_representation'] = $graderid_html_representation;
+                //This Array is only used for the options of the graderselect element
+                $graderSelectOptions[$graderid_html_representation] = $grader['display_name'];
             }
         } catch (Exception $ex) {
             // backend not reachable.
             // no available graders.
         }
-        $this->graderselect = $mform->addElement('select', 'graderid', get_string('grader', 'qtype_moopt'),
-            $this->availableGraders);
-        $mform->addHelpButton('graderid', 'grader', 'qtype_moopt');
+        $this->graderselect = $mform->addElement('select', 'graderselect', get_string('grader', 'qtype_moopt'),
+            $graderSelectOptions);
+        $mform->addHelpButton('graderselect', 'grader', 'qtype_moopt');
 
         $this->gradererrorlabel = $mform->addElement('static', 'gradernotavailableerrorlabel', '', '');
         $this->set_class_attribute_of_label($this->gradererrorlabel, 'errorlabel');
@@ -258,11 +263,18 @@ class qtype_moopt_edit_form extends question_edit_form {
             $question->internaldescription = array('text' => $question->internaldescription);
         }
 
-        if (isset($question->graderid)) {
-            if (!array_key_exists($question->graderid, $this->availableGraders)) {
-                $this->gradererrorlabel->setText(get_string('previousgradernotavailable', 'qtype_moopt', ['grader' => $question->graderid]));
+        if (isset($question->gradername) && isset($question->graderversion)) {
+            $graderfound = false;
+            foreach ($this->availableGraders as $grader) {
+                if ($question->gradername === $grader['name'] && $question->graderversion === $grader['version']) {
+                    $graderfound = true;
+                    break;
+                }
             }
-            $this->graderselect->setSelected($question->graderid);
+            if (!$graderfound) {
+                $this->gradererrorlabel->setText(get_string('previousgradernotavailable', 'qtype_moopt', ['gradername' => $question->gradername, 'graderversion' => $question->graderversion]));
+            }
+            $this->graderselect->setSelected(get_html_representation_of_graderid($question->gradername, $question->graderversion));
         }
 
         if (isset($question->id)) {

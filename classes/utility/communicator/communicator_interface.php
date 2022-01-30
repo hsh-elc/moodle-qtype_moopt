@@ -22,7 +22,7 @@ interface communicator_interface {
 
     public function is_task_cached($uuid): bool;
 
-    public function enqueue_submission(string $graderid, bool $asynch, \stored_file $submissionfile);
+    public function enqueue_submission(string $gradername, string $graderversion, bool $asynch, \stored_file $submissionfile);
 
-    public function get_grading_result(string $graderid, string $gradeprocessid);
+    public function get_grading_result(string $gradername, string $graderversion, string $gradeprocessid);
 }

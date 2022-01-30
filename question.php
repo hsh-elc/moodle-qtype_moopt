@@ -40,7 +40,8 @@ use qtype_moopt\utility\proforma_xml\proforma_submission_xml_creator;
 class qtype_moopt_question extends question_graded_automatically {
 
     public $internaldescription;
-    public $graderid;
+    public $gradername; // A grader is uniquely identified by the grader name and the grader version
+    public $graderversion;
     public $taskuuid;
     public $showstudscorecalcscheme;
     public $enablefilesubmissions;
@@ -264,10 +265,10 @@ class qtype_moopt_question extends question_graded_automatically {
 
         $returnstate = question_state::$finished;
         try {
-            $gradeprocessid = $communicator->enqueue_submission($this->graderid, 'true', $zipfile);
+            $gradeprocessid = $communicator->enqueue_submission($this->gradername, $this->graderversion, 'true', $zipfile);
             $DB->insert_record('qtype_moopt_gradeprocesses', ['qubaid' => $qa->get_usage_id(),
                 'questionattemptdbid' => $qa->get_database_id(), 'gradeprocessid' => $gradeprocessid,
-                'graderid' => $this->graderid]);
+                'gradername' => $this->gradername, 'graderversion' => $this->graderversion]);
         } catch (invalid_response_exception $ex) {
             debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
             $returnstate = question_state::$needsgrading;

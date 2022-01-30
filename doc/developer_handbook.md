@@ -60,13 +60,13 @@ It may happen that vulnerabilities are mentioned, you can ignore that.
 
 #### Running Grunt
 
-Use CMD and move into the AMD directory of the plugin and run the following command:   
-```grunt amd```  
+Open CMD and navigate to the directory in which moodle is installed and run the following command:   
+```grunt amd --root=question/type/moopt/amd --verbose```  
 
 It can happen that this fails because this command also checks the code with the ESLint Code Analysis Tool and when it finds "problematic patterns" it will return some errors. 
 
 When these "problematic patterns" in the code are no real problems you can also run:   
-```grunt amd --force```   
+```grunt amd --root=question/type/moopt/amd --verbose --force```   
 instead to minify the files even when the Code Analysis Tool finds problematic code.
 
 After that the minified files should be under amd/build/.
@@ -76,8 +76,8 @@ After that the minified files should be under amd/build/.
 You might have to install watchman first. Therefore as an administrator start the Node.js command prompt via the Windows start menu and type:
 ```choco install watchman```
 
-Then at a CMD prompt move into the AMD directory of the plugin and run the following command:   
-```grunt --verbose watch```  
+Then at a CMD prompt move into the directory in which moodle is installed and run the following command:   
+```grunt watch --root=question/type/moopt/amd --verbose```  
 
 In order to have the force option on when running the task eslint via watchman, which could be helpful during development, you can modify the `Gruntfile.js` inside the moodle main directory as follows:
 
@@ -98,7 +98,7 @@ grunt.registerTask('js', ['amd', 'yui']);
 For this to work you might have to install this first:
 ```npm install grunt-force-task --save-dev```
 
-Then restart `grunt --verbose watch`.
+Then restart `grunt watch --root=question/type/moopt/amd --verbose`.
 
 ----------
 

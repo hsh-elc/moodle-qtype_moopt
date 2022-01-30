@@ -38,6 +38,7 @@ class qtype_moopt_external extends external_api {
             'title' => new external_value(PARAM_TEXT, 'title of the task', VALUE_OPTIONAL),
             'description' => new external_value(PARAM_RAW, 'description of the task', VALUE_OPTIONAL),
             'internaldescription' => new external_value(PARAM_RAW, 'internal description of the task', VALUE_OPTIONAL),
+            'proglang' => new external_value(PARAM_RAW, 'programming language of the task', VALUE_OPTIONAL),
             'taskuuid' => new external_value(PARAM_RAW, 'task\'s uuid', VALUE_OPTIONAL),
             'maxscoregradinghints' => new external_value(PARAM_FLOAT, 'maximum score', VALUE_OPTIONAL),
             'filesdisplayedingeneralfeedback' => new external_value(PARAM_RAW, 'general feedback', VALUE_OPTIONAL),
@@ -128,6 +129,13 @@ class qtype_moopt_external extends external_api {
             foreach ($doc->getElementsByTagNameNS($namespace, 'internal-description') as $des) {
                 if ($des->parentNode->localName == 'task') {
                     $returnval['internaldescription'] = $des->nodeValue;
+                    break;
+                }
+            }
+
+            foreach ($doc->getElementsByTagNameNS($namespace, 'proglang') as $des) {
+                if ($des->parentNode->localName == 'task') {
+                    $returnval['proglang'] = $des->nodeValue;
                     break;
                 }
             }

@@ -99,5 +99,74 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2021112700, 'qtype', 'moopt');
     }
 
+    if ($oldversion < 2022130100) {
+
+        // Define field gradername to be added to qtype_moopt_options.
+        $table = new xmldb_table('qtype_moopt_options');
+        $field = new xmldb_field('gradername', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null, 'graderid');
+
+        // Conditionally launch add field gradername.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define field graderversion to be added to qtype_moopt_options.
+        $table = new xmldb_table('qtype_moopt_options');
+        $field = new xmldb_field('graderversion', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, null, 'gradername');
+
+        // Conditionally launch add field graderversion.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Migrate old data in the options table //TODO: implement this for all other graders
+        $DB->execute("UPDATE {qtype_moopt_options} SET gradername = 'Graja', graderversion = '2.2' WHERE graderid = 'Graja2.2'");
+        $DB->execute("UPDATE {qtype_moopt_options} SET gradername = 'GraFlap', graderversion = '1.0' WHERE graderid = 'GraFlap'");
+
+        // Define field graderid to be dropped from qtype_moopt_options.
+        $table = new xmldb_table('qtype_moopt_options');
+        $field = new xmldb_field('graderid');
+
+        // Conditionally launch drop field graderid.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+
+        // Define field gradername to be added to qtype_moopt_gradeprocesses.
+        $table = new xmldb_table('qtype_moopt_gradeprocesses');
+        $field = new xmldb_field('gradername', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null, 'gradeprocessid');
+
+        // Conditionally launch add field gradername.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define field graderversion to be added to qtype_moopt_gradeprocesses.
+        $table = new xmldb_table('qtype_moopt_gradeprocesses');
+        $field = new xmldb_field('graderversion', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, null, 'gradername');
+
+        // Conditionally launch add field graderversion.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Migrate old data in the gradeprocesses table //TODO: implement this for all other graders
+        $DB->execute("UPDATE {qtype_moopt_gradeprocesses} SET gradername = 'Graja', graderversion = '2.2' WHERE graderid = 'Graja2.2'");
+        $DB->execute("UPDATE {qtype_moopt_gradeprocesses} SET gradername = 'GraFlap', graderversion = '1.0' WHERE graderid = 'GraFlap'");
+
+        // Define field graderid to be dropped from qtype_moopt_gradeprocesses.
+        $table = new xmldb_table('qtype_moopt_gradeprocesses');
+        $field = new xmldb_field('graderid');
+
+        // Conditionally launch drop field graderid.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2022130100, 'qtype', 'moopt');
+    }
+
     return true;
 }
