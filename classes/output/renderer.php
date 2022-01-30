@@ -170,7 +170,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                 }
 
                 $anythingtodisplay = true;
-                $url = moodle_url::make_pluginfile_url($question->contextid, 'question', $file->filearea,
+                $url = moodle_url::make_pluginfile_url($question->contextid, COMPONENT_NAME, $file->filearea,
                                 "$qubaid/$slot/$questionid", $file->filepath, $file->filename, true);
                 if ($file->filearea == PROFORMA_ATTACHED_TASK_FILES_FILEAREA) {
                     $folderdisplay = $file->filepath;
@@ -452,9 +452,9 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $html = '';
 
-                $responsexmlfile = $fs->get_file($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
-                        "_{$qa->get_database_id()}", $qa->get_usage_id(),
-                        "/", 'response.xml');
+                $responsexmlfile = $fs->get_file($qa->get_question()->contextid, COMPONENT_NAME,
+                    PROFORMA_RESPONSE_FILE_AREA,
+                    $qa->get_database_id(),"/", 'response.xml');
                 if ($responsexmlfile) {
                     $doc = new DOMDocument();
 
@@ -483,8 +483,8 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                                 // Load task.xml to get grading hints and tests.
                                 $fs = get_file_storage();
-                                $taskxmlfile = $fs->get_file($qa->get_question()->contextid, 'question', PROFORMA_TASKXML_FILEAREA,
-                                        $qa->get_question()->id, '/', 'task.xml');
+
+                                $taskxmlfile = get_task_xml_file_from_filearea($qa->get_question());
                                 $taskdoc = new DOMDocument();
                                 $taskdoc->loadXML($taskxmlfile->get_content());
                                 $taskxmlnamespace = detect_proforma_namespace($taskdoc);
@@ -527,11 +527,10 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 //         - filename: the filename inside the response.zip  (or the name of the zip file in case of filearea=responsefilesresponsefile)
 
                                 $fileinfos = [
-                                    'component' => 'question',
-                                    'itemid' => $qa->get_usage_id(),
-                                    'fileareasuffix' => "_{$qa->get_database_id()}",
-                                    'contextid' => $qubarecord->contextid,
-                                    'filepath' => "/{$qa->get_slot()}/{$qa->get_usage_id()}/"
+                                    'component' => COMPONENT_NAME,
+                                    'itemid' => $qa->get_database_id(),
+                                    'contextid' => $qa->get_question()->contextid,
+                                    'filepath' => "/{$qa->get_usage_id()}/{$qa->get_slot()}/{$qa->get_database_id()}/"
                                 ];
                                 $feedbackblockid = "moopt-feedbackblock-" . $qa->get_usage_id() . "-" . $qa->get_slot();
                                 $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_separate_feedback_buttons', 'init', [$feedbackblockid]);
@@ -586,18 +585,18 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
                     }
                 } else {
-                    $html = html_writer::div('Response didn\'t contain response.xml file', 'gradingstatus');
+                    $html = html_writer::div('Response.zip doesn\'t contain a response.xml file', 'gradingstatus');
                 }
                 // If teacher, display response.zip for download.
                 if (has_capability('mod/quiz:grade', $PAGE->context)) {
                     $slot = $qa->get_slot();
-                    
+
                     // check, if we have a response.zip file
                     $zipfileinfos = array(
-                        'component' => 'question',
-                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$qa->get_database_id()}",
-                        'itemid' => $qa->get_usage_id(),
-                        'contextid' => $qubarecord->contextid,
+                        'component' => COMPONENT_NAME,
+                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE,
+                        'itemid' => $qa->get_database_id(),
+                        'contextid' => $qa->get_question()->contextid,
                         'filepath' => "/",
                         'filename' => 'response.zip');
 
@@ -609,13 +608,13 @@ class qtype_moopt_renderer extends qtype_renderer {
                     } else {
                         // response.xml
                         $responsefileinfos = array(
-                            'component' => 'question',
-                            'filearea' => PROFORMA_RESPONSE_FILE_AREA . "_{$qa->get_database_id()}",
-                            'itemid' => "{$qa->get_usage_id()}/$slot/{$qa->get_usage_id()}", // see questionlib.php\question_pluginfile(...)
-                            'contextid' => $qubarecord->contextid,
+                            'component' => COMPONENT_NAME,
+                            'filearea' => PROFORMA_RESPONSE_FILE_AREA,
+                            'contextid' => $qa->get_question()->contextid,
                             'filepath' => "/",
                             'filename' => 'response.xml');
                     }
+                    $responsefileinfos['itemid'] = "{$qa->get_usage_id()}/$slot/{$qa->get_database_id()}"; // see questionlib.php\question_pluginfile(...)
                     
                     $url = moodle_url::make_pluginfile_url($responsefileinfos['contextid'], $responsefileinfos['component'],
                                     $responsefileinfos['filearea'], $responsefileinfos['itemid'], $responsefileinfos['filepath'],
@@ -648,12 +647,12 @@ class qtype_moopt_renderer extends qtype_renderer {
         return $output;
     }
 
-	/**
-	 * Calculates the editor rows when displaying a given content
-	 * @param {int} minrows
-	 * @param {string} content
-	 * @return {int} the number of rows
-	 */
+    /**
+     * Calculates the editor rows when displaying a given content
+     * @param {int} minrows
+     * @param {string} content
+     * @return {int} the number of rows
+     */
     public function calc_rows(int $minrows, string $content): int {
         return max($minrows, count(explode(PHP_EOL, $content)));
     }

@@ -83,13 +83,15 @@ class qtype_moopt_external extends external_api {
         $usercontext = context_user::instance($USER->id);
         self::validate_context($usercontext);
 
-        $taskfilename = unzip_task_file_in_draft_area($draftid, $usercontext);
-
-        if ($taskfilename == null) {
+        $unzipinfo = unzip_task_file_in_draft_area($draftid, $usercontext);
+        if ($unzipinfo == null) {
             return ['error' => 'Error extracting zip file'];
         }
+        $taskxmlfilename = $unzipinfo['xml'];
+        $taskzipfilename = $unzipinfo['zip'] ?? null;
+        $keepfilename = $taskzipfilename != null ? $taskzipfilename : $taskxmlfilename;
 
-        $doc = create_domdocument_from_task_xml($usercontext, $draftid, $taskfilename);
+        $doc = create_domdocument_from_task_xml($usercontext, $draftid, $taskxmlfilename, $taskzipfilename);
         $namespace = detect_proforma_namespace($doc);
         $returnval = array();
 
@@ -190,7 +192,7 @@ class qtype_moopt_external extends external_api {
                             break;
                         } else if ($child->localName == 'attached-txt-file') {
                             $pathinfo = pathinfo('/' . $child->nodeValue);
-                            $filecontent = get_text_content_from_file($usercontext, $draftid, $taskfilename,
+                            $filecontent = get_text_content_from_file($usercontext, $draftid, $keepfilename,
                                 $pathinfo['dirname'] . '/', $pathinfo['basename']);
                             $defaultfilename = basename($child->nodeValue);
                             $fileid = $file->attributes->getNamedItem('id')->nodeValue;
@@ -257,7 +259,7 @@ class qtype_moopt_external extends external_api {
                         } else if ($child->localName == 'attached-txt-file') {
                             $pathinfo = pathinfo('/' . $child->nodeValue);
                             $filename = basename($child->nodeValue);
-                            $filecontent = get_text_content_from_file($usercontext, $draftid, $taskfilename,
+                            $filecontent = get_text_content_from_file($usercontext, $draftid, $keepfilename,
                                 $pathinfo['dirname'] . '/', $pathinfo['basename']);
                         }
 
@@ -283,7 +285,7 @@ class qtype_moopt_external extends external_api {
         }
 
         // Do a little bit of cleanup and remove everything from the file area we extracted.
-        remove_all_files_from_draft_area($draftid, $usercontext, $taskfilename);
+        remove_all_files_from_draft_area($draftid, $usercontext, $keepfilename);
 
         return $returnval;
     }

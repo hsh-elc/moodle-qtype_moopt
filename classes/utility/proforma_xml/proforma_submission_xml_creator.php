@@ -22,7 +22,13 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
 
     const MIME_TYPE_TEXT_PATTERN = "#text/.*#";
 
-    public function create_submission_xml(bool $includetask, string $taskfilenameoruuid, array $files, string $resultformat,
+    /**
+     *  @param string taskreftype must be one of the following:
+     *      'zip' -> included as attached zip file
+     *      'xml' -> included as attached xml file
+     *      'uuid' -> referenced as external task via its uuid
+     */
+    public function create_submission_xml(string $taskreftype, string $taskfilenameoruuid, array $files, string $resultformat,
             string $resultstructure, $studentfeedbacklevel, $teacherfeedbacklevel,
             $gradinghints, $tests, $gradinghintsnamespace, $maxscorelms, $userid, $courseid): string {
         $this->init_xml_writer_for_document();
@@ -35,14 +41,20 @@ class proforma_submission_xml_creator extends proforma_xml_creator {
         // TODO: Maybe add another namespace for grading hints if it differs from proforma_TASK_XML_NAMESPACES[0] because *in the
         // future* there *might* be incompatibilities.
 
-        if ($includetask) {
+        if ($taskreftype == 'zip') {
             $xml->startElement('included-task-file');
             $xml->writeElement('attached-zip-file', $taskfilenameoruuid);
             $xml->endElement();
-        } else {
+        } else if ($taskreftype == 'xml') {
+            $xml->startElement('included-task-file');
+            $xml->writeElement('attached-xml-file', $taskfilenameoruuid);
+            $xml->endElement();
+        } else if ($taskreftype == 'uuid') {
             $xml->startElement('external-task');
             $xml->writeAttribute('uuid', $taskfilenameoruuid);
             $xml->endElement();
+        } else {
+            throw new invalid_parameter_exception("Unknown task ref type '" . $taskreftype . "'");
         }
 
         if ($resultstructure == PROFORMA_MERGED_FEEDBACK_TYPE) {

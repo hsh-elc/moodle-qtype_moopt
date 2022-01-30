@@ -105,13 +105,11 @@ class qtype_moopt_question extends question_graded_automatically {
      * @return question_behaviour the new behaviour object.
      */
     public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
-        $prefixtocheck = 'immediate';
+        $prefixtocheck = 'deferred';
         if (substr($preferredbehaviour, 0, strlen($prefixtocheck)) === $prefixtocheck) {
-            $preferredbehaviour = 'immediatemoopt';
-        } else {
-            // No need to check whether it starts with 'deferred' because this is also the default cause if
-            // it wouldn't start with 'deferred'.
             $preferredbehaviour = 'deferredmoopt';
+        } else {
+            $preferredbehaviour = 'immediatemoopt';
         }
         $class = 'qbehaviour_' . $preferredbehaviour;
         return new $class($qa, $preferredbehaviour);
@@ -158,12 +156,13 @@ class qtype_moopt_question extends question_graded_automatically {
             }
 
             return true;
-        } else if ((substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA)) === PROFORMA_RESPONSE_FILE_AREA) ||
-                (substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA_EMBEDDED)) === PROFORMA_RESPONSE_FILE_AREA_EMBEDDED) ||
-                (substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) ===
-                PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) {
+        } else if ($filearea == PROFORMA_RESPONSE_FILE_AREA ||
+                 $filearea == PROFORMA_RESPONSE_FILE_AREA_EMBEDDED ||
+                 $filearea == PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)  {
             return true;
         } else if ($component == 'question' && $filearea == 'response_answer') {
+            // the component is hard-wired to 'question' for filearea 'response_answer'
+            // do not change it to 'qtype_moopt'
             return true;
         }
 
@@ -228,13 +227,26 @@ class qtype_moopt_question extends question_graded_automatically {
 
         // Get filename of task file if necessary but don't load it yet.
         $taskfilename = '';
+        $sourcearea = '';
+        $taskreftype = '';
         if ($includetaskfile) {
-            $taskfilename = $DB->get_record('qtype_moopt_files', array('questionid' => $this->id,
-                        'filearea' => PROFORMA_TASKZIP_FILEAREA), 'filename')->filename;
+            $sourcearea = PROFORMA_TASKZIP_FILEAREA;
+            $taskreftype = 'zip';
+            $rec = $DB->get_record('qtype_moopt_files', array('questionid' => $this->id,
+                        'filearea' => $sourcearea), 'filename');
+            if (!$rec) {
+                $sourcearea = PROFORMA_TASKXML_FILEAREA;
+                $taskreftype = 'xml';
+                $rec = $DB->get_record('qtype_moopt_files', array('questionid' => $this->id,
+                        'filearea' => $sourcearea), 'filename');
+            }
+            $taskfilename = $rec->filename;
+        } else {
+            $taskreftype = 'uuid';
         }
 
         // Load task.xml file because we need the grading_hints if feedback-mode is merged-test-feedback.
-        $taskxmlfile = $fs->get_file($this->contextid, 'question', PROFORMA_TASKXML_FILEAREA, $this->id, '/', 'task.xml');
+        $taskxmlfile = get_task_xml_file_from_filearea($this);
         $taskdoc = new DOMDocument();
         $taskdoc->loadXML($taskxmlfile->get_content());
         $taskxmlnamespace = detect_proforma_namespace($taskdoc);
@@ -243,13 +255,13 @@ class qtype_moopt_question extends question_graded_automatically {
 
         // Create the submission.xml file.
         $submissionxmlcreator = new proforma_submission_xml_creator();
-        $submissionxml = $submissionxmlcreator->create_submission_xml($includetaskfile, $includetaskfile ?
+        $submissionxml = $submissionxmlcreator->create_submission_xml($taskreftype, $includetaskfile ?
                 $taskfilename : $this->taskuuid, $files, $this->resultspecformat, $this->resultspecstructure, $this->studentfeedbacklevel, $this->teacherfeedbacklevel,
                 $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark(), $USER->id, $COURSE->id);
 
         // Load task file and add it to the files that go into the zip file.
         if ($includetaskfile) {
-            $taskfile = $fs->get_file($this->contextid, 'question', PROFORMA_TASKZIP_FILEAREA, $this->id, '/', $taskfilename);
+            $taskfile = $fs->get_file($this->contextid, COMPONENT_NAME, $sourcearea, $this->id, '/', $taskfilename);
             $files["task/$taskfilename"] = $taskfile;
         }
 
@@ -257,8 +269,8 @@ class qtype_moopt_question extends question_graded_automatically {
         $files['submission.xml'] = array($submissionxml);       // Syntax to use a string as file contents.
         // Create submission.zip file.
         $zipper = get_file_packer('application/zip');
-        $zipfile = $zipper->archive_to_storage($files, $this->contextid, 'question', PROFORMA_SUBMISSION_ZIP_FILEAREA .
-                "_{$qa->get_slot()}", $qubaid, '/', 'submission.zip');
+        $zipfile = $zipper->archive_to_storage($files, $this->contextid, COMPONENT_NAME, PROFORMA_SUBMISSION_ZIP_FILEAREA,
+            $qa->get_database_id(), '/', 'submission.zip');
         if (!$zipfile) {
             throw new invalid_state_exception('Couldn\'t create submission.zip file.');
         }
@@ -274,11 +286,11 @@ class qtype_moopt_question extends question_graded_automatically {
             $returnstate = question_state::$needsgrading;
         } finally {
             $fs = get_file_storage();
-            $success = $fs->delete_area_files($this->contextid, 'question', PROFORMA_SUBMISSION_ZIP_FILEAREA .
-                    "_{$qa->get_slot()}", $qubaid);
+            $success = $fs->delete_area_files($this->contextid, COMPONENT_NAME,
+                PROFORMA_SUBMISSION_ZIP_FILEAREA, $qa->get_database_id());
             if (!$success) {
-                throw new invalid_state_exception("Couldn't delete submission.zip after sending it to grappa." .
-                        " QuestionID: {$this->id}, QubaID: $qubaid, Slot: {$qa->get_slot()}");
+                throw new invalid_state_exception("Could not delete submission.zip after sending it to the grader." .
+                        " QuestionID: {$this->id}, QubaID: $qubaid, AttemptID: {$qa->get_database_id()}, SlotID: {$qa->get_slot()}");
             }
         }
 

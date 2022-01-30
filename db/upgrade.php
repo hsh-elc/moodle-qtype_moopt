@@ -99,7 +99,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2021112700, 'qtype', 'moopt');
     }
 
-    if ($oldversion < 2022130100) {
+    if ($oldversion < 2022011300) {
 
         // Define field gradername to be added to qtype_moopt_options.
         $table = new xmldb_table('qtype_moopt_options');
@@ -165,7 +165,95 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         }
 
         // Moopt savepoint reached.
-        upgrade_plugin_savepoint(true, 2022130100, 'qtype', 'moopt');
+        upgrade_plugin_savepoint(true, 2022011300, 'qtype', 'moopt');
+    }
+
+    if ($oldversion < 2022012700) {
+        // This upgrade requires correcting Moopt related files in table mdl_files
+        // in order to make the backup and restore process work properly for Moopt.
+        // We are going to do this slowly. We will update table mdl_files step by
+        // step and use PHP functions where possible as opposed to using one big
+        // SQL statement with possibly platform dependent substring functions.
+
+        // First, fix the wrong component name: Change moopt related fileareas
+        // from 'question' to 'qtype_moopt'. Otherwise, the backup and restore
+        // functions will not work on Moopt files.
+        $filesrecords = $DB->get_records_sql("SELECT id, pathnamehash, contextid, component, filearea, itemid, filepath, filename
+                           FROM {files} WHERE component = 'question' AND (
+                         filearea = 'taskfile' OR
+                         filearea = 'taskxmlfile' OR
+                         filearea = 'attachedtaskfiles' OR
+                         filearea = 'embeddedtaskfiles' OR
+                         filearea = 'submissionzip' OR
+                         filearea LIKE 'responsefilesresponsefile%' OR
+                         filearea LIKE'responsefiles%' OR
+                         filearea LIKE 'responsefilesembedded%')");
+        foreach($filesrecords as $record => $file) {
+            $file->timemodified = time();
+            $file->component = 'qtype_moopt'; // fix component name to 'qtype_moopt'
+            // Since the component value changed, we must update the pathnamehash
+            // for all of these file records, otherwise we'll end up with broken
+            // file pathes and links.
+            $file->pathnamehash = file_storage::get_pathname_hash($file->contextid, $file->component,
+                $file->filearea, $file->itemid, $file->filepath, $file->filename);
+            $DB->update_record('files', $file);
+        }
+
+        // Next, extract attempt-db-id from the filearea value and
+        // write that value to itemid, overwriting the old question
+        // usage id. This is because Moopt's response files are mapped
+        // to a question attempt rather than the question usage, and
+        // having the attempt-db-id as a filearea suffix is not going
+        // to work, neither with file pathing nor with the backup/restore
+        // process.
+        // We'll also also need to fix the filearea name by removing the _<id> suffix
+        $filesrecords = $DB->get_records_sql("SELECT id, pathnamehash, contextid, component, filearea, itemid, filepath, filename
+               FROM {files} WHERE component = 'qtype_moopt'
+                                AND (filearea LIKE 'responsefilesresponsefile%'
+                                  OR filearea LIKE 'responsefiles%'
+                                  OR filearea LIKE 'responsefilesembedded%')");
+        foreach($filesrecords as $record => $file) {
+            $file->timemodified = time();
+            $separatorpos = strpos($file->filearea, '_');
+            if($separatorpos) {
+                $attemptdbid = substr($file->filearea, $separatorpos + 1);
+                $fixedfilearea = substr($file->filearea, 0, $separatorpos);
+                $file->filearea = $fixedfilearea;
+                $file->itemid = $attemptdbid;
+                // Since we made other changes to response-related files,
+                // update pathnamehash once again for all affected files
+                $file->pathnamehash = file_storage::get_pathname_hash($file->contextid, $file->component,
+                    $file->filearea, $file->itemid, $file->filepath, $file->filename);
+                $DB->update_record('files', $file);
+            }
+        }
+
+        // Update the contextid of all fileareas related to response files.
+        // We need to use the question's contextid instead of the
+        // one that belongs to a question_usage. The backup and restore process
+        // only recovers files that are directly mapped to a contextid belonging
+        // to the question that is being restored (refer to class
+        // restore_create_question_files).
+        $filesrecords = $DB->get_records_sql(
+            "SELECT f.id, f.pathnamehash, f.contextid, mqc.contextid as newctxid, f.component, f.filearea, f.itemid, f.filepath, f.filename
+                FROM {files} f 
+                INNER JOIN {question_attempts} mqa ON f.itemid  = mqa.id
+                INNER JOIN {question} mq ON mqa.questionid = mq.id
+                INNER JOIN {question_categories} mqc ON mq.category = mqc.id
+                WHERE component = 'qtype_moopt' AND (
+                         filearea = 'responsefilesresponsefile' OR
+                         filearea ='responsefiles' OR
+                         filearea = 'responsefilesembedded')");
+        foreach($filesrecords as $record => $file) {
+            $file->timemodified = time();
+            $file->contextid = $file->newctxid;
+            $file->pathnamehash = file_storage::get_pathname_hash($file->contextid, $file->component,
+                $file->filearea, $file->itemid, $file->filepath, $file->filename);
+            $DB->update_record('files', $file);
+        }
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2022012700, 'qtype', 'moopt');
     }
 
     return true;
