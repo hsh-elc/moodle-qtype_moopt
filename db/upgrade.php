@@ -99,7 +99,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2021112700, 'qtype', 'moopt');
     }
 
-    if ($oldversion < 2022022700) {
+    if ($oldversion < 2022012700) {
         // This upgrade requires correcting Moopt related files in table mdl_files
         // in order to make the backup and restore process work properly for Moopt.
         // We are going to do this slowly. We will update table mdl_files step by
@@ -184,7 +184,7 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         }
 
         // Moopt savepoint reached.
-        upgrade_plugin_savepoint(true, 2022022700, 'qtype', 'moopt');
+        upgrade_plugin_savepoint(true, 2022012700, 'qtype', 'moopt');
     }
 
     return true;
