@@ -37,122 +37,236 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
 
     $dbman = $DB->get_manager();
 
-    if ($oldversion < 2019031700) {
+    if ($oldversion < 2021101401) {
 
-        $optionstable = new xmldb_table('qtype_moopt_options');
-
-        $optionstable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null));
-        $optionstable->addField(new xmldb_field('questionid', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
-        $optionstable->addField(new xmldb_field('internaldescription', XMLDB_TYPE_TEXT, 'medium', null, null, null, null));
-
-        $optionstable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id'), null, null));
-        $optionstable->addKey(new xmldb_key('questionid', XMLDB_KEY_FOREIGN, array('questionid'), 'question', 'id'));
-
-        $dbman->create_table($optionstable);
-
-        $filestable = new xmldb_table('qtype_moopt_files');
-
-        $filestable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null));
-        $filestable->addField(new xmldb_field('questionid', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
-        $filestable->addField(new xmldb_field('fileid', XMLDB_TYPE_CHAR, 255, null, XMLDB_NOTNULL, null, null));
-        $filestable->addField(new xmldb_field('usedbygrader', XMLDB_TYPE_INTEGER, 2, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null));
-        $filestable->addField(new xmldb_field('visibletostudents', XMLDB_TYPE_CHAR, 64, null, XMLDB_NOTNULL, null, 'no'));
-        $filestable->addField(new xmldb_field('usagebylms', XMLDB_TYPE_CHAR, 64, null, XMLDB_NOTNULL, null, 'download'));
-        $filestable->addField(new xmldb_field('filepath', XMLDB_TYPE_TEXT, 'medium', null, XMLDB_NOTNULL, null, null));
-        $filestable->addField(new xmldb_field('filename', XMLDB_TYPE_CHAR, 255, null, XMLDB_NOTNULL, null, null));
-        $filestable->addField(new xmldb_field('filearea', XMLDB_TYPE_CHAR, 255, null, XMLDB_NOTNULL, null, null));
-
-        $filestable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id'), null, null));
-        $filestable->addKey(new xmldb_key('questionid', XMLDB_KEY_FOREIGN, array('questionid'), 'question', 'id'));
-
-        $filestable->addIndex(new xmldb_index('fileid', XMLDB_INDEX_NOTUNIQUE, array('fileid')));
-
-        $dbman->create_table($filestable);
-
-        // ProForma savepoint reached.
-        upgrade_plugin_savepoint(true, 2019031700, 'qtype', 'moopt');
-    }
-
-    if ($oldversion < 2019052601) {
-
+        // Define field resultspecformat to be added to qtype_moopt_options.
         $table = new xmldb_table('qtype_moopt_options');
-        $dbman->add_field($table, new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
+        $field = new xmldb_field('resultspecformat', XMLDB_TYPE_CHAR, '5', null, XMLDB_NOTNULL, null, "zip", 'ftsstandardlang');
 
-        // ProForma savepoint reached.
-        upgrade_plugin_savepoint(true, 2019052601, 'qtype', 'moopt');
+        // Conditionally launch add field resultspecformat.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define field resultspecstructure to be added to qtype_moopt_options.
+        $field = new xmldb_field('resultspecstructure', XMLDB_TYPE_CHAR, '30', null, XMLDB_NOTNULL, null, "separate-test-feedback", 'resultspecformat');
+
+        // Conditionally launch add field resultspecstructure.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define field studentfeedbacklevel to be added to qtype_moopt_options.
+        $field = new xmldb_field('studentfeedbacklevel', XMLDB_TYPE_CHAR, '15', null, XMLDB_NOTNULL, null, "info", 'resultspecstructure');
+
+        // Conditionally launch add field studentfeedbacklevel.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define field teacherfeedbacklevel to be added to qtype_moopt_options.
+        $field = new xmldb_field('teacherfeedbacklevel', XMLDB_TYPE_CHAR, '15', null, XMLDB_NOTNULL, null, "debug", 'studentfeedbacklevel');
+
+        // Conditionally launch add field teacherfeedbacklevel.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2021101401, 'qtype', 'moopt');
     }
 
-    if ($oldversion < 2019061601) {
+    if ($oldversion < 2021110601) {
+        $DB->set_field('quiz', 'preferredbehaviour', 'immediatefeedback', array('preferredbehaviour' => 'immediatemoopt'));
+        $DB->set_field('quiz', 'preferredbehaviour', 'deferredfeedback', array('preferredbehaviour' => 'deferredmoopt'));
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2021110601, 'qtype', 'moopt');
+    }
+
+    if ($oldversion < 2021112700) {
+
+        // Define field initialdisplayrows to be added to qtype_moopt_freetexts.
+        $table = new xmldb_table('qtype_moopt_freetexts');
+        $field = new xmldb_field('initialdisplayrows', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '5', 'filecontent');
+
+        // Conditionally launch add field initialdisplayrows.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2021112700, 'qtype', 'moopt');
+    }
+
+    if ($oldversion < 2022012700) {
+        // This upgrade requires correcting Moopt related files in table mdl_files
+        // in order to make the backup and restore process work properly for Moopt.
+        // We are going to do this slowly. We will update table mdl_files step by
+        // step and use PHP functions where possible as opposed to using one big
+        // SQL statement with possibly platform dependent substring functions.
+
+        // First, fix the wrong component name: Change moopt related fileareas
+        // from 'question' to 'qtype_moopt'. Otherwise, the backup and restore
+        // functions will not work on Moopt files.
+        $filesrecords = $DB->get_records_sql("SELECT id, pathnamehash, contextid, component, filearea, itemid, filepath, filename
+                           FROM {files} WHERE component = 'question' AND (
+                         filearea = 'taskfile' OR
+                         filearea = 'taskxmlfile' OR
+                         filearea = 'attachedtaskfiles' OR
+                         filearea = 'embeddedtaskfiles' OR
+                         filearea = 'submissionzip' OR
+                         filearea LIKE 'responsefilesresponsefile%' OR
+                         filearea LIKE'responsefiles%' OR
+                         filearea LIKE 'responsefilesembedded%')");
+        foreach($filesrecords as $record => $file) {
+            $file->timemodified = time();
+            $file->component = 'qtype_moopt'; // fix component name to 'qtype_moopt'
+            // Since the component value changed, we must update the pathnamehash
+            // for all of these file records, otherwise we'll end up with broken
+            // file pathes and links.
+            $file->pathnamehash = file_storage::get_pathname_hash($file->contextid, $file->component,
+                $file->filearea, $file->itemid, $file->filepath, $file->filename);
+            $DB->update_record('files', $file);
+        }
+
+        // Next, extract attempt-db-id from the filearea value and
+        // write that value to itemid, overwriting the old question
+        // usage id. This is because Moopt's response files are mapped
+        // to a question attempt rather than the question usage, and
+        // having the attempt-db-id as a filearea suffix is not going
+        // to work, neither with file pathing nor with the backup/restore
+        // process.
+        // We'll also also need to fix the filearea name by removing the _<id> suffix
+        $filesrecords = $DB->get_records_sql("SELECT id, pathnamehash, contextid, component, filearea, itemid, filepath, filename
+               FROM {files} WHERE component = 'qtype_moopt'
+                                AND (filearea LIKE 'responsefilesresponsefile%'
+                                  OR filearea LIKE 'responsefiles%'
+                                  OR filearea LIKE 'responsefilesembedded%')");
+        foreach($filesrecords as $record => $file) {
+            $file->timemodified = time();
+            $separatorpos = strpos($file->filearea, '_');
+            if($separatorpos) {
+                $attemptdbid = substr($file->filearea, $separatorpos + 1);
+                $fixedfilearea = substr($file->filearea, 0, $separatorpos);
+                $file->filearea = $fixedfilearea;
+                $file->itemid = $attemptdbid;
+                // Since we made other changes to response-related files,
+                // update pathnamehash once again for all affected files
+                $file->pathnamehash = file_storage::get_pathname_hash($file->contextid, $file->component,
+                    $file->filearea, $file->itemid, $file->filepath, $file->filename);
+                $DB->update_record('files', $file);
+            }
+        }
+
+        // Update the contextid of all fileareas related to response files.
+        // We need to use the question's contextid instead of the
+        // one that belongs to a question_usage. The backup and restore process
+        // only recovers files that are directly mapped to a contextid belonging
+        // to the question that is being restored (refer to class
+        // restore_create_question_files).
+        $filesrecords = $DB->get_records_sql(
+            "SELECT f.id, f.pathnamehash, f.contextid, mqc.contextid as newctxid, f.component, f.filearea, f.itemid, f.filepath, f.filename
+                FROM {files} f 
+                INNER JOIN {question_attempts} mqa ON f.itemid  = mqa.id
+                INNER JOIN {question} mq ON mqa.questionid = mq.id
+                INNER JOIN {question_categories} mqc ON mq.category = mqc.id
+                WHERE component = 'qtype_moopt' AND (
+                         filearea = 'responsefilesresponsefile' OR
+                         filearea ='responsefiles' OR
+                         filearea = 'responsefilesembedded')");
+        foreach($filesrecords as $record => $file) {
+            $file->timemodified = time();
+            $file->contextid = $file->newctxid;
+            $file->pathnamehash = file_storage::get_pathname_hash($file->contextid, $file->component,
+                $file->filearea, $file->itemid, $file->filepath, $file->filename);
+            $DB->update_record('files', $file);
+        }
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2022012700, 'qtype', 'moopt');
+    }
+
+    if ($oldversion < 2022020600) {
+
+        // -- 2022020600 Migration Code
+        $migrationSQL = array(
+            //"SET gradername" = '<graderName>', graderversion = '<graderVersion>' WHERE graderid = '<oldGraderId>'",
+            "SET gradername = 'Graja', graderversion = '2.2' WHERE graderid = 'Graja2.2'",
+            "SET gradername = 'Asqlg', graderversion = '2.0' WHERE graderid = 'Asqlg2.0'",
+            "SET gradername = 'GraFlap', graderversion = '1.0' WHERE graderid = 'GraFlap'",
+            "SET gradername = 'DummyGrader', graderversion = '1.0' WHERE graderid = 'DummyGrader'"
+        );
+        // --
+
+
+        // Define field gradername to be added to qtype_moopt_options.
         $table = new xmldb_table('qtype_moopt_options');
-        $dbman->add_field($table, new xmldb_field('taskuuid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL));
+        $field = new xmldb_field('gradername', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null, 'graderid');
 
-        // ProForma savepoint reached.
-        upgrade_plugin_savepoint(true, 2019061601, 'qtype', 'moopt');
-    }
+        // Conditionally launch add field gradername.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
 
-    if ($oldversion < 2019080301) {
-        $gradertable = new xmldb_table('qtype_moopt_gradeprocesses');
-        $gradertable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, true));
-        $gradertable->addField(new xmldb_field('qubaid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
-        $gradertable->addField(new xmldb_field('questionattemptdbid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
-        $gradertable->addField(new xmldb_field('gradeprocessid', XMLDB_TYPE_CHAR, '36', null, XMLDB_NOTNULL));
-        $gradertable->addField(new xmldb_field('graderid', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL));
-        $gradertable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id')));
-        $dbman->create_table($gradertable);
-
-        // ProForma savepoint reached.
-        upgrade_plugin_savepoint(true, 2019080301, 'qtype', 'moopt');
-    }
-
-    if ($oldversion < 2019110400) {
+        // Define field graderversion to be added to qtype_moopt_options.
         $table = new xmldb_table('qtype_moopt_options');
-        $dbman->add_field($table, new xmldb_field('showstudscorecalcscheme', XMLDB_TYPE_INTEGER, '1', null,
-                        XMLDB_NOTNULL, false, 0));
+        $field = new xmldb_field('graderversion', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, null, 'gradername');
 
-        // ProForma savepoint reached.
-        upgrade_plugin_savepoint(true, 2019110400, 'qtype', 'moopt');
-    }
+        // Conditionally launch add field graderversion.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
 
-    if ($oldversion < 2020012300) {
+        // Migrate old data in the options table
+        foreach ($migrationSQL as $set) {
+            $DB->execute("UPDATE {qtype_moopt_options} " . $set);
+        }
 
+        // Define field graderid to be dropped from qtype_moopt_options.
         $table = new xmldb_table('qtype_moopt_options');
-        $dbman->add_field($table, new xmldb_field('enablefilesubmissions', XMLDB_TYPE_INTEGER, '1', null, null, false, 0));
-        $dbman->add_field($table, new xmldb_field('enablefreetextsubmissions', XMLDB_TYPE_INTEGER, '1', null, null, false, 0));
-        $dbman->add_field($table, new xmldb_field('ftsnuminitialfields', XMLDB_TYPE_INTEGER, '8', null, null, false, 0));
-        $dbman->add_field($table, new xmldb_field('ftsmaxnumfields', XMLDB_TYPE_INTEGER, '8', null, null, false, 0));
-        $dbman->add_field($table, new xmldb_field('ftsautogeneratefilenames', XMLDB_TYPE_INTEGER, '1', null, null, false, 1));
+        $field = new xmldb_field('graderid');
 
-        // ProForma savepoint reached.
-        upgrade_plugin_savepoint(true, 2020012300, 'qtype', 'moopt');
-    }
+        // Conditionally launch drop field graderid.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
 
-    if ($oldversion < 2020012500) {
 
-        $ftstable = new xmldb_table('qtype_moopt_freetexts');
-        $ftstable->addField(new xmldb_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, true));
-        $ftstable->addField(new xmldb_field('questionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
-        $ftstable->addField(new xmldb_field('inputindex', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL));
-        $ftstable->addField(new xmldb_field('presetfilename', XMLDB_TYPE_INTEGER, '1', null, null, false, 1));
-        $ftstable->addField(new xmldb_field('filename', XMLDB_TYPE_CHAR, '256'));
+        // Define field gradername to be added to qtype_moopt_gradeprocesses.
+        $table = new xmldb_table('qtype_moopt_gradeprocesses');
+        $field = new xmldb_field('gradername', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null, 'gradeprocessid');
 
-        $ftstable->addKey(new xmldb_key('primary', XMLDB_KEY_PRIMARY, array('id')));
-        $ftstable->addKey(new xmldb_key('questionid', XMLDB_KEY_FOREIGN, array('questionid'), 'question', 'id'));
-        $dbman->create_table($ftstable);
+        // Conditionally launch add field gradername.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
 
-        // ProForma savepoint reached.
-        upgrade_plugin_savepoint(true, 2020012500, 'qtype', 'moopt');
-    }
+        // Define field graderversion to be added to qtype_moopt_gradeprocesses.
+        $table = new xmldb_table('qtype_moopt_gradeprocesses');
+        $field = new xmldb_field('graderversion', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, null, 'gradername');
 
-    if ($oldversion < 2020020800) {
+        // Conditionally launch add field graderversion.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
 
-        $tableoptns = new xmldb_table('qtype_moopt_options');
-        $dbman->add_field($tableoptns, new xmldb_field('ftsstandardlang', XMLDB_TYPE_CHAR, '64', null, true, null, 'txt'));
+        // Migrate old data in the gradeprocesses table
+        foreach ($migrationSQL as $set) {
+            $DB->execute("UPDATE {qtype_moopt_gradeprocesses} " . $set);
+        }
 
-        $tablefts = new xmldb_table('qtype_moopt_freetexts');
-        $dbman->add_field($tablefts, new xmldb_field('ftslang', XMLDB_TYPE_CHAR, '64', null, true, null, 'default'));
+        // Define field graderid to be dropped from qtype_moopt_gradeprocesses.
+        $table = new xmldb_table('qtype_moopt_gradeprocesses');
+        $field = new xmldb_field('graderid');
 
-        // ProForma savepoint reached.
-        upgrade_plugin_savepoint(true, 2020020800, 'qtype', 'moopt');
+        // Conditionally launch drop field graderid.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2022020600, 'qtype', 'moopt');
     }
 
     return true;

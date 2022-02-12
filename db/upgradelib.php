@@ -37,3 +37,4 @@ function qtype_moopt_helper_function() {
       https://docs.moodle.org/dev/Upgrade_API
      */
 }
+

@@ -62,17 +62,29 @@ class qtype_moopt_renderer extends qtype_renderer {
         $qa->get_question()->generalfeedback = '<p />';
 
         $o = "";
-        $onlinegraders = communicator_factory::get_instance()->get_graders();
-        $graderforthistask = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id], 'graderid')
-            ->graderid;
-        $found = false;
-        foreach($onlinegraders['graders'] as $grader) {
-            foreach($grader as $graderKey => $graderName) {
-                if($graderKey === $graderforthistask) {
+
+
+        // Question is queued for grading, print the message that the question have been queued for grading
+        if ($qa->get_state() == question_state::$finished) {
+            $o .= "<div class='specificfeedback queuedforgrading'>";
+            $loader = '<div class="loader"></div>';
+            $o .= html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
+            $o .= "</div><br>";
+        }
+
+        try {
+            $onlinegraders = communicator_factory::get_instance()->get_graders();
+            $record = $DB->get_record('qtype_moopt_options', ['questionid' => $qa->get_question()->id], 'gradername, graderversion');
+            $found = false;
+            foreach($onlinegraders['graders'] as $grader) {
+                if ($grader['name'] === $record->gradername &&
+                    $grader['version'] === $record->graderversion) {
                     $found = true;
-                    break 2;
+                    break;
                 }
             }
+        } catch (Exception $ex) {
+            $found= false;
         }
 
         if(!$found) {
@@ -158,9 +170,16 @@ class qtype_moopt_renderer extends qtype_renderer {
                 }
 
                 $anythingtodisplay = true;
-                $url = moodle_url::make_pluginfile_url($question->contextid, 'question', $file->filearea,
+                $url = moodle_url::make_pluginfile_url($question->contextid, COMPONENT_NAME, $file->filearea,
                                 "$qubaid/$slot/$questionid", $file->filepath, $file->filename, true);
-                $linkdisplay = ($file->filearea == PROFORMA_ATTACHED_TASK_FILES_FILEAREA ? $file->filepath : '') . $file->filename;
+                if ($file->filearea == PROFORMA_ATTACHED_TASK_FILES_FILEAREA) {
+                    $folderdisplay = $file->filepath;
+                    // remove leading slash:
+                    if (strlen($folderdisplay) > 0 && $folderdisplay[0] == '/') $folderdisplay = substr($folderdisplay, 1);
+                } else {
+                    $folderdisplay = '';
+                }
+                $linkdisplay = $folderdisplay . $file->filename;
                 $downloadurls .= '<li><a href="' . $url . '">' . $linkdisplay . '</a></li>';
             }
             $downloadurls .= '</ul>';
@@ -211,6 +230,15 @@ class qtype_moopt_renderer extends qtype_renderer {
 
             for ($i = 0; $i < $qa->get_question()->ftsmaxnumfields; $i++) {
                 $text = $qa->get_last_qt_var("answertext$i");
+
+                if(is_null($text)) { // TODO: test this code block
+                    $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
+                        'inputindex' => $i]);
+                    if ($customoptions && !is_null($customoptions->filecontent)) {
+                        $text = $customoptions->filecontent;
+                    }
+                }
+
                 if ($text) {
                     list($filename, ) = $this->get_filename($qa->get_question()->id, $i, $qa->get_last_qt_var("answerfilename$i"),
                             $qa->get_question()->ftsautogeneratefilenames);
@@ -223,16 +251,22 @@ class qtype_moopt_renderer extends qtype_renderer {
                         $proglang = $customoptions->ftslang;
                     }
 
+                    // Adjust the height of the textarea based on the content of the textarea.
+                    // The 'rows' attribute will be interpreted by the javascript userinterfacewrapper.js
+                    // to adapt the CSS height of the editor.
+                    $textarearows = $this->calc_rows(($customoptions ? $customoptions->initialdisplayrows : DEFAULT_INITIAL_DISPLAY_ROWS), $text);
+
+                    $textarea_id = "qtype_moopt_answertext_" . $qa->get_question_id() . "_" . $i;
                     $renderedfreetext .= html_writer::start_div('answertextreadonly');
                     $renderedfreetext .= html_writer::tag('div', mangle_pathname($filename) . ' (' .
                                     PROFORMA_ACE_PROGLANGS[$proglang] . ')' . ':');
-                    $renderedfreetext .= html_writer::tag('div', html_writer::tag('textarea', $text, array('id' => "answertext$i",
-                                        'style' => 'width: 100%;padding-left: 10px;height:400px;', 'class' => 'edit_code',
-                                        'data-lang' => $proglang, 'readonly' => '')));
+                    $renderedfreetext .= html_writer::tag('div', html_writer::tag('textarea', $text, array('id' => $textarea_id,
+                                        'style' => 'width: 100%;padding-left: 10px;height: 14px;', 'class' => 'edit_code',
+                                        'data-lang' => $proglang, 'readonly' => '', 'rows' => $textarearows)));
                     $renderedfreetext .= html_writer::end_div();
 
                     $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper',
-                            ['ace', "answertext$i"]);
+                            ['ace', $textarea_id]);
                 }
             }
 
@@ -281,19 +315,21 @@ class qtype_moopt_renderer extends qtype_renderer {
 
             $defaultproglang = $questionoptions->ftsstandardlang;
 
-            for ($i = 0; $i < $questionoptions->ftsmaxnumfields; $i++) {
+            for ($i = 0; $i < (int)$questionoptions->ftsmaxnumfields; $i++) {
+                $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
+                    'inputindex' => $i]);
+
                 $answertextname = "answertext$i";
                 $answertextinputname = $qa->get_qt_field_name($answertextname);
                 $answertextid = $answertextinputname . '_id';
 
                 $answertextresponse = $qa->get_last_step_with_qt_var($answertextname)->get_qt_var($answertextname) ?? '';
+                if ($customoptions && !is_null($customoptions->filecontent))
+                    $answertextresponse = $customoptions->filecontent;
 
                 $filenamename = "answerfilename$i";
                 $filenameinputname = $qa->get_qt_field_name($filenamename);
                 $filenameid = $filenameinputname . '_id';
-
-                $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
-                    'inputindex' => $i]);
 
                 $proglang = $defaultproglang;
                 if ($customoptions && $customoptions->ftslang != 'default') {
@@ -305,8 +341,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $output = '';
                 $output .= html_writer::start_tag('div', array('class' => "qtype_moopt_answertext",
-                            'id' => "qtype_moopt_answertext_$i",
-                            'style' => 'display:none;'));
+                            'id' => "qtype_moopt_answertext_" . $qa->get_question_id() . "_$i"));
                 $output .= html_writer::start_div('answertextfilename');
                 $output .= html_writer::label(get_string('filename', 'qtype_moopt') . ":", $filenameid);
                 $inputoptions = ['id' => $filenameid, 'name' => $filenameinputname, 'style' => 'width: 100%;padding-left: 10px;',
@@ -314,14 +349,20 @@ class qtype_moopt_renderer extends qtype_renderer {
                 if ($disablefilenameinput) {
                     $inputoptions['disabled'] = true;
                 }
+
+                // Adjust the height of the textarea based on the content of the textarea
+                // The 'rows' attribute will be interpreted by the javascript userinterfacewrapper.js
+                // to adapt the CSS height of the editor.
+                $textarearows = $this->calc_rows(($customoptions ? $customoptions->initialdisplayrows : DEFAULT_INITIAL_DISPLAY_ROWS), $answertextresponse);
+
                 $output .= html_writer::tag('input', '', $inputoptions);
                 $output .= html_writer::end_div();
                 $output .= html_writer::div(get_string('yourcode', 'qtype_moopt') . ' (' .
                                 get_string('programminglanguage', 'qtype_moopt') . ': ' .
                                 PROFORMA_ACE_PROGLANGS[$proglang] . '):');
                 $output .= html_writer::tag('div', html_writer::tag('textarea', $answertextresponse, array('id' => $answertextid,
-                                    'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height:250px;',
-                                    'class' => 'edit_code', 'data-lang' => $proglang)));
+                                    'name' => $answertextinputname, 'style' => 'width: 100%;padding-left: 10px;height: 14px;',
+                                    'class' => 'edit_code', 'data-lang' => $proglang, 'rows' => $textarearows)));
                 $output .= html_writer::end_tag('div');
 
                 $renderedarea .= $output;
@@ -334,13 +375,13 @@ class qtype_moopt_renderer extends qtype_renderer {
             }
             $renderedarea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
             $renderedarea .= html_writer::tag('button', get_string('addanswertext', 'qtype_moopt'),
-                            ['id' => 'addAnswertextButton']);
+                            ['id' => 'addAnswertextButton_' . $qa->get_question_id()]);
             $renderedarea .= html_writer::tag('button', get_string('removelastanswertext', 'qtype_moopt'),
-                            ['id' => 'removeLastAnswertextButton', 'style' => 'margin-left: 10px']);
+                            ['id' => 'removeLastAnswertextButton_' . $qa->get_question_id(), 'style' => 'margin-left: 10px']);
             $renderedarea .= html_writer::end_div();
 
             $PAGE->requires->js_call_amd('qtype_moopt/manage_answer_texts', 'init',
-                    [$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, $questionoptions->ftsnuminitialfields)]);
+                    [(int)$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, (int)$questionoptions->ftsnuminitialfields), $qa->get_question_id()]);
         }
 
         if ($renderedarea == '') {
@@ -396,10 +437,10 @@ class qtype_moopt_renderer extends qtype_renderer {
 
         if ($qa->get_state()->is_finished()) {
 
-            $PAGE->requires->js_call_amd('qtype_moopt/change_display_name_of_redo_button', 'init');
+            $PAGE->requires->js_call_amd('qtype_moopt/change_display_name_of_redo_button', 'init', [$qa->get_slot()]);
 
             if ($qa->get_state() == question_state::$finished) {
-                $PAGE->requires->js_call_amd('qtype_moopt/pull_grading_status', 'init', [$qa->get_usage_id(),
+                $PAGE->requires->js_call_amd('qtype_moopt/pull_grading_status', 'init', [$qa->get_usage_id(), $qa->get_slot(),
                     get_config("qtype_moopt",
                             "service_client_polling_interval") * 1000 /* to milliseconds */]);
                 $loader = '<div class="loader"></div>';
@@ -417,9 +458,9 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $html = '';
 
-                $responsexmlfile = $fs->get_file($qubarecord->contextid, 'question', PROFORMA_RESPONSE_FILE_AREA .
-                        "_{$qa->get_database_id()}", $qa->get_usage_id(),
-                        "/", 'response.xml');
+                $responsexmlfile = $fs->get_file($qa->get_question()->contextid, COMPONENT_NAME,
+                    PROFORMA_RESPONSE_FILE_AREA,
+                    $qa->get_database_id(),"/", 'response.xml');
                 if ($responsexmlfile) {
                     $doc = new DOMDocument();
 
@@ -448,8 +489,8 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                                 // Load task.xml to get grading hints and tests.
                                 $fs = get_file_storage();
-                                $taskxmlfile = $fs->get_file($qa->get_question()->contextid, 'question', PROFORMA_TASKXML_FILEAREA,
-                                        $qa->get_question()->id, '/', 'task.xml');
+
+                                $taskxmlfile = get_task_xml_file_from_filearea($qa->get_question());
                                 $taskdoc = new DOMDocument();
                                 $taskdoc->loadXML($taskxmlfile->get_content());
                                 $taskxmlnamespace = detect_proforma_namespace($taskdoc);
@@ -492,28 +533,31 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 //         - filename: the filename inside the response.zip  (or the name of the zip file in case of filearea=responsefilesresponsefile)
 
                                 $fileinfos = [
-                                    'component' => 'question',
-                                    'itemid' => $qa->get_usage_id(),
-                                    'fileareasuffix' => "_{$qa->get_database_id()}",
-                                    'contextid' => $qubarecord->contextid,
-                                    'filepath' => "/{$qa->get_slot()}/{$qa->get_usage_id()}/"
+                                    'component' => COMPONENT_NAME,
+                                    'itemid' => $qa->get_database_id(),
+                                    'contextid' => $qa->get_question()->contextid,
+                                    'filepath' => "/{$qa->get_usage_id()}/{$qa->get_slot()}/{$qa->get_database_id()}/"
                                 ];
+                                $feedbackblockid = "moopt-feedbackblock-" . $qa->get_usage_id() . "-" . $qa->get_slot();
+                                $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_separate_feedback_buttons', 'init', [$feedbackblockid]);
 
-                                if (!$separatefeedbackhelper->get_detailed_feedback()->has_internal_error() ||
-                                        has_capability('mod/quiz:grade', $PAGE->context)) {
-                                    $separatefeedbackrenderersummarised = new separate_feedback_text_renderer(
-                                            $separatefeedbackhelper->get_summarised_feedback(),
-                                            has_capability('mod/quiz:grade', $PAGE->context), $fileinfos,
-                                            $qa->get_question()->showstudscorecalcscheme);
-                                    $html .= '<p>' . $separatefeedbackrenderersummarised->render() . '</p>';
+                                $separatefeedbackrenderersummarised = new separate_feedback_text_renderer(
+                                        $separatefeedbackhelper->get_summarised_feedback(),
+                                        has_capability('mod/quiz:grade', $PAGE->context), $fileinfos,
+                                        $qa->get_question()->showstudscorecalcscheme);
+                                $html .= "<p class='expandcollapselink'><a href='#' id='" . $feedbackblockid . "-expand-all-button'>"
+                                         . get_string('expand_all', 'qtype_moopt') . "</a> ";
+                                $html .= "<a href='#' id='" . $feedbackblockid . "-collapse-all-button'>"
+                                         . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
 
-                                    $separatefeedbackrendererdetailed = new separate_feedback_text_renderer(
-                                            $separatefeedbackhelper->get_detailed_feedback(), has_capability('mod/quiz:grade',
-                                                    $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
-                                    $html .= '<p>' . $separatefeedbackrendererdetailed->render() . '</p>';
-                                } else {
-                                    $html .= '<p>' . get_string('needsgradingbyteacher', 'qtype_moopt') . '</p>';
-                                }
+                                $html .= "<div id='" . $feedbackblockid . "'>";
+                                $html .=    $separatefeedbackrenderersummarised->render();
+                                $html .=    '<p/>'; // vertical space between summarized and detailed feedback buttons
+                                $separatefeedbackrendererdetailed = new separate_feedback_text_renderer(
+                                        $separatefeedbackhelper->get_detailed_feedback(), has_capability('mod/quiz:grade',
+                                                $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
+                                $html .= $separatefeedbackrendererdetailed->render();
+                                $html .= '</div>';
                             } else {
                                 // Merged test feedback.
                                 $studentfb= $doc->getElementsByTagNameNS($namespace, "student-feedback")[0];
@@ -547,18 +591,18 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
                     }
                 } else {
-                    $html = html_writer::div('Response didn\'t contain response.xml file', 'gradingstatus');
+                    $html = html_writer::div('Response.zip doesn\'t contain a response.xml file', 'gradingstatus');
                 }
                 // If teacher, display response.zip for download.
                 if (has_capability('mod/quiz:grade', $PAGE->context)) {
                     $slot = $qa->get_slot();
-                    
+
                     // check, if we have a response.zip file
                     $zipfileinfos = array(
-                        'component' => 'question',
-                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE . "_{$qa->get_database_id()}",
-                        'itemid' => $qa->get_usage_id(),
-                        'contextid' => $qubarecord->contextid,
+                        'component' => COMPONENT_NAME,
+                        'filearea' => PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE,
+                        'itemid' => $qa->get_database_id(),
+                        'contextid' => $qa->get_question()->contextid,
                         'filepath' => "/",
                         'filename' => 'response.zip');
 
@@ -570,26 +614,52 @@ class qtype_moopt_renderer extends qtype_renderer {
                     } else {
                         // response.xml
                         $responsefileinfos = array(
-                            'component' => 'question',
-                            'filearea' => PROFORMA_RESPONSE_FILE_AREA . "_{$qa->get_database_id()}",
-                            'itemid' => "{$qa->get_usage_id()}/$slot/{$qa->get_usage_id()}", // see questionlib.php\question_pluginfile(...)
-                            'contextid' => $qubarecord->contextid,
+                            'component' => COMPONENT_NAME,
+                            'filearea' => PROFORMA_RESPONSE_FILE_AREA,
+                            'contextid' => $qa->get_question()->contextid,
                             'filepath' => "/",
                             'filename' => 'response.xml');
                     }
+                    $responsefileinfos['itemid'] = "{$qa->get_usage_id()}/$slot/{$qa->get_database_id()}"; // see questionlib.php\question_pluginfile(...)
                     
                     $url = moodle_url::make_pluginfile_url($responsefileinfos['contextid'], $responsefileinfos['component'],
                                     $responsefileinfos['filearea'], $responsefileinfos['itemid'], $responsefileinfos['filepath'],
                                     $responsefileinfos['filename'], true);
                     $downloadable_responsefilename= $responsefileinfos['filename'];
-                    // TODO: put following string in lang
                     $html .= "<a href='$url' style='display:block;text-align:right;'>" .
                             " <span style='font-family: FontAwesome; display:inline-block;" .
-                            "margin-right: 5px'>&#xf019;</span> Download complete '{$downloadable_responsefilename}' file</a>";
+                            "margin-right: 5px'>&#xf019;</span> " .
+                            get_string('downloadcompletefile', 'qtype_moopt', $downloadable_responsefilename) . "</a>";
                 }
                 return $html;
             }
         }
         return '';
+    }
+
+    /**
+     * Generates the output of an errormessage and also adds a button that will redirect to a specific url
+     * @param string $err_msg The message that should be shown
+     * @param string $redirect_url The url to which the button should redirect the user
+     * @return string The html output of the errormessage
+     * @throws coding_exception
+     */
+    public function render_error_msg(string $err_msg, string $redirect_url, int $courseid): string {
+        $output = "<div class='box py-3 errorbox alert alert-danger'>" . $err_msg . "</div>";
+        $output .= "<form method='get' action='$redirect_url'>";
+        $output .= "<input type='hidden' id='id' name='id' value='$courseid'>";
+        $output .= "<button class='btn btn-primary' type='submit'>" . get_string('continue', 'qtype_moopt') . "</button>";
+        $output .= "</form></div>";
+        return $output;
+    }
+
+    /**
+     * Calculates the editor rows when displaying a given content
+     * @param {int} minrows
+     * @param {string} content
+     * @return {int} the number of rows
+     */
+    public function calc_rows(int $minrows, string $content): int {
+        return max($minrows, count(explode(PHP_EOL, $content)));
     }
 }

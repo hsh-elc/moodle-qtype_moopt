@@ -1,49 +1,51 @@
-define(['jquery'], function ($) {
+define([], function () {
 
     var maxNumberFields;
     var currentNumberFields;
     return {
 
-        init: function (maxFields, initialNumberFields) {
+        init: function (maxFields, initialNumberFields, questionid) {
+
             maxNumberFields = maxFields;
             currentNumberFields = initialNumberFields;
-            this.adjustVisibility();
+
+            this.adjustVisibility(questionid);
             var self = this;
-            $("#addAnswertextButton").click(function (event) {
+            document.querySelector("#addAnswertextButton_" + questionid).addEventListener("click", function (event) {
                 if (currentNumberFields < maxNumberFields) {
                     currentNumberFields++;
-                    self.adjustVisibility();
+                    self.adjustVisibility(questionid);
                 }
                 event.preventDefault();
             });
-            $("#removeLastAnswertextButton").click(function (event) {
+            document.querySelector("#removeLastAnswertextButton_" + questionid).addEventListener("click", function (event) {
                 if (currentNumberFields > 1) {
                     currentNumberFields--;
-                    self.adjustVisibility();
+                    self.adjustVisibility(questionid);
                 }
                 event.preventDefault();
             });
         },
 
-        adjustVisibility: function () {
+        adjustVisibility: function (questionid) {
             for (var i = 0; i < maxNumberFields; i++) {
-                var id = "#qtype_moopt_answertext_" + i;
+                var id = "#qtype_moopt_answertext_" + questionid + "_" + i;
                 if (i < currentNumberFields) {
-                    $(id).show();
+                    document.querySelector(id).style.display = "block";
                 } else {
-                    $(id).hide();
+                    document.querySelector(id).style.display = "none";
                 }
             }
             if (currentNumberFields == maxNumberFields) {
-                $("#addAnswertextButton").prop('disabled', true);
+                document.querySelector("#addAnswertextButton_" + questionid).disabled = true;
             } else {
-                $("#addAnswertextButton").prop('disabled', false);
+                document.querySelector("#addAnswertextButton_" + questionid).disabled = false;
             }
 
             if (currentNumberFields <= 1) {
-                $("#removeLastAnswertextButton").prop('disabled', true);
+                document.querySelector("#removeLastAnswertextButton_" + questionid).disabled = true;
             } else {
-                $("#removeLastAnswertextButton").prop('disabled', false);
+                document.querySelector("#removeLastAnswertextButton_" + questionid).disabled = false;
             }
 
         }

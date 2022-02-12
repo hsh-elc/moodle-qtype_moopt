@@ -28,6 +28,9 @@ defined('MOODLE_INTERNAL') || die();
 //
 // Make sure to implement all the abstract methods of the base class.
 
+require_once($CFG->dirroot . '/question/behaviour/immediatemoopt/behaviour.php');
+require_once($CFG->dirroot . '/question/behaviour/deferredmoopt/behaviour.php');
+
 use qtype_moopt\utility\communicator\communicator_factory;
 use qtype_moopt\utility\proforma_xml\proforma_submission_xml_creator;
 
@@ -37,7 +40,8 @@ use qtype_moopt\utility\proforma_xml\proforma_submission_xml_creator;
 class qtype_moopt_question extends question_graded_automatically {
 
     public $internaldescription;
-    public $graderid;
+    public $gradername; // A grader is uniquely identified by the grader name and the grader version
+    public $graderversion;
     public $taskuuid;
     public $showstudscorecalcscheme;
     public $enablefilesubmissions;
@@ -46,6 +50,10 @@ class qtype_moopt_question extends question_graded_automatically {
     public $ftsmaxnumfields;
     public $ftsautogeneratefilenames;
     public $ftsstandardlang;
+    public $resultspecformat;
+    public $resultspecstructure;
+    public $studentfeedbacklevel;
+    public $teacherfeedbacklevel;
 
     public $submission_proforma_restrictions_message;
 
@@ -99,17 +107,14 @@ class qtype_moopt_question extends question_graded_automatically {
      * @return question_behaviour the new behaviour object.
      */
     public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
-
-        $prefixtocheck = 'immediate';
+        $prefixtocheck = 'deferred';
         if (substr($preferredbehaviour, 0, strlen($prefixtocheck)) === $prefixtocheck) {
-            $preferredbehaviour = 'immediatemoopt';
-        } else {
-            // No need to check whether it starts with 'deferred' because this is also the default cause if
-            // it wouldn't start with 'deferred'.
             $preferredbehaviour = 'deferredmoopt';
+        } else {
+            $preferredbehaviour = 'immediatemoopt';
         }
-
-        return parent::make_behaviour($qa, $preferredbehaviour);
+        $class = 'qbehaviour_' . $preferredbehaviour;
+        return new $class($qa, $preferredbehaviour);
     }
 
     /**
@@ -153,12 +158,13 @@ class qtype_moopt_question extends question_graded_automatically {
             }
 
             return true;
-        } else if ((substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA)) === PROFORMA_RESPONSE_FILE_AREA) ||
-                (substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA_EMBEDDED)) === PROFORMA_RESPONSE_FILE_AREA_EMBEDDED) ||
-                (substr($filearea, 0, strlen(PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) ===
-                PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)) {
+        } else if ($filearea == PROFORMA_RESPONSE_FILE_AREA ||
+                 $filearea == PROFORMA_RESPONSE_FILE_AREA_EMBEDDED ||
+                 $filearea == PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE)  {
             return true;
         } else if ($component == 'question' && $filearea == 'response_answer') {
+            // the component is hard-wired to 'question' for filearea 'response_answer'
+            // do not change it to 'qtype_moopt'
             return true;
         }
 
@@ -186,133 +192,6 @@ class qtype_moopt_question extends question_graded_automatically {
         throw new coding_exception("This method isn't supported for MooPT. See grade_response_asynch instead.");
     }
 
-
-
-
-
-
-
-
-    // move this func further down
-    public function extract_submission_zip(array $submissionzip) {
-        global $USER;
-        $usercontext = context_user::instance($USER->id);
-
-        $fs = get_file_storage();
-
-        //$fs->
-
-        // Check if there is only the file we want.
-        $area = file_get_draft_area_info('answer', "/");
-        if ($area['filecount'] == 0) {
-            return false;
-        } else if ($area['filecount'] > 1 || $area['foldercount'] != 0) {
-            throw new invalid_parameter_exception(
-                'Only one file is allowed to be in this draft area: A ProFormA-Task as either ZIP or XML file.');
-        }
-//
-//        // Get name of the file.
-//        $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftareaid);
-//        // Get_area_files returns an associative array where the keys are some kind of hash value.
-//        $keys = array_keys($files);
-//        // Index 1 because index 0 is the current directory it seems.
-//        $filename = $files[$keys[1]]->get_filename();
-//
-//        $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, "/", $filename);
-//
-//        // Check file type (it's really only checking the file extension but that is good enough here).
-//        $fileinfo = pathinfo($filename);
-//        $filetype = '';
-//        if (array_key_exists('extension', $fileinfo)) {
-//            $filetype = strtolower($fileinfo['extension']);
-//        }
-//        if ($filetype != 'zip') {
-//            throw new invalid_parameter_exception('Supplied file must be a zip file.');
-//        }
-//
-//        // Unzip file - basically copied from draftfiles_ajax.php.
-//        $zipper = get_file_packer('application/zip');
-//
-//        // Find unused name for directory to extract the archive.
-//        $temppath = $fs->get_unused_dirname($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($filename,
-//                PATHINFO_FILENAME) . '/');
-//        $donotremovedirs = array();
-//        $doremovedirs = array($temppath);
-//        // Extract archive and move all files from $temppath to $filepath.
-//        if ($file->extract_to_storage($zipper, $usercontext->id, 'user', 'draft', $draftareaid, $temppath, $USER->id)) {
-//            $extractedfiles = $fs->get_directory_files($usercontext->id, 'user', 'draft', $draftareaid, $temppath, true);
-//            $xtemppath = preg_quote($temppath, '|');
-//            foreach ($extractedfiles as $exfile) {
-//                $realpath = preg_replace('|^' . $xtemppath . '|', '/', $exfile->get_filepath());
-//                if (!$exfile->is_directory()) {
-//                    // Set the source to the extracted file to indicate that it came from archive.
-//                    $exfile->set_source(serialize((object) array('source' => '/')));
-//                }
-//                if (!$fs->file_exists($usercontext->id, 'user', 'draft', $draftareaid, $realpath, $exfile->get_filename())) {
-//                    // File or directory did not exist, just move it.
-//                    $exfile->rename($realpath, $exfile->get_filename());
-//                } else if (!$exfile->is_directory()) {
-//                    // File already existed, overwrite it.
-//                    repository::overwrite_existing_draftfile($draftareaid, $realpath, $exfile->get_filename(), $exfile->get_filepath(),
-//                        $exfile->get_filename());
-//                } else {
-//                    // Directory already existed, remove temporary dir but make sure we don't remove the existing dir.
-//                    $doremovedirs[] = $exfile->get_filepath();
-//                    $donotremovedirs[] = $realpath;
-//                }
-//            }
-//        } else {
-//            return null;
-//        }
-//        // Remove remaining temporary directories.
-//        foreach (array_diff($doremovedirs, $donotremovedirs) as $filepath) {
-//            $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, $filepath, '.');
-//            if ($file) {
-//                $file->delete();
-//            }
-//        }
-//
-//        return $filename;
-
-
-
-
-
-
-
-
-
-
-//        $files = array();
-//        $zipper = get_file_packer('application/zip');
-//        $zipfile = $zipper->archive_to_storage($files, $this->contextid, 'question', PROFORMA_SUBMISSION_ZIP_FILEAREA .
-//            "_{$qa->get_slot()}", $qubaid, '/', 'submission.zip');
-//        if (!$zipfile) {
-//            throw new invalid_state_exception('Couldn\'t create submission.zip file.');
-//        }
-
-
-//        if (!isset($question->proformataskfileupload)) {
-//            return;
-//        }
-//        $draftareaid = $question->proformataskfileupload;
-//
-//        $usercontext = context_user::instance($USER->id);
-//
-//        $filename = unzip_task_file_in_draft_area($draftareaid, $usercontext);
-//        if (!$filename) {
-//            // Seems like no task file was submitted.
-//            return false;
-//        }
-//
-//        // Copy all extracted files to the corresponding file area.
-//        file_save_draft_area_files($draftareaid, $question->context->id, 'question', PROFORMA_ATTACHED_TASK_FILES_FILEAREA,
-//            $question->id, array('subdirs' => true));
-//
-//        // $fs->delete_area_files($question->context->id, 'question', PROFORMA_TASKZIP_FILEAREA, $question->id);
-//        //
-    }
-
     /**
      * Sends the response to grappa for grading.
      * @param array $qa
@@ -321,11 +200,9 @@ class qtype_moopt_question extends question_graded_automatically {
      *          the submission manually or trigger a regrade
      */
     public function grade_response_asynch(question_attempt $qa, array $responsefiles, array $freetextanswers): question_state {
-        global $DB;
+        global $DB, $USER, $COURSE;
         $communicator = communicator_factory::get_instance();
         $fs = get_file_storage();
-
-        //$this->extract_submission_zip($responsefiles);
 
         // Get response files.
         $qubaid = $qa->get_usage_id();
@@ -354,13 +231,26 @@ class qtype_moopt_question extends question_graded_automatically {
 
         // Get filename of task file if necessary but don't load it yet.
         $taskfilename = '';
+        $sourcearea = '';
+        $taskreftype = '';
         if ($includetaskfile) {
-            $taskfilename = $DB->get_record('qtype_moopt_files', array('questionid' => $this->id,
-                        'filearea' => PROFORMA_TASKZIP_FILEAREA), 'filename')->filename;
+            $sourcearea = PROFORMA_TASKZIP_FILEAREA;
+            $taskreftype = 'zip';
+            $rec = $DB->get_record('qtype_moopt_files', array('questionid' => $this->id,
+                        'filearea' => $sourcearea), 'filename');
+            if (!$rec) {
+                $sourcearea = PROFORMA_TASKXML_FILEAREA;
+                $taskreftype = 'xml';
+                $rec = $DB->get_record('qtype_moopt_files', array('questionid' => $this->id,
+                        'filearea' => $sourcearea), 'filename');
+            }
+            $taskfilename = $rec->filename;
+        } else {
+            $taskreftype = 'uuid';
         }
 
         // Load task.xml file because we need the grading_hints if feedback-mode is merged-test-feedback.
-        $taskxmlfile = $fs->get_file($this->contextid, 'question', PROFORMA_TASKXML_FILEAREA, $this->id, '/', 'task.xml');
+        $taskxmlfile = get_task_xml_file_from_filearea($this);
         $taskdoc = new DOMDocument();
         $taskdoc->loadXML($taskxmlfile->get_content());
         $taskxmlnamespace = detect_proforma_namespace($taskdoc);
@@ -383,14 +273,15 @@ class qtype_moopt_question extends question_graded_automatically {
 
         // Create the submission.xml file.
         $submissionxmlcreator = new proforma_submission_xml_creator();
-        $submissionxml = $submissionxmlcreator->create_submission_xml($includetaskfile,
-            ($includetaskfile ? $taskfilename : $this->taskuuid), $files, 'zip',
-            PROFORMA_MERGED_FEEDBACK_TYPE, 'info', 'debug',
-            $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark());
+
+        $submissionxml = $submissionxmlcreator->create_submission_xml($taskreftype,
+        ($includetaskfile ? $taskfilename : $this->taskuuid), $files, $this->resultspecformat,
+        $this->resultspecstructure, $this->studentfeedbacklevel, $this->teacherfeedbacklevel,
+        $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark(), $USER->id, $COURSE->id);
 
         // Load task file and add it to the files that go into the zip file.
         if ($includetaskfile) {
-            $taskfile = $fs->get_file($this->contextid, 'question', PROFORMA_TASKZIP_FILEAREA, $this->id, '/', $taskfilename);
+            $taskfile = $fs->get_file($this->contextid, COMPONENT_NAME, $sourcearea, $this->id, '/', $taskfilename);
             $files["task/$taskfilename"] = $taskfile;
         }
 
@@ -398,28 +289,28 @@ class qtype_moopt_question extends question_graded_automatically {
         $files['submission.xml'] = array($submissionxml);       // Syntax to use a string as file contents.
         // Create submission.zip file.
         $zipper = get_file_packer('application/zip');
-        $zipfile = $zipper->archive_to_storage($files, $this->contextid, 'question', PROFORMA_SUBMISSION_ZIP_FILEAREA .
-                "_{$qa->get_slot()}", $qubaid, '/', 'submission.zip');
+        $zipfile = $zipper->archive_to_storage($files, $this->contextid, COMPONENT_NAME, PROFORMA_SUBMISSION_ZIP_FILEAREA,
+            $qa->get_database_id(), '/', 'submission.zip');
         if (!$zipfile) {
             throw new invalid_state_exception('Couldn\'t create submission.zip file.');
         }
 
         $returnstate = question_state::$finished;
         try {
-            $gradeprocessid = $communicator->enqueue_submission($this->graderid, 'true', $zipfile);
+            $gradeprocessid = $communicator->enqueue_submission($this->gradername, $this->graderversion, 'true', $zipfile);
             $DB->insert_record('qtype_moopt_gradeprocesses', ['qubaid' => $qa->get_usage_id(),
                 'questionattemptdbid' => $qa->get_database_id(), 'gradeprocessid' => $gradeprocessid,
-                'graderid' => $this->graderid]);
+                'gradername' => $this->gradername, 'graderversion' => $this->graderversion]);
         } catch (invalid_response_exception $ex) {
             debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
             $returnstate = question_state::$needsgrading;
         } finally {
             $fs = get_file_storage();
-            $success = $fs->delete_area_files($this->contextid, 'question', PROFORMA_SUBMISSION_ZIP_FILEAREA .
-                    "_{$qa->get_slot()}", $qubaid);
+            $success = $fs->delete_area_files($this->contextid, COMPONENT_NAME,
+                PROFORMA_SUBMISSION_ZIP_FILEAREA, $qa->get_database_id());
             if (!$success) {
-                throw new invalid_state_exception("Couldn't delete submission.zip after sending it to grappa." .
-                        " QuestionID: {$this->id}, QubaID: $qubaid, Slot: {$qa->get_slot()}");
+                throw new invalid_state_exception("Could not delete submission.zip after sending it to the grader." .
+                        " QuestionID: {$this->id}, QubaID: $qubaid, AttemptID: {$qa->get_database_id()}, SlotID: {$qa->get_slot()}");
             }
         }
 

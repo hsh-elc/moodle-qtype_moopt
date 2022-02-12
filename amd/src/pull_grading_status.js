@@ -1,5 +1,5 @@
-define(['jquery', 'core/ajax', 'core/modal_factory', 'core/modal_events', 'core/str'],
-function ($, ajax, ModalFactory, ModalEvents, Strings) {
+define(['core/ajax', 'core/modal_factory', 'core/modal_events', 'core/str'],
+function (ajax, ModalFactory, ModalEvents, Strings) {
 
     var timer;
     var qubaid;
@@ -8,7 +8,7 @@ function ($, ajax, ModalFactory, ModalEvents, Strings) {
     function checkGradingFinished() {
         ajax.call([
             {
-                methodname: 'qtype_moopt_retrieve_grading_results',
+                methodname: 'qtype_moopt_service_retrieve_grading_results',
                 args: {qubaid: qubaid},
                 done: function (result) {
                     if (result) {
@@ -66,9 +66,11 @@ function ($, ajax, ModalFactory, ModalEvents, Strings) {
 
     return {
 
-        init: function (qubaid_param, polling_interval) {
+        init: function (qubaid_param, slot, polling_interval) {
             // Don't show the retry button yet.
-            $("input[name='redoslot2']").remove();
+            document.querySelectorAll("input[name='redoslot" + slot + "'").forEach(function (elem) {
+                elem.remove();
+            });
 
             qubaid = qubaid_param;
             if (typeof timer === 'undefined') {

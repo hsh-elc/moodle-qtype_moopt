@@ -24,7 +24,8 @@ use qtype_moopt\utility\proforma_xml\separate_feedback_text_node;
  *
  * @author robin
  */
-class separate_feedback_text_renderer {
+class separate_feedback_text_renderer
+{
 
     private $rootnode;
     private $displayteachercontent;
@@ -32,7 +33,8 @@ class separate_feedback_text_renderer {
     private $showstudentsscorecalculationscheme;
     private $randid;
 
-    public function __construct($rootnode, $displayteachercontent, $fileinfos, $showstudentsscorecalculationscheme) {
+    public function __construct($rootnode, $displayteachercontent, $fileinfos, $showstudentsscorecalculationscheme)
+    {
         $this->rootnode = $rootnode;
         $this->displayteachercontent = $displayteachercontent;
         $this->fileinfos = $fileinfos;
@@ -40,11 +42,13 @@ class separate_feedback_text_renderer {
         $this->randid = bin2hex(random_bytes(6));
     }
 
-    public function render() {
+    public function render()
+    {
         return $this->render_internal($this->rootnode);
     }
 
-    private function render_internal(separate_feedback_text_node $node) {
+    private function render_internal(separate_feedback_text_node $node)
+    {
         $currentid = $node->get_id() . '_' . $this->randid;
         $accordionid = "accordion_$currentid";
 
@@ -55,7 +59,7 @@ class separate_feedback_text_renderer {
                     <div class='card-header, {$additionalheaderclasses}' id='$currentid'>
                       <h5 class='mb-0'>
                         <button type='button' class='btn btn-link' data-toggle='collapse' data-target='#collapse_$currentid'" .
-                " aria-expanded='true' aria-controls='collapse_$currentid' style='width: 100%;'>
+            " aria-expanded='false' aria-controls='collapse_$currentid' style='width: 100%;'>
                             {$this->format_heading($node)}
                         </button>
                       </h5>
@@ -73,12 +77,13 @@ class separate_feedback_text_renderer {
         return $text;
     }
 
-    private function format_heading(separate_feedback_text_node $node) {
+    private function format_heading(separate_feedback_text_node $node)
+    {
         $heading = '<div style="text-align:left;width:70%;display:inline-block;">';
 
         if ($node->has_internal_error()) {
             $heading .= '<div style="font-family: FontAwesome; font-size: 1.5em;margin-right:20px;".'
-                    . '"display:inline-block;">&#xf00d;</div>';
+                . '"display:inline-block;">&#xf00d;</div>';
         }
 
         $heading .= '<div style="vertical-align: text-bottom;display:inline-block;">' . $node->get_heading();
@@ -104,17 +109,18 @@ class separate_feedback_text_renderer {
         return $heading;
     }
 
-    private function format_content(separate_feedback_text_node $node) {
+    private function format_content(separate_feedback_text_node $node)
+    {
 
         $content = '';
         if ($node->get_description() != null || ($node->get_internal_description() != null && $this->displayteachercontent)) {
             if ($node->get_description() != null) {
-                $content .= "<div><h4>" . get_string('testdescription', 'qtype_moopt') .
-                        "</h4><i><p>{$node->get_description()}</p></i></div>";
+                $content .= "<div class='moopt-feedback-description'><h4>" . get_string('description', 'qtype_moopt') .
+                    "</h4><i><p>{$node->get_description()}</p></i></div>";
             }
             if ($this->displayteachercontent && $node->get_internal_description() != null) {
-                $content .= "<div><h4>" . get_string('internaldescription', 'qtype_moopt') .
-                        "</h4><i><p>{$node->get_internal_description()}</p></i></div>";
+                $content .= "<div class='moopt-feedback-internal-description'><h4>" . get_string('internaldescription', 'qtype_moopt') .
+                    "</h4><i><p>{$node->get_internal_description()}</p></i></div>";
             }
         }
 
@@ -126,7 +132,7 @@ class separate_feedback_text_renderer {
                     $subscores[] = round($child->get_score(), 2);
                 }
                 $scorecalc = '<small>' . get_string('scorecalculationscheme', 'qtype_moopt') . ': ' .
-                        round($node->get_score(), 2) . ' = ';
+                    round($node->get_score(), 2) . ' = ';
                 switch ($node->get_accumulator_function()) {
                     case 'min':
                         $scorecalc .= get_string('minimum', 'qtype_moopt') . ' {';
@@ -154,7 +160,7 @@ class separate_feedback_text_renderer {
             return $content;
         } else {
             if (!empty($node->get_student_feedback())) {
-                $content .= '<div><h4>' . get_string('feedback', 'qtype_moopt') . '</h4>';
+                $content .= '<div class=\'moopt-feedback-student\'><h4>' . get_string('feedback', 'qtype_moopt') . '</h4>';
                 foreach ($node->get_student_feedback() as $studfeed) {
                     if ($studfeed['title'] != null) {
                         $content .= "<p><strong>{$studfeed['title']}</strong></p>";
@@ -165,16 +171,16 @@ class separate_feedback_text_renderer {
                         $content .= '<p>' . get_string('files', 'qtype_moopt') . ':<br/><ul>';
                         foreach ($files['embeddedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['id'] . '/' . $file['filename']);
-                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
-                                            PROFORMA_RESPONSE_FILE_AREA_EMBEDDED . $this->fileinfos['fileareasuffix'],
-                                            $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
+                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], COMPONENT_NAME,
+                                PROFORMA_RESPONSE_FILE_AREA_EMBEDDED,
+                                $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
                         foreach ($files['attachedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['filename']);
-                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
-                                            PROFORMA_RESPONSE_FILE_AREA . $this->fileinfos['fileareasuffix'],
-                                            $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
+                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], COMPONENT_NAME,
+                                PROFORMA_RESPONSE_FILE_AREA,
+                                $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
                         $content .= '</ul></p>';
@@ -183,7 +189,7 @@ class separate_feedback_text_renderer {
                 $content .= '</div>';
             }
             if (!empty($node->get_teacher_feedback()) && $this->displayteachercontent) {
-                $content .= '<div><h4>' . get_string('teacherfeedback', 'qtype_moopt') . '</h4>';
+                $content .= '<div class=\'moopt-feedback-teacher\'><h4>' . get_string('teacherfeedback', 'qtype_moopt') . '</h4>';
                 foreach ($node->get_teacher_feedback() as $teacherfeed) {
                     $content .= '<p>';
                     if ($teacherfeed['title'] != null) {
@@ -195,16 +201,16 @@ class separate_feedback_text_renderer {
                         $content .= '<p>' . get_string('files', 'qtype_moopt') . ':<br/><ul>';
                         foreach ($files['embeddedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['id'] . '/' . $file['filename']);
-                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
-                                            PROFORMA_RESPONSE_FILE_AREA_EMBEDDED . $this->fileinfos['fileareasuffix'],
-                                            $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
+                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], COMPONENT_NAME,
+                                PROFORMA_RESPONSE_FILE_AREA_EMBEDDED,
+                                $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
                         foreach ($files['attachedFiles'] as $file) {
                             $pathinfo = pathinfo($this->fileinfos['filepath'] . $file['filename']);
-                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], 'question',
-                                            PROFORMA_RESPONSE_FILE_AREA . $this->fileinfos['fileareasuffix'],
-                                            $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
+                            $url = \moodle_url::make_pluginfile_url($this->fileinfos['contextid'], COMPONENT_NAME,
+                                PROFORMA_RESPONSE_FILE_AREA,
+                                $this->fileinfos['itemid'], $pathinfo['dirname'] . '/', $pathinfo['basename'], true);
                             $content .= "<li><a href='$url'>{$file['title']}</a></li>";
                         }
                         $content .= '</ul></p>';

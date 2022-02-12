@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="question/type/moopt/db" VERSION="20210721" COMMENT="XMLDB file for Moodle qtype_moopt"
+<XMLDB PATH="question/type/moopt/db" VERSION="20220114" COMMENT="XMLDB file for Moodle qtype_moopt"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd"
 >
@@ -9,7 +9,8 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
         <FIELD NAME="internaldescription" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The internal description of the assignment."/>
-        <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="gradername" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="graderversion" TYPE="char" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="taskuuid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="showstudscorecalcscheme" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="enablefilesubmissions" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
@@ -18,14 +19,17 @@
         <FIELD NAME="ftsmaxnumfields" TYPE="int" LENGTH="8" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="ftsautogeneratefilenames" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="ftsstandardlang" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="txt" SEQUENCE="false"/>
+        <FIELD NAME="resultspecformat" TYPE="char" LENGTH="5" NOTNULL="true" DEFAULT="zip" SEQUENCE="false"/>
+        <FIELD NAME="resultspecstructure" TYPE="char" LENGTH="30" NOTNULL="true" DEFAULT="separate-test-feedback" SEQUENCE="false"/>
+        <FIELD NAME="studentfeedbacklevel" TYPE="char" LENGTH="15" NOTNULL="true" DEFAULT="info" SEQUENCE="false"/>
+        <FIELD NAME="teacherfeedbacklevel" TYPE="char" LENGTH="15" NOTNULL="true" DEFAULT="debug" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
-    <TABLE NAME="qtype_moopt_files"
-           COMMENT="This table keeps information about the files that are contained in a question.">
+    <TABLE NAME="qtype_moopt_files" COMMENT="This table keeps information about the files that are contained in a question.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
@@ -51,14 +55,14 @@
         <FIELD NAME="qubaid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Question usage id of the question"/>
         <FIELD NAME="questionattemptdbid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="database id of the question attempt"/>
         <FIELD NAME="gradeprocessid" TYPE="char" LENGTH="36" NOTNULL="true" SEQUENCE="false" COMMENT="id of the grade process"/>
-        <FIELD NAME="graderid" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="the id of the grader that is grading the response"/>
+        <FIELD NAME="gradername" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="graderversion" TYPE="char" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
     </TABLE>
-    <TABLE NAME="qtype_moopt_freetexts"
-           COMMENT="This table keeps information about custom options for free text input fields.">
+    <TABLE NAME="qtype_moopt_freetexts" COMMENT="This table keeps information about custom options for free text input fields.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
@@ -66,6 +70,8 @@
         <FIELD NAME="presetfilename" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="filename" TYPE="char" LENGTH="256" NOTNULL="false" DEFAULT="" SEQUENCE="false"/>
         <FIELD NAME="ftslang" TYPE="char" LENGTH="64" NOTNULL="true" DEFAULT="default" SEQUENCE="false"/>
+        <FIELD NAME="filecontent" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="the template code for a free text input"/>
+        <FIELD NAME="initialdisplayrows" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="5" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

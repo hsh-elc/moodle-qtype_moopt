@@ -4,7 +4,7 @@
 
 /*global tinyMCE */
 
-define(['jquery'], function ($) {
+define([], function () {
 
     return {
 
@@ -30,7 +30,7 @@ define(['jquery'], function ($) {
         },
 
         setContentsOfText: function (common_id, contents) {
-            $("[id^='" + common_id + "']").val(contents);
+            document.querySelector("[id^='" + common_id + "']").value = contents;
         }
 
     };

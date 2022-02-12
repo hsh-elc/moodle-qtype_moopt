@@ -38,9 +38,23 @@ class qtype_moopt_external extends external_api {
             'title' => new external_value(PARAM_TEXT, 'title of the task', VALUE_OPTIONAL),
             'description' => new external_value(PARAM_RAW, 'description of the task', VALUE_OPTIONAL),
             'internaldescription' => new external_value(PARAM_RAW, 'internal description of the task', VALUE_OPTIONAL),
+            'proglang' => new external_value(PARAM_RAW, 'programming language of the task', VALUE_OPTIONAL),
             'taskuuid' => new external_value(PARAM_RAW, 'task\'s uuid', VALUE_OPTIONAL),
             'maxscoregradinghints' => new external_value(PARAM_FLOAT, 'maximum score', VALUE_OPTIONAL),
             'filesdisplayedingeneralfeedback' => new external_value(PARAM_RAW, 'general feedback', VALUE_OPTIONAL),
+            'enablefileinput' => new external_value(PARAM_BOOL, 'Enable file submissions'),
+            'freetextfilesettings' => new external_multiple_structure(
+                        new external_single_structure(
+                            array(
+                                'enablecustomsettings'    => new external_value(PARAM_BOOL, 'Enable custom settings'),
+                                'usefixedfilename'    => new external_value(PARAM_BOOL, 'Use fixed file name'),
+                                'defaultfilename'    => new external_value(PARAM_TEXT, 'Default file name'),
+                                'proglang'    => new external_value(PARAM_TEXT, 'Programming language for syntax highlighting'),
+                                'filecontent'    => new external_value(PARAM_RAW, 'File content to use as a template'),
+                                'initialdisplayrows'    => new external_value(PARAM_INT, 'The initial display rows of a textfield')
+                            )
+                        )
+                    ,'Free text settings', VALUE_OPTIONAL),
             'moodleValidationProformaNamespace' => new external_value(PARAM_TEXT, 'detected namespace', VALUE_OPTIONAL),
             'moodleValidationWarningInvalidNamespace' => new external_value(PARAM_TEXT, 'warning message in case of invalid XML namespace', VALUE_OPTIONAL),
             'moodleValidationWarnings' => new external_multiple_structure(
@@ -69,13 +83,15 @@ class qtype_moopt_external extends external_api {
         $usercontext = context_user::instance($USER->id);
         self::validate_context($usercontext);
 
-        $taskfilename = unzip_task_file_in_draft_area($draftid, $usercontext);
-
-        if ($taskfilename == null) {
+        $unzipinfo = unzip_task_file_in_draft_area($draftid, $usercontext);
+        if ($unzipinfo == null) {
             return ['error' => 'Error extracting zip file'];
         }
+        $taskxmlfilename = $unzipinfo['xml'];
+        $taskzipfilename = $unzipinfo['zip'] ?? null;
+        $keepfilename = $taskzipfilename != null ? $taskzipfilename : $taskxmlfilename;
 
-        $doc = create_domdocument_from_task_xml($usercontext, $draftid, $taskfilename);
+        $doc = create_domdocument_from_task_xml($usercontext, $draftid, $taskxmlfilename, $taskzipfilename);
         $namespace = detect_proforma_namespace($doc);
         $returnval = array();
 
@@ -119,6 +135,13 @@ class qtype_moopt_external extends external_api {
                 }
             }
 
+            foreach ($doc->getElementsByTagNameNS($namespace, 'proglang') as $des) {
+                if ($des->parentNode->localName == 'task') {
+                    $returnval['proglang'] = $des->nodeValue;
+                    break;
+                }
+            }
+
             // Currently only supports tns:task-type; neither tns:external-task-type nor tns:included-task-file-type
             // TODO: Implement the other two.
             foreach ($doc->getElementsByTagNameNS($namespace, 'task') as $task) {
@@ -133,77 +156,172 @@ class qtype_moopt_external extends external_api {
             $maxscoregradinghints = $gradinghintshelper->calculate_max_score();
             $returnval['maxscoregradinghints'] = $maxscoregradinghints;
 
+            // Process lms-input-fields
+            list($includeenablefileinput, $enablefileinput, $lmsinputfieldsettings) = readLmsInputFieldSettingsFromTaskXml($doc);
+
+            $allinputfieldfilerefs = array();
+            if (is_array($lmsinputfieldsettings)) {
+                $allinputfieldfilerefs = array_keys($lmsinputfieldsettings);
+            }
+            // If not all $allinputfieldfilerefs elements are found among the files,
+            // we will print a warning message.
+
+            $returnval["enablefileinput"] = $includeenablefileinput ? $enablefileinput : true;
+            $returnval["freetextfilesettings"] = array();
+            foreach ($doc->getElementsByTagNameNS($namespace, 'file') as $file) {
+                // enable free text fields only if there's one or more files that are visible to and editable by
+                // students
+                $enablefreetext = false;
+
+                $enablecustomsettings = true;
+                $usefixedfilename = true;
+                $defaultfilename = '';
+                $proglang = ''; // TODO: should be the task's proglang initially
+                $initialdisplayrows = DEFAULT_INITIAL_DISPLAY_ROWS;
+                $fileid = '';
+                foreach ($file->childNodes as $child) {
+                    if($file->attributes->getNamedItem('visible')->nodeValue == 'yes' &&
+                        $file->attributes->getNamedItem('usage-by-lms') != null &&
+                        $file->attributes->getNamedItem('usage-by-lms')->nodeValue == 'edit') {
+
+                        if($child->localName == 'embedded-txt-file') {
+                            $filecontent = $child->nodeValue;
+                            $defaultfilename = $child->attributes->getNamedItem('filename')->nodeValue;
+                            $fileid = $file->attributes->getNamedItem('id')->nodeValue;
+                            $enablefreetext = true;
+                            break;
+                        } else if ($child->localName == 'attached-txt-file') {
+                            $pathinfo = pathinfo('/' . $child->nodeValue);
+                            $filecontent = get_text_content_from_file($usercontext, $draftid, $keepfilename,
+                                $pathinfo['dirname'] . '/', $pathinfo['basename']);
+                            $defaultfilename = basename($child->nodeValue);
+                            $fileid = $file->attributes->getNamedItem('id')->nodeValue;
+                            $enablefreetext = true;
+                            break;
+                        }
+                    }
+                }
+
+                if($enablefreetext) {
+                    if(array_key_exists($fileid, $lmsinputfieldsettings)) {
+                        $usefixedfilename = $lmsinputfieldsettings[$fileid]['fixedfilename'];
+                        $proglang = $lmsinputfieldsettings[$fileid]['proglang'];
+                        $initialdisplayrows = $lmsinputfieldsettings[$fileid]['initialdisplayrows'];
+                    }
+                    $freetextfilesettings = array("enablecustomsettings" => $enablecustomsettings,
+                        "usefixedfilename" => $usefixedfilename,
+                        "defaultfilename" => $defaultfilename,
+                        "proglang" => $proglang,
+                        "filecontent" => $filecontent,
+                        "initialdisplayrows" => $initialdisplayrows);
+
+                    array_push($returnval["freetextfilesettings"], $freetextfilesettings);
+
+                    // remove the fileid
+                    $index = array_search($fileid, $allinputfieldfilerefs);
+                    if ($index !== false) {
+                        array_splice($allinputfieldfilerefs, $index, 1);
+                    }
+                }
+            }
+
+            // Print warning, if there are textfields referencing unsuited files:
+            if (!empty($allinputfieldfilerefs)) {
+                if (!array_key_exists('moodleValidationWarnings', $returnval) || !is_array($returnval['moodleValidationWarnings'])) {
+                    $returnval['moodleValidationWarnings'] = array();
+                }
+                $returnval['moodleValidationWarnings'][] =
+                    array('msg' =>
+                        htmlspecialchars('There are <textfield> elements below <lms-input-fields> ' .
+                            'referencing either unknown or invisible or non-editable files: "' .
+                            implode('", "', $allinputfieldfilerefs) . '"'));
+            }
+
             // Fill in the question's general feedback
             // Look for files that have their 'visible' attribute set to 'delayed' and the
             // 'usage-by-lms' attribute set to 'display'. Display these files in the
             // question's general feedback.
             $filesdisplayedingeneralfeedback = '';
-            foreach ($doc->getElementsByTagNameNS($namespace, 'file') as $file) {
-                $filediv = '';
+            $displayedfilesxml = $doc->getElementsByTagNameNS($namespace, 'file');
+            $generalfeedbackfiles = array();
+            foreach ($displayedfilesxml as $file) {
                 foreach ($file->childNodes as $child) {
                     if($file->attributes->getNamedItem('visible')->nodeValue == 'delayed' &&
                         $file->attributes->getNamedItem('usage-by-lms') != null &&
                         $file->attributes->getNamedItem('usage-by-lms')->nodeValue == 'display') {
 
+                        $filename = '';
                         $filecontent = '';
 
                         if($child->localName == 'embedded-txt-file') {
-//                            $filepath = pathinfo('/' . $file->attributes->getNamedItem('id')->nodeValue . '/' .
-//                                $child->attributes->getNamedItem('filename')->nodeValue);
+                            $filename = $child->attributes->getNamedItem('filename')->nodeValue;
                             $filecontent = $child->nodeValue;
                         } else if ($child->localName == 'attached-txt-file') {
                             $pathinfo = pathinfo('/' . $child->nodeValue);
-                            $filecontent = get_text_content_from_file($usercontext, $draftid, $taskfilename,
+                            $filename = basename($child->nodeValue);
+                            $filecontent = get_text_content_from_file($usercontext, $draftid, $keepfilename,
                                 $pathinfo['dirname'] . '/', $pathinfo['basename']);
                         }
 
-                        if(!empty($filecontent)) {
-                            $filediv = html_writer::start_div('delayeddisplayedfile', ['style' => 'overflow: auto;']);
-                            $filediv .= $filecontent;
-                            $filediv .= html_writer::end_div('delayeddisplayedfile');
-                        }
+                        if(!empty($filecontent))
+                            $generalfeedbackfiles[] = array('filename' => $filename, 'content' => $filecontent);
                     }
                 }
-                if(!empty($filediv)) {
-                    $filesdisplayedingeneralfeedback .= $filediv;
-//                    $filesdisplayedingeneralfeedback .= '<p />';
-                }
             }
+
+            if (0 < count($generalfeedbackfiles)) {
+                $filesdisplayedingeneralfeedback = html_writer::start_div('delayeddisplayedfile', ['style' => 'overflow: auto;']);
+                for ($i = 0; $i < count($generalfeedbackfiles); $i++) {
+                    if (1 < count($generalfeedbackfiles)) {
+                        // include file names if there's multiple files
+                        $filesdisplayedingeneralfeedback .= "<hr/><h5>{$generalfeedbackfiles[$i]['filename']}</h5><br/>";
+                    }
+                    $filesdisplayedingeneralfeedback .= $generalfeedbackfiles[$i]['content'];
+                }
+                $filesdisplayedingeneralfeedback .= html_writer::end_div('delayeddisplayedfile');
+            }
+
             $returnval['filesdisplayedingeneralfeedback'] = $filesdisplayedingeneralfeedback;
         }
 
         // Do a little bit of cleanup and remove everything from the file area we extracted.
-        remove_all_files_from_draft_area($draftid, $usercontext, $taskfilename);
+        remove_all_files_from_draft_area($draftid, $usercontext, $keepfilename);
 
         return $returnval;
     }
 
-    public static function retrieve_grading_results_parameters() {
+    public static function service_retrieve_grading_results_parameters() {
         return new external_function_parameters(
                 ['qubaid' => new external_value(PARAM_INT, 'id of the question usage')]
         );
     }
 
-    public static function retrieve_grading_results_returns() {
+    public static function service_retrieve_grading_results_returns() {
         return new external_value(PARAM_BOOL, "whether any grade process finished");
     }
 
-    public static function retrieve_grading_results($qubaid) {
+    public static function service_retrieve_grading_results($qubaid) {
         global $USER, $SESSION, $DB;
 
         // Do some param validation.
-        $params = self::validate_parameters(self::retrieve_grading_results_parameters(), array('qubaid' => $qubaid));
+        $params = self::validate_parameters(self::service_retrieve_grading_results_parameters(), array('qubaid' => $qubaid));
         $qubaid = $params['qubaid'];
 
         // Check if calling user is teacher.
         $qubarecord = $DB->get_record('question_usages', ['id' => $qubaid]);
         $contextrecord = $DB->get_record('context', ['id' => $qubarecord->contextid]);
-        $context = context_module::instance($contextrecord->instanceid);
-        self::validate_context($context);
-        $isteacher = has_capability('mod/quiz:grade', $context);
+        $context = context_module::instance($contextrecord->instanceid, IGNORE_MISSING);
+        if($context) {
+            self::validate_context($context);
+            // do not make us wait wait through the polling interval if we're a teacher
+            $isteacher = has_capability('mod/quiz:grade', $context);
+        } else {
+            // no context module for this quba, we're probably in a question preview
+            $isteacher = true;
+        }
 
-        $lastaccess = $SESSION->last_retrieve_grading_results ?? microtime(true);
-        $SESSION->last_retrieve_grading_results = microtime(true);
+        $lastaccess = $SESSION->last_retrieve_grading_results_by_service ?? microtime(true);
+        $SESSION->last_retrieve_grading_results_by_service = microtime(true);
         if (microtime(true) - $lastaccess < get_config("qtype_moopt", "service_client_polling_interval") *
                 0.9 && !$isteacher) {
             // Only allow a request every n seconds from the same user.

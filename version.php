@@ -24,7 +24,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'qtype_moopt';
-$plugin->release = '0.1.0';
-$plugin->version = 2020090900;
+$plugin->release = '0.2.0';
+$plugin->version = 2022020600;
 $plugin->requires = 2018120300;
 $plugin->maturity = MATURITY_ALPHA;

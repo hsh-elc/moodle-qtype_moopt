@@ -17,10 +17,28 @@
     padding:10px;
 }
 
+.queuedforgrading {
+    background-color: #fcefdc;
+    color: #8e662e;
+    border-color: #ababab;
+    border-width: 2px;
+    border-style: solid;
+    margin: 10px;
+    padding: 10px;
+}
+
 .specificfeedback .gradingstatus{
     font-weight: bold;
     display: flex;
     align-items: center;
+}
+
+.specificfeedback p.expandcollapselink {
+	text-align: right;
+}
+
+.specificfeedback p.expandcollapselink a {
+	margin-left: 15px;
 }
 
 .qtype_moopt_answertext{

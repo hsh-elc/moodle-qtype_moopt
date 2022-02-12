@@ -30,9 +30,9 @@ $functions = array(
         'ajax' => true,
         'services' => array('mooptwebservice')
     ),
-    'qtype_moopt_retrieve_grading_results' => array(
+    'qtype_moopt_service_retrieve_grading_results' => array(
         'classname' => 'qtype_moopt_external',
-        'methodname' => 'retrieve_grading_results',
+        'methodname' => 'service_retrieve_grading_results',
         'classpath' => 'question/type/moopt/externallib.php',
         'description' => 'Check if any grade process with the given qubaid finished, retrieves those results,'
         . ' inserts them into the database and returns whether any grade process finished.',
@@ -45,7 +45,7 @@ $functions = array(
 $services = array(
     'mooptwebservice' => array(
         'functions' => array('qtype_moopt_extract_task_infos_from_draft_file',
-            'qtype_moopt_check_if_any_gradeprocess_finished'),
+            'qtype_moopt_service_retrieve_grading_results'),
         'requiredcapability' => '',
         'restrictedusers' => 0,
         'enabled' => 1

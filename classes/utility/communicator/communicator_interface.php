@@ -39,20 +39,22 @@ interface communicator_interface {
     /**
      * Sends a submission to the grading middleware
      *
-     * @param string $graderid The id of the grader that is used for this grading
+     * @param string $gradername The name of the grader that is used for this grading
+     * @param string $graderversion The version of the grader that is used for this grading
      * @param bool $asynch Whether the gradeprocess is asynchronous or not
      * @param \stored_file $submissionfile The file that contains the submission
      * @return int The ID of the enqueued grading process
      */
-    public function enqueue_submission(string $graderid, bool $asynch, \stored_file $submissionfile);
+    public function enqueue_submission(string $gradername, string $graderversion, bool $asynch, \stored_file $submissionfile);
 
     /**
      * Gets the grading results of a specific gradeprocess
      *
-     * @param string $graderid The id of the grader that is used for this grading
+     * @param string $gradername The name of the grader that is used for this grading
+     * @param string $graderversion The version of the grader that is used for this grading
      * @param string $gradeprocessid The id of the gradeprocess to get the results of
      * @return false|mixed false when the processing of this gradingprocess is not finished yet,
      * else the grading result
      */
-    public function get_grading_result(string $graderid, string $gradeprocessid);
+    public function get_grading_result(string $gradername, string $graderversion, string $gradeprocessid);
 }

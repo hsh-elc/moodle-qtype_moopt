@@ -68,8 +68,8 @@ class grappa_communicator implements communicator_interface {
      * @throws \invalid_response_exception
      * @throws grappa_exception
      */
-    public function enqueue_submission(string $graderid, bool $asynch, \stored_file $submissionfile) {
-        $url = "{$this->serviceurl}/{$this->lmsid}/gradeprocesses?graderId=$graderid&async=$asynch";
+    public function enqueue_submission(string $gradername, string $graderversion, bool $asynch, \stored_file $submissionfile) {
+        $url = "{$this->serviceurl}/{$this->lmsid}/gradeprocesses?graderName=$gradername&graderVersion=$graderversion&async=$asynch";
 
         list($responsejson, $httpstatuscode) = $this->post_to_grappa($url, $submissionfile->get_content());
         if ($httpstatuscode != 201 /* = CREATED */) {
@@ -83,7 +83,7 @@ class grappa_communicator implements communicator_interface {
      * @throws grappa_exception
      * @throws \invalid_response_exception
      */
-    public function get_grading_result(string $graderid, string $gradeprocessid) {
+    public function get_grading_result(string $gradername, string $graderversion, string $gradeprocessid) {
         $url = "{$this->serviceurl}/{$this->lmsid}/gradeprocesses/$gradeprocessid";
         list($response, $httpstatuscode) = $this->get_from_grappa($url);
         if ($httpstatuscode == 202) {
