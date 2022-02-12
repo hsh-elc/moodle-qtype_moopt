@@ -1006,25 +1006,27 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
         }
     }
 
-    $firstfile = "";
+    $firstfile = null;
     foreach($submissionfiles as $file) {
         $firstfile = $file;
         break;
     }
 
-    $filesRenamedWhileExtraction = false;
+    if(!is_null($firstfile)) {
+        $filesRenamedWhileExtraction = false;
 
-    $firstfilemimetype = translate_archive_extension_into_mimetype($firstfile);
-    /* when the submission only contains one archivefile, the proforma submission restrictions should use the files inside the archivefile not the archivefile itself for the check
-       this is done after the "max-size" checking above because the "max-size" attribute relates to the size of the archivefile not the size of the extracted archivefile */
-    if(count($submissionfiles) == 1 && (in_array($firstfilemimetype, get_supported_archive_types()))) {
-        $usercontext = context_user::instance($USER->id);
-        $archive_files_return_value = get_files_inside_archive_file($firstfile, $usercontext, false, false, true);
-        $submissionfiles = $archive_files_return_value->files;
-        $filesRenamedWhileExtraction = ($archive_files_return_value->filesRenamed > 0);
+        $firstfilemimetype = translate_archive_extension_into_mimetype($firstfile);
+        /* when the submission only contains one archivefile, the proforma submission restrictions should use the files inside the archivefile not the archivefile itself for the check
+           this is done after the "max-size" checking above because the "max-size" attribute relates to the size of the archivefile not the size of the extracted archivefile */
+        if(count($submissionfiles) == 1 && (in_array($firstfilemimetype, get_supported_archive_types()))) {
+            $usercontext = context_user::instance($USER->id);
+            $archive_files_return_value = get_files_inside_archive_file($firstfile, $usercontext, false, false, true);
+            $submissionfiles = $archive_files_return_value->files;
+            $filesRenamedWhileExtraction = ($archive_files_return_value->filesRenamed > 0);
 
-        //Remove all the extracted files afterwards, we saved the files in the $submissionfiles array so we dont need them in the filearea anymore
-        remove_all_files_from_draft_area($firstfile->get_itemid(), $usercontext, $firstfile->get_filename());
+            //Remove all the extracted files afterwards, we saved the files in the $submissionfiles array so we dont need them in the filearea anymore
+            remove_all_files_from_draft_area($firstfile->get_itemid(), $usercontext, $firstfile->get_filename());
+        }
     }
 
     foreach($taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'file-restriction') as $filerestriction) {
