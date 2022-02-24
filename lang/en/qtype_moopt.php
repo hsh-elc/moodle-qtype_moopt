@@ -64,6 +64,7 @@ $string['ftspathinsubmissionfile'] = 'Path in the submission zip file for free t
 $string['ftsprogramminglanguage_i'] = 'Programming language #{$a}';
 $string['ftsstandardlang'] = 'Programming language for freetext submissions';
 $string['ftstemplate_i'] = 'Template #{$a}';
+$string['gaveup'] = 'Your submission could not be graded because it was incomplete';
 $string['grader'] = 'Grader';
 $string['grader_help'] = 'A grader is a backend service that automatically assesses a student submission. The list of selectable graders is maintained by the system administrator.';
 $string['gradercurrentlynotavailable'] = 'The grader for this task is currently unavailable. Submitting your solution will have no effect. Please contact your teacher. As soon as the grader is back online again, you will need to re-attempt the quiz and re-submit your submission.';

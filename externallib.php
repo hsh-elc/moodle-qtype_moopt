@@ -343,4 +343,30 @@ class qtype_moopt_external extends external_api {
         return retrieve_grading_results($qubaid);
     }
 
+    public static function check_if_filearea_is_empty_parameters() {
+        return new external_function_parameters(
+            array(
+                'itemid' => new external_value(PARAM_INT, 'id of the draft area')
+            )
+        );
+    }
+
+    public static function check_if_filearea_is_empty_returns() {
+        return new external_value(PARAM_BOOL, 'Whether a filearea is empty or not');
+    }
+
+    public static function check_if_filearea_is_empty($itemid)
+    {
+        global $USER;
+
+        // Do some validation.
+        $params = self::validate_parameters(self::check_if_filearea_is_empty_parameters(), array('itemid' => $itemid));
+        $draftid = $params['itemid'];
+
+        $usercontext = context_user::instance($USER->id);
+        self::validate_context($usercontext);
+
+        $area = file_get_draft_area_info($draftid, "/");
+        return ($area['filecount'] == 0 && $area['foldercount'] == 0);
+    }
 }
