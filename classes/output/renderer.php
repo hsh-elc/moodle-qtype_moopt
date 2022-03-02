@@ -528,9 +528,9 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                                 $fileinfos = [
                                     'component' => COMPONENT_NAME,
-                                    'itemid' => $qa->get_database_id(),
+                                    'itemid' => "{$qa->get_usage_id()}/{$qa->get_slot()}/{$qa->get_database_id()}",
                                     'contextid' => $qa->get_question()->contextid,
-                                    'filepath' => "/{$qa->get_usage_id()}/{$qa->get_slot()}/{$qa->get_database_id()}/"
+                                    'filepath' => "/"
                                 ];
                                 $feedbackblockid = "moopt-feedbackblock-" . $qa->get_usage_id() . "-" . $qa->get_slot();
                                 $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_separate_feedback_buttons', 'init', [$feedbackblockid]);
