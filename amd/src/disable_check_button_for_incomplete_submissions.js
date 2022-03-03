@@ -4,32 +4,44 @@ define(['core/ajax'], function (ajax) {
         initForFileSubmissions: function (checkbuttonid, itemid) {
             let self = this;
             setInterval(function () { //TODO: maybe find a better solution than polling
-                self.toggleForFileSubmissions(checkbuttonid, itemid);
+                self.toggleCheckbuttonForFileSubmissions(checkbuttonid, itemid);
             }, 1000);
         },
-        toggleForFileSubmissions: function (checkbuttonid, itemid) {
+        initForFreetextSubmissions: function (checkbuttonid, textareaids) {
+            let self = this;
+            setInterval(function() { //TODO: maybe find a better solution than polling
+                self.toggleCheckbutton(checkbuttonid, self.checkIfAllTextareasAreEmpty(textareaids));
+            }, 1000);
+        },
+        initForFileAndFreetextSubmissions: function (checkbuttonid, itemid, textareaids) {
+            let self = this;
+            setInterval(function () { //TODO: maybe find a better solution than polling
+                if (self.checkIfAllTextareasAreEmpty(textareaids)) {
+                    self.toggleCheckbuttonForFileSubmissions(checkbuttonid, itemid);
+                } else {
+                    self.toggleCheckbutton(checkbuttonid, false);
+                }
+            }, 1000);
+        },
+
+        toggleCheckbuttonForFileSubmissions: function (checkbuttonid, itemid) {
+            let self = this;
             ajax.call([
                 {
                     methodname: 'qtype_moopt_check_if_filearea_is_empty',
                     args: {itemid: itemid},
+                    async: false,
                     done: function (result) {
-                        document.getElementById(checkbuttonid).disabled = result;
+                        self.toggleCheckbutton(checkbuttonid, result);
                     },
                     fail: function () {
                         //Activate that button if something went wrong so the answer can still be submitted
-                        document.getElementById(checkbuttonid).disabled = true;
+                        self.toggleCheckbutton(checkbuttonid, false);
                     }
                 }
             ]);
         },
-
-        initForFreetextSubmissions: function (checkbuttonid, textareaids) {
-            let self = this;
-            setInterval(function() { //TODO: maybe find a better solution than polling
-                self.toggleForFreetextSubmissions(checkbuttonid, textareaids);
-            }, 1000);
-        },
-        toggleForFreetextSubmissions: function (checkbuttonid, textareaids) {
+        checkIfAllTextareasAreEmpty: function (textareaids) {
             let onlyEmptyAreas = true;
             for (let i = 0; i < textareaids.length; i++) {
                 if (document.getElementById(textareaids[i]).value.length > 0) {
@@ -37,7 +49,11 @@ define(['core/ajax'], function (ajax) {
                     break;
                 }
             }
-            document.getElementById(checkbuttonid).disabled = onlyEmptyAreas;
+            return onlyEmptyAreas;
+        },
+
+        toggleCheckbutton: function (checkbuttonid, disable) {
+            document.getElementById(checkbuttonid).disabled = disable;
         }
 
     };

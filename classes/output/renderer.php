@@ -287,6 +287,9 @@ class qtype_moopt_renderer extends qtype_renderer {
 
         $renderedarea = '';
 
+        $itemid = null;
+        $answertextids = array();
+
         if ($questionoptions->enablefilesubmissions) {
             $pickeroptions = new stdClass();
             $pickeroptions->itemid = $qa->prepare_response_files_draft_itemid(
@@ -303,10 +306,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
             $renderedarea .= $filesrenderer->render($fm) . $hidden;
 
-            if ($qa->get_behaviour_name() == 'immediatemoopt') {
-                $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
-                    'initForFileSubmissions', [$qa->get_behaviour_field_name('submit'), $pickeroptions->itemid]);
-            }
+            $itemid = $pickeroptions->itemid;
         }
         if ($questionoptions->enablefreetextsubmissions) {
 
@@ -318,8 +318,6 @@ class qtype_moopt_renderer extends qtype_renderer {
             $maxindexoffieldwithcontent = 0;
 
             $defaultproglang = $questionoptions->ftsstandardlang;
-
-            $answertextids = array();
 
             for ($i = 0; $i < (int)$questionoptions->ftsmaxnumfields; $i++) {
                 $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
@@ -390,8 +388,16 @@ class qtype_moopt_renderer extends qtype_renderer {
 
             $PAGE->requires->js_call_amd('qtype_moopt/manage_answer_texts', 'init',
                     [(int)$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, (int)$questionoptions->ftsnuminitialfields), $qa->get_question_id()]);
+        }
 
-            if ($qa->get_behaviour_name() == 'immediatemoopt') {
+        if ($qa->get_behaviour_name() == 'immediatemoopt') {
+            if ($questionoptions->enablefilesubmissions && $questionoptions->enablefreetextsubmissions) {
+                $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
+                    'initForFileAndFreetextSubmissions', [$qa->get_behaviour_field_name('submit'), $itemid, $answertextids]);
+            } elseif ($questionoptions->enablefilesubmissions) {
+                $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
+                    'initForFileSubmissions', [$qa->get_behaviour_field_name('submit'), $itemid]);
+            } elseif ($questionoptions->enablefreetextsubmissions) {
                 $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
                     'initForFreetextSubmissions', [$qa->get_behaviour_field_name('submit'), $answertextids]);
             }
