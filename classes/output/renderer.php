@@ -25,9 +25,9 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../locallib.php');
 
-use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
 use qtype_moopt\output\separate_feedback_text_renderer;
 use qtype_moopt\utility\communicator\communicator_factory;
+use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
 
 /**
  * Generates the output for MooPT questions.
@@ -129,6 +129,24 @@ class qtype_moopt_renderer extends qtype_renderer {
         if (has_capability('mod/quiz:grade', $options->context) && $question->internaldescription != '') {
             $internaldescription = $this->render_internal_description($question);
             $o .= html_writer::tag('div', $internaldescription, array('class' => 'internaldescription'));
+        }
+
+        if ($qa->get_state()->is_finished()) {
+            // state->is_finished() implies that a question attempt has been finished by the student,
+            // i.e. the student was sure enough to click the button to submit their solution.
+            // The question attempt's state is not 'todo', 'invalid', or anything like that anymore
+            // (for which case the is_finished() would return a 'false' value).
+            if ($qa->get_state() == question_state::$finished) {
+                // Check if the question attempt's state is set to a particular state: question_state::$finished.
+                // This is not the same as checking whether the state finished via is_finished() (as mentioned above,
+                // a few other states return is_finished()==true (e.g. needsgrading, gaveup, and finished)).
+                // We only care about pulling for a grading result in this particular state since that's
+                // the only one that has a potential grading result lined up for polling.
+                // If the state is anything other than $finished (such as 'gradedright' or 'gradedwrong'), we do
+                // not pull for a grading result, since it's likely been already pulled in the past.
+                $PAGE->requires->js_call_amd('qtype_moopt/pull_grading_status', 'init', [$qa->get_usage_id(), $qa->get_slot(),
+                    get_config("qtype_moopt","service_client_polling_interval") * 1000 /* to milliseconds */]);
+            }
         }
 
         return $o;
@@ -434,9 +452,6 @@ class qtype_moopt_renderer extends qtype_renderer {
             $PAGE->requires->js_call_amd('qtype_moopt/change_display_name_of_redo_button', 'init', [$qa->get_slot()]);
 
             if ($qa->get_state() == question_state::$finished) {
-                $PAGE->requires->js_call_amd('qtype_moopt/pull_grading_status', 'init', [$qa->get_usage_id(), $qa->get_slot(),
-                    get_config("qtype_moopt",
-                            "service_client_polling_interval") * 1000 /* to milliseconds */]);
                 $loader = '<div class="loader"></div>';
                 return html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
             } else if ($qa->get_state() == question_state::$needsgrading && !has_capability('mod/quiz:grade', $PAGE->context)) {
