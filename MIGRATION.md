@@ -1,15 +1,15 @@
 <h1>Migration</h1>
 
-- [Upgrade to version 2022020600 or newer](#upgrade-to-version-2022020600-or-newer)
+- [Upgrade to version 2022030200 or newer](#upgrade-to-version-2022020600-or-newer)
 
-## Upgrade to version 2022020600 or newer
+## Upgrade to version 2022030200 or newer
 
 The following steps must be performed before upgrading:
 
-Because the format of the graderID changed, the old graderID's in the database must be converted to the new format. 
+Because the format of the graderID changed, the old graderIDs in the database must be converted to the new format. 
 
 To do this, there is a block in the db/upgrade.php file in which this can be done.
-This block is marked by: ```-- 2022020600 Migration Code```
+This block is marked by: ```-- 2022030200 Migration Code```
 
 Migration is performed by adding entries to the $migrationSQL array which is located in the previously mentioned block.
 
