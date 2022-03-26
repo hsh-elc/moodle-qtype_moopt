@@ -43,6 +43,7 @@ class qtype_moopt_question extends question_graded_automatically {
     public $gradername; // A grader is uniquely identified by the grader name and the grader version
     public $graderversion;
     public $taskuuid;
+    public $showstudgradingscheme;
     public $showstudscorecalcscheme;
     public $enablefilesubmissions;
     public $enablefreetextsubmissions;

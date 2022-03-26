@@ -53,10 +53,10 @@ class qtype_moopt extends question_type {
      * @return mixed array as above, or null to tell the base class to do nothing.
      */
     public function extra_question_fields() {
-        return array("qtype_moopt_options", "internaldescription", "gradername", "graderversion", "taskuuid", 'showstudscorecalcscheme',
-            'enablefilesubmissions', 'enablefreetextsubmissions', 'ftsnuminitialfields', 'ftsmaxnumfields',
-            'ftsautogeneratefilenames', 'ftsstandardlang', 'resultspecformat', 'resultspecstructure',
-            'studentfeedbacklevel', 'teacherfeedbacklevel');
+        return array("qtype_moopt_options", "internaldescription", "gradername", "graderversion",
+            "taskuuid", 'showstudgradingscheme', 'showstudscorecalcscheme', 'enablefilesubmissions',
+            'enablefreetextsubmissions', 'ftsnuminitialfields', 'ftsmaxnumfields', 'ftsautogeneratefilenames',
+            'ftsstandardlang', 'resultspecformat', 'resultspecstructure', 'studentfeedbacklevel', 'teacherfeedbacklevel');
     }
 
     /**

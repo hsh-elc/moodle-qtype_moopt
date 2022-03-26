@@ -144,6 +144,11 @@ class qtype_moopt_edit_form extends question_edit_form {
         $mform->setType('taskuuid', PARAM_TEXT);
         $mform->addRule('taskuuid', get_string('taskuuidrequired', 'qtype_moopt'), 'required');
 
+        $mform->addElement('advcheckbox', 'showstudgradingscheme',
+            get_string('showstudgradingscheme', 'qtype_moopt'), ' ');
+        $mform->addHelpButton('showstudgradingscheme', 'showstudgradingscheme', 'qtype_moopt');
+        $mform->setDefault('showstudgradingscheme', true);
+
         $mform->addElement('advcheckbox', 'showstudscorecalcscheme',
                 get_string('showstudscorecalcscheme', 'qtype_moopt'), ' ');
         $mform->addHelpButton('showstudscorecalcscheme', 'showstudscorecalcscheme', 'qtype_moopt');

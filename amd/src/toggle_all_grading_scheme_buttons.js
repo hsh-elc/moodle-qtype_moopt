@@ -2,17 +2,17 @@
 define([], function () {
 
     return {
-        init: function (feedbackblockid) {
+        init: function (blockid) {
             var self = this;
-            let expandbtn = document.querySelector("#" + feedbackblockid + "-expand-all-button");
+            let expandbtn = document.querySelector("#" + blockid + "-expand-all-button");
             expandbtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                self.toggle(feedbackblockid, "show");
+                self.toggle(blockid, "show");
             });
-            let collapsebtn = document.querySelector("#" + feedbackblockid + "-collapse-all-button");
+            let collapsebtn = document.querySelector("#" + blockid + "-collapse-all-button");
             collapsebtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                self.toggle(feedbackblockid, "hide");
+                self.toggle(blockid, "hide");
             });
         },
 
