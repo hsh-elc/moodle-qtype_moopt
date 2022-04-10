@@ -17,9 +17,15 @@ class grading_hints_nullify_condition
      * @param $namespace
      */
     public function __construct(\DOMElement $elem, $namespace) {
-        $this->title = $elem->getElementsByTagNameNS($namespace, 'title')[0]->nodeValue;
-        $this->description = $elem->getElementsByTagNameNS($namespace, 'description')[0]->nodeValue;
-        $this->internaldescription = $elem->getElementsByTagNameNS($namespace, 'internal-description')[0]->nodeValue;
+        if (($foundElems = $elem->getElementsByTagNameNS($namespace, 'title'))->length == 1) {
+            $this->title = $foundElems[0]->nodeValue;
+        }
+        if (($foundElems = $elem->getElementsByTagNameNS($namespace, 'description'))->length == 1) {
+            $this->description = $foundElems[0]->nodeValue;
+        }
+        if (($foundElems = $elem->getElementsByTagNameNS($namespace, 'internal-description'))->length == 1) {
+            $this->internaldescription = $foundElems[0]->nodeValue;
+        }
 
         $this->compareoperator = $elem->getAttribute('compare-op');
 
@@ -38,7 +44,7 @@ class grading_hints_nullify_condition
                     $operands[] = $operand;
                     break;
                 case 'nullify-literal':
-                    $operand = $childnode->getAttribute('value');
+                    $operand = floatval($childnode->getAttribute('value'));
                     $operands[] = $operand;
                     break;
             }

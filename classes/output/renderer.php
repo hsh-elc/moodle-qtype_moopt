@@ -166,7 +166,7 @@ class qtype_moopt_renderer extends qtype_renderer {
     private function render_grading_scheme(question_attempt $qa) {
         global $PAGE;
 
-        $o = '';
+        $o = '<br>';
         $o .= $this->output->heading(get_string('gradingscheme', 'qtype_moopt'), 3);#
 
         $blockid = "moopt-gradingscheme-" . $qa->get_usage_id() . "-" . $qa->get_slot();

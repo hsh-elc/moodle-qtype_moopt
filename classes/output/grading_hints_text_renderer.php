@@ -218,17 +218,25 @@ class grading_hints_text_renderer
      * @throws \coding_exception
      */
     private function get_nullifycondition_operand_string($operand) : string {
+        if (is_float($operand)) {
+            //Operand is a literal
+            return $operand;
+        }
         switch (get_class($operand)) {
             case 'qtype_moopt\utility\proforma_xml\grading_hints_nullify_condition_testref_operand':
                 $type = get_string("test", "qtype_moopt");
+                if ($operand->get_subref() !== null) {
+                    //Use the subref instead of the test title if the test has a subref
+                    $reftitle = $operand->get_subref();
+                }
                 break;
             case 'qtype_moopt\utility\proforma_xml\grading_hints_nullify_condition_combineref_operand':
                 $type = get_string("combinedtest", "qtype_moopt");
                 break;
-            default /*literal*/:
-                return $operand;
         }
-        $reftitle = $this->rootnode->get_child_by_refid($operand->get_ref())->get_title();
+        if (!isset($reftitle)) {
+            $reftitle = $this->rootnode->get_child_by_refid($operand->get_ref())->get_title();
+        }
         return get_string("scoreof", "qtype_moopt", $type) . " '$reftitle'";
     }
 
