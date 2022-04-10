@@ -477,15 +477,17 @@ class separate_feedback_handler {
         $values = [];
         $operands = array($nullifycondition->get_leftoperand(), $nullifycondition->get_rightoperand());
         foreach ($operands as $operand) {
+            if (is_float($operand)) {
+                //Operand is a literal value
+                $values[] = $operand;
+                continue;
+            }
             switch (get_class($operand)) {
                 case 'qtype_moopt\utility\proforma_xml\grading_hints_nullify_condition_combineref_operand':
                     $values[] = $this->get_nullify_combine_value($operand);
                     break;
                 case 'qtype_moopt\utility\proforma_xml\grading_hints_nullify_condition_testref_operand':
                     $values[] = $this->get_nullify_test_value($operand);
-                    break;
-                default /*literal*/:
-                    $values[] = $operand;
                     break;
             }
         }
