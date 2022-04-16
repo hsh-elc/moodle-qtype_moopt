@@ -1001,6 +1001,25 @@ function get_name_and_version_from_graderid_html_representation($html_representa
     return $graderid;
 }
 
+/**
+ * @return array with one entry for every available grader. Every entry contains further information about the grader
+ */
+function get_available_graders_form_data() : array {
+    $availableGraders = array();
+    try {
+        $graders = communicator_factory::get_instance()->get_graders()['graders'];
+        foreach ($graders as $grader) {
+            $key = array_push($availableGraders, $grader) - 1;
+            $graderid_html_representation = get_html_representation_of_graderid($grader['name'], $grader['version']);
+            //Add this field so creation_via_drag_and_drop.js can select the grader
+            $availableGraders[$key]['html_representation'] = $graderid_html_representation;
+        }
+    } catch (Exception $ex) {
+        // backend not reachable.
+        // no available graders.
+    }
+    return $availableGraders;
+}
 
 // Copied from zip_archive::mangle_pathname.
 function mangle_pathname($filename) {

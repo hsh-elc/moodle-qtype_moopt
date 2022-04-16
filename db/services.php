@@ -39,13 +39,22 @@ $functions = array(
         'type' => 'write',
         'ajax' => true,
         'services' => array('mooptwebservice')
+    ),
+    'qtype_moopt_get_grader_data' => array(
+        'classname' => 'qtype_moopt_external',
+        'methodname' => 'get_grader_data',
+        'classpath' => 'question/type/moopt/externallib.php',
+        'description' => 'Get information of all available graders in form of an array',
+        'type' => 'read',
+        'ajax' => true,
+        'services' => array('mooptwebservice')
     )
 );
 
 $services = array(
     'mooptwebservice' => array(
         'functions' => array('qtype_moopt_extract_task_infos_from_draft_file',
-            'qtype_moopt_service_retrieve_grading_results'),
+            'qtype_moopt_service_retrieve_grading_results', 'qtype_moopt_get_grader_data'),
         'requiredcapability' => '',
         'restrictedusers' => 0,
         'enabled' => 1

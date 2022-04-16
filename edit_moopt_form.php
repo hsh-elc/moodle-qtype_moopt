@@ -65,7 +65,7 @@ class qtype_moopt_edit_form extends question_edit_form {
 
             parent::definition();
 
-            $PAGE->requires->js_call_amd('qtype_moopt/creation_via_drag_and_drop', 'init', [array_values($this->availableGraders)]);
+            $PAGE->requires->js_call_amd('qtype_moopt/creation_via_drag_and_drop', 'init');
         }
     }
 
@@ -76,22 +76,12 @@ class qtype_moopt_edit_form extends question_edit_form {
         $mform->setType('internaldescription', PARAM_RAW); // No XSS prevention here, users must be trusted.
         $mform->addHelpButton('internaldescription', 'internaldescription', 'qtype_moopt');
 
-        $this->availableGraders = array();
+        $this->availableGraders = get_available_graders_form_data();
         $graderSelectOptions = array();
-        try {
-            $graders = communicator_factory::get_instance()->get_graders()['graders'];
-            foreach ($graders as $grader) {
-                $key = array_push($this->availableGraders, $grader) - 1;
-                $graderid_html_representation = get_html_representation_of_graderid($grader['name'], $grader['version']);
-                //Add this field so creation_via_drag_and_drop.js can select the grader
-                $this->availableGraders[$key]['html_representation'] = $graderid_html_representation;
-                //This Array is only used for the options of the graderselect element
-                $graderSelectOptions[$graderid_html_representation] = $grader['display_name'];
-            }
-        } catch (Exception $ex) {
-            // backend not reachable.
-            // no available graders.
+        foreach ($this->availableGraders as $grader) {
+            $graderSelectOptions[$grader['html_representation']] = $grader['display_name'];
         }
+
         $this->graderselect = $mform->addElement('select', 'graderselect', get_string('grader', 'qtype_moopt'),
             $graderSelectOptions);
         $mform->addHelpButton('graderselect', 'grader', 'qtype_moopt');
