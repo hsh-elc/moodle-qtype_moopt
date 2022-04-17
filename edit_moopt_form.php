@@ -240,6 +240,7 @@ class qtype_moopt_edit_form extends question_edit_form {
 //            $mform->setType("freetextinputfieldtemplate$i", PARAM_RAW);
             $this->hide_custom_fts_conditionally($mform, "freetextinputfieldtemplate", $i);
         }
+        parent::add_interactive_settings();
     }
 
     protected function data_preprocessing($question) {

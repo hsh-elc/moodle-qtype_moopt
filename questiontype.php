@@ -117,6 +117,7 @@ class qtype_moopt extends question_type {
                 }
             }
         }
+        $this->save_hints($question);
     }
 
     public function delete_question($questionid, $contextid) {
