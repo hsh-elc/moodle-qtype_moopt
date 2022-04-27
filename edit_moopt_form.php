@@ -122,12 +122,12 @@ class qtype_moopt_edit_form extends question_edit_form {
         );
         $select = $mform->addElement('select', 'studentfeedbacklevel', get_string('studentfeedbacklevel', 'qtype_moopt'), $feedbackleveloptions);
         $mform->addHelpButton('studentfeedbacklevel', 'studentfeedbacklevel', 'qtype_moopt');
-        $select->setSelected(PROFORMA_FEEDBACK_LEVEL_INFO); // this default could be changed by a grader- or question-specific value in the near future
+        $select->setSelected(PROFORMA_FEEDBACK_LEVEL_INFO);
         $mform->setType('studentfeedbacklevel', PARAM_TEXT);
         $select = $mform->addElement('select', 'teacherfeedbacklevel', get_string('teacherfeedbacklevel', 'qtype_moopt'), $feedbackleveloptions);
         $mform->addHelpButton('teacherfeedbacklevel', 'teacherfeedbacklevel', 'qtype_moopt');
         $mform->setType('teacherfeedbacklevel', PARAM_TEXT);
-        $select->setSelected(PROFORMA_FEEDBACK_LEVEL_DEBUG); // this default could be changed by a grader- or question-specific value in the near future
+        $select->setSelected(PROFORMA_FEEDBACK_LEVEL_DEBUG);
 
         $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_moopt'), array("size" => '36'));
         $mform->addHelpButton('taskuuid', 'taskuuid', 'qtype_moopt');

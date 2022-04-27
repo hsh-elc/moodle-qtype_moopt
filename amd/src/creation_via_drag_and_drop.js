@@ -116,29 +116,24 @@ define(['core/ajax',
                                                 }
 
                                                 let searchVal = selectedGrader["html_representation"];
-                                                let query = "#id_graderselect option[value='" + searchVal + "']";
-                                                document.querySelector(query).selected = true;
+                                                setSelectionSafely("#id_graderselect option[value='" + searchVal + "']");
 
                                                 if ('result_spec' in selectedGrader) {
                                                     if ('format' in selectedGrader['result_spec']) {
                                                         searchVal = selectedGrader['result_spec']['format'];
-                                                        query = "#id_resultspecformat option[value='" + searchVal + "']";
-                                                        document.querySelector(query).selected = true;
+                                                        setSelectionSafely("#id_resultspecformat option[value='" + searchVal + "']");
                                                     }
                                                     if ('structure' in selectedGrader['result_spec']) {
                                                         searchVal = selectedGrader['result_spec']['structure'];
-                                                        query = "#id_resultspecstructure option[value='" + searchVal + "']";
-                                                        document.querySelector(query).selected = true;
+                                                        setSelectionSafely("#id_resultspecstructure option[value='" + searchVal + "']");
                                                     }
                                                     if ('teacher_feedback_level' in selectedGrader['result_spec']) {
                                                         searchVal = selectedGrader['result_spec']['teacher_feedback_level'];
-                                                        query = "#id_teacherfeedbacklevel option[value='" + searchVal + "']";
-                                                        document.querySelector(query).selected = true;
+                                                        setSelectionSafely("#id_teacherfeedbacklevel option[value='" + searchVal + "']");
                                                     }
                                                     if ('student_feedback_level' in selectedGrader['result_spec']) {
                                                         searchVal = selectedGrader['result_spec']['student_feedback_level'];
-                                                        query = "#id_studentfeedbacklevel option[value='" + searchVal + "']";
-                                                        document.querySelector(query).selected = true;
+                                                        setSelectionSafely("#id_studentfeedbacklevel option[value='" + searchVal + "']");
                                                     }
                                                 }
                                             }
@@ -229,3 +224,11 @@ define(['core/ajax',
             };
         }
 );
+
+function setSelectionSafely(query) {
+    select = document.querySelector(query);
+    if(null !== select)
+        select.selected = true;
+    else
+        console.warn("object not found for query: " + query)
+}
