@@ -516,7 +516,7 @@ class separate_feedback_handler {
      */
     private function get_nullify_test_value(grading_hints_nullify_condition_testref_operand $operand): float {
         $refid = $operand->get_ref();
-        if ($operand->get_subref() !== null) {
+        if ($operand->get_subref() !== null && $operand->get_subref() !== '') {
             $testresult = $this->testresults[$refid][$operand->get_subref()];
         } else {
             $testresult = $this->testresults[$refid];
