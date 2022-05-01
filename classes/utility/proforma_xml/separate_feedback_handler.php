@@ -314,6 +314,8 @@ class separate_feedback_handler {
             $detailedfeedbacknode->set_nullified(true);
         }
 
+        $detailedfeedbacknode->set_rawscore($score); //TODO: put this outside of this function?
+
         if ($scalescoretolms) {
             return $score * $gradinghintsnode->get_weight() * $this->scorecompensationfactor;
         } else {
@@ -338,6 +340,7 @@ class separate_feedback_handler {
             $score = 0;
             $node->set_nullified(true);
         }
+        $node->set_rawscore($score);
         return $score * $gradinghintsnode->get_weight();
     }
 
@@ -422,6 +425,9 @@ class separate_feedback_handler {
         $targetnode->set_max_score($sourcenode->get_max_score());
         $targetnode->set_title($sourcenode->get_title());
         $targetnode->set_weight($sourcenode->get_weight());
+        $targetnode->set_nullifyconditionroot($sourcenode->get_nullifyconditionroot());
+        $targetnode->set_type($sourcenode->get_type());
+        $targetnode->set_refid($sourcenode->get_refid());
     }
 
     // Nullifying from here on.

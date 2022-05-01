@@ -140,17 +140,25 @@ class grading_hints_text_node {
         return $this->nullifyconditionroot;
     }
 
-    public function get_child_by_refid($refid) : ?grading_hints_text_node {
-        if ($this->get_refid() === $refid) {
+    public function get_child_by_refid($refid, $subref = null) : ?grading_hints_text_node {
+        if ($this->ref_equals($refid, $subref)) {
             return $this;
         } else {
             foreach ($this->get_children() as $child) {
-                $ret = $child->get_child_by_refid($refid);
+                $ret = $child->get_child_by_refid($refid, $subref);
                 if ($ret !== null) {
                     return $ret;
                 }
             }
             return null;
         }
+    }
+
+    private function ref_equals($refid, $subref = null) : bool {
+        $condition = true;
+        if ($subref !== null) {
+            $condition = $this->get_subref() === $subref;
+        }
+        return $this->get_refid() === $refid && $condition;
     }
 }

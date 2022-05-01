@@ -27,7 +27,7 @@ require_once(__DIR__ . '/../../locallib.php');
 
 use qtype_moopt\output\grading_hints_text_renderer;
 use qtype_moopt\utility\proforma_xml\grading_scheme_handler;
-use qtype_moopt\output\separate_feedback_text_renderer;
+use qtype_moopt\output\grading_hints_renderer;
 use qtype_moopt\utility\communicator\communicator_factory;
 use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
 
@@ -163,6 +163,9 @@ class qtype_moopt_renderer extends qtype_renderer {
         return $o;
     }
 
+    /**
+     * @throws coding_exception
+     */
     private function render_grading_scheme(question_attempt $qa) {
         global $PAGE;
 
@@ -189,7 +192,7 @@ class qtype_moopt_renderer extends qtype_renderer {
         $gradingschemehelper = new grading_scheme_handler($gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark(), $xpathtask);
         $gradingschemehelper->build_grading_scheme();
 
-        $gradinghintsrenderer = new grading_hints_text_renderer($gradingschemehelper->get_grading_scheme(),
+        $gradinghintsrenderer = new grading_hints_renderer($gradingschemehelper->get_grading_scheme(),
             has_capability('mod/quiz:grade', $PAGE->context));
 
         $o .= "<div id='$blockid'>";
@@ -588,7 +591,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 $feedbackblockid = "moopt-feedbackblock-" . $qa->get_usage_id() . "-" . $qa->get_slot();
                                 $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_grading_scheme_buttons', 'init', [$feedbackblockid]);
 
-                                $separatefeedbackrenderersummarised = new separate_feedback_text_renderer(
+                                $separatefeedbackrenderersummarised = new grading_hints_renderer(
                                         $separatefeedbackhelper->get_summarised_feedback(),
                                         has_capability('mod/quiz:grade', $PAGE->context), $fileinfos,
                                         $qa->get_question()->showstudscorecalcscheme);
@@ -600,7 +603,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 $html .= "<div id='" . $feedbackblockid . "'>";
                                 $html .=    $separatefeedbackrenderersummarised->render();
                                 $html .=    '<p/>'; // vertical space between summarized and detailed feedback buttons
-                                $separatefeedbackrendererdetailed = new separate_feedback_text_renderer(
+                                $separatefeedbackrendererdetailed = new grading_hints_renderer(
                                         $separatefeedbackhelper->get_detailed_feedback(), has_capability('mod/quiz:grade',
                                                 $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
                                 $html .= $separatefeedbackrendererdetailed->render();

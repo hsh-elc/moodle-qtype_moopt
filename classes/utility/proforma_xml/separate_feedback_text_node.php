@@ -27,6 +27,7 @@ class separate_feedback_text_node {
     private $heading;
     private $children;
     private $isnullified;
+    private $rawscore;
     private $score;
     private $accumulatorfunction;
     private $internaldescription;
@@ -37,6 +38,9 @@ class separate_feedback_text_node {
     private $hasinternalerror;
     private $maxscore;
     private $weight;
+    private $nullifyconditionroot;
+    private $type;
+    private $refid;
 
     public function __construct($id, $heading = null, $content = null) {
         $this->id = $id;
@@ -74,6 +78,14 @@ class separate_feedback_text_node {
 
     public function is_nullified() {
         return $this->isnullified;
+    }
+
+    public function get_rawscore() {
+        return $this->rawscore;
+    }
+
+    public function set_rawscore($rawscore) {
+        $this->rawscore = $rawscore;
     }
 
     public function get_score() {
@@ -160,6 +172,45 @@ class separate_feedback_text_node {
 
     public function get_weight() {
         return $this->weight;
+    }
+
+    public function set_nullifyconditionroot($nullifyconditionroot) {
+        $this->nullifyconditionroot = $nullifyconditionroot;
+    }
+
+    public function get_nullifyconditionroot() {
+        return $this->nullifyconditionroot;
+    }
+
+    public function set_type($type) {
+        $this->type = $type;
+    }
+
+    public function get_type() {
+        return $this->type;
+    }
+
+    public function set_refid($refid) {
+        $this->refid = $refid;
+    }
+
+    public function get_refid() {
+        return $this->refid;
+    }
+
+    //TODO: is this not a little bit to redundant?
+    public function get_child_by_refid($refid) : ?separate_feedback_text_node {
+        if ($this->get_refid() === $refid) {
+            return $this;
+        } else {
+            foreach ($this->get_children() as $child) {
+                $ret = $child->get_child_by_refid($refid);
+                if ($ret !== null) {
+                    return $ret;
+                }
+            }
+            return null;
+        }
     }
 
 }
