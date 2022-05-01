@@ -25,7 +25,6 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../locallib.php');
 
-use qtype_moopt\output\grading_hints_text_renderer;
 use qtype_moopt\utility\proforma_xml\grading_scheme_handler;
 use qtype_moopt\output\grading_hints_renderer;
 use qtype_moopt\utility\communicator\communicator_factory;
