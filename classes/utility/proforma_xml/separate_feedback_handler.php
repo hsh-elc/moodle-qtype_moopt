@@ -276,7 +276,7 @@ class separate_feedback_handler {
             throw new \Exception("Missing test-response: The response file does not contain a test-response with ID '".$refid."'.");
         }
 
-        if ($gradinghintsnode->get_subref() !== null) {
+        if ($gradinghintsnode->get_subref() !== null && $gradinghintsnode->get_subref() !== '') {
             $tmp = $this->testresults[$refid];
             if(is_array($tmp) && isset($tmp[$gradinghintsnode->get_subref()])) {
                 $testresult = $tmp[$gradinghintsnode->get_subref()];

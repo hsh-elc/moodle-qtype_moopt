@@ -421,7 +421,7 @@ class grading_hints_renderer
             case 'testref':
                 $type = get_string("test", "qtype_moopt");
 
-                if ($operand->get_subref() !== null) {
+                if ($operand->get_subref() !== null && $operand->get_subref() !== '') {
                     $referencednode = $this->rootnode->get_child_by_refid($operand->get_ref(), $operand->get_subref());
                 } else {
                     $referencednode = $this->rootnode->get_child_by_refid($operand->get_ref());
