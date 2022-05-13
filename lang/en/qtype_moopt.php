@@ -175,3 +175,4 @@ $string['ui_fallback'] = 'Falling back to raw text area.';
 $string['weightedscoreof'] = 'Weighted Score of';
 $string['xmlvalidationerrormsg'] = '{$a->message} (Code {$a->code}) on line {$a->line}';
 $string['yourcode'] = 'Your code';
+$string['serviceunavailable'] = 'The service is unavailable.';

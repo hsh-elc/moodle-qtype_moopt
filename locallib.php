@@ -119,6 +119,7 @@ require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
 use qtype_moopt\utility\communicator\communicator_factory;
 use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
 use qtype_moopt\exceptions\resource_not_found_exception;
+use qtype_moopt\exceptions\service_communicator_exception;
 
 /*
  * Unzips the task zip file in the given draft area into the area
@@ -522,7 +523,14 @@ function internal_retrieve_grading_results($qubaid)
         $slot = $DB->get_record('question_attempts', ['id' => $gradeprocrecord->questionattemptdbid], 'slot')->slot;
         try {
             $response = $communicator->get_grading_result($gradeprocrecord->gradername, $gradeprocrecord->graderversion, $gradeprocrecord->gradeprocessid);
-        } catch (resource_not_found_exception $e) {
+        }
+        //catch (service_communicator_exception $ex) {
+           // Do not handle service_communicator_exceptions (service unavailable) here, since this function is
+           // not called by users but rather by tasks and intervals. No need to indicate a service unavailable
+           // exception to automated callers.
+           // Let this function fail silently with the catch(Throwable) below.
+        //}
+        catch (resource_not_found_exception $e) {
             // A grading result does not exist and won't ever exist for this grade process id.
             // The middleware or grader returned a HTTP 404 NotFound when polling for a
             // grading result. This case is different from a queued submission for which a grading result does
@@ -1005,6 +1013,7 @@ function get_name_and_version_from_graderid_html_representation($html_representa
  * @return array with one entry for every available grader. Every entry contains further information about the grader
  */
 function get_available_graders_form_data() : array {
+    global $COURSE;
     $availableGraders = array();
     try {
         $graders = communicator_factory::get_instance()->get_graders()['graders'];
@@ -1015,8 +1024,9 @@ function get_available_graders_form_data() : array {
             $availableGraders[$key]['html_representation'] = $graderid_html_representation;
         }
     } catch (Exception $ex) {
-        // backend not reachable.
-        // no available graders.
+        debugging($ex->getMessage());
+        redirect(new moodle_url('/question/type/moopt/errorpage.php', array('courseid' =>
+            $COURSE->id, 'error' => 'serviceunavailable')));
     }
     return $availableGraders;
 }

@@ -25,8 +25,6 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once('locallib.php');
 
-use qtype_moopt\utility\communicator\communicator_factory;
-
 /**
  * moopt question editing form definition.
  *
@@ -43,7 +41,8 @@ class qtype_moopt_edit_form extends question_edit_form {
         global $COURSE, $PAGE;
 
         if (!has_capability("qtype/moopt:author", $this->context)) {
-            redirect(new moodle_url('/question/type/moopt/missing_capability_errorpage.php', array('courseid' => $COURSE->id)));
+            redirect(new moodle_url('/question/type/moopt/errorpage.php', array('courseid' => $COURSE->id, 'error' =>
+                'missingauthorcapability')));
         } else {
             $mform = $this->_form;
 
