@@ -25,9 +25,10 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../locallib.php');
 
-use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
-use qtype_moopt\output\separate_feedback_text_renderer;
+use qtype_moopt\utility\proforma_xml\grading_scheme_handler;
+use qtype_moopt\output\grading_hints_renderer;
 use qtype_moopt\utility\communicator\communicator_factory;
+use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
 
 /**
  * Generates the output for MooPT questions.
@@ -130,6 +131,27 @@ class qtype_moopt_renderer extends qtype_renderer {
             $internaldescription = $this->render_internal_description($question);
             $o .= html_writer::tag('div', $internaldescription, array('class' => 'internaldescription'));
         }
+        if (!$qa->get_state()->is_graded() && ($qa->get_question()->showstudgradingscheme || has_capability('mod/quiz:grade', $PAGE->context))) {
+            $gradingscheme = $this->render_grading_scheme($qa);
+            $o .= html_writer::tag('div', $gradingscheme);
+        }
+        if ($qa->get_state()->is_finished()) {
+            // state->is_finished() implies that a question attempt has been finished by the student,
+            // i.e. the student was sure enough to click the button to submit their solution.
+            // The question attempt's state is not 'todo', 'invalid', or anything like that anymore
+            // (for which case the is_finished() would return a 'false' value).
+            if ($qa->get_state() == question_state::$finished) {
+                // Check if the question attempt's state is set to a particular state: question_state::$finished.
+                // This is not the same as checking whether the state finished via is_finished() (as mentioned above,
+                // a few other states return is_finished()==true (e.g. needsgrading, gaveup, and finished)).
+                // We only care about pulling for a grading result in this particular state since that's
+                // the only one that has a potential grading result lined up for polling.
+                // If the state is anything other than $finished (such as 'gradedright' or 'gradedwrong'), we do
+                // not pull for a grading result, since it's likely been already pulled in the past.
+                $PAGE->requires->js_call_amd('qtype_moopt/pull_grading_status', 'init', [$qa->get_usage_id(), $qa->get_slot(),
+                    get_config("qtype_moopt","service_client_polling_interval") * 1000 /* to milliseconds */]);
+            }
+        }
         return $o;
     }
 
@@ -137,6 +159,45 @@ class qtype_moopt_renderer extends qtype_renderer {
         $o = '';
         $o .= $this->output->heading(get_string('internaldescription', 'qtype_moopt'), 3);
         $o .= $question->internaldescription;
+        return $o;
+    }
+
+    /**
+     * @throws coding_exception
+     */
+    private function render_grading_scheme(question_attempt $qa) {
+        global $PAGE;
+
+        $o = '<br>';
+        $o .= $this->output->heading(get_string('gradingscheme', 'qtype_moopt'), 3);#
+
+        $blockid = "moopt-gradingscheme-" . $qa->get_usage_id() . "-" . $qa->get_slot();
+        $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_grading_scheme_buttons', 'init', [$blockid]);
+        $o .= "<p class='expandcollapselink'><a href='#' id='" . $blockid . "-expand-all-button'>"
+            . get_string('expand_all', 'qtype_moopt') . "</a> ";
+        $o .= "<a href='#' id='" . $blockid . "-collapse-all-button'>"
+            . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
+
+        $taskxmlfile = get_task_xml_file_from_filearea($qa->get_question());
+        $taskdoc = new DOMDocument();
+        $taskdoc->loadXML($taskxmlfile->get_content());
+        $taskxmlnamespace = detect_proforma_namespace($taskdoc);
+        $gradinghints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
+        $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
+
+        $xpathtask = new DOMXPath($taskdoc);
+        $xpathtask->registerNamespace('p', $taskxmlnamespace);
+
+        $gradingschemehelper = new grading_scheme_handler($gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark(), $xpathtask);
+        $gradingschemehelper->build_grading_scheme();
+
+        $gradinghintsrenderer = new grading_hints_renderer($gradingschemehelper->get_grading_scheme(),
+            has_capability('mod/quiz:grade', $PAGE->context));
+
+        $o .= "<div id='$blockid'>";
+        $o .= $gradinghintsrenderer->render();
+        $o .= "</div>";
+
         return $o;
     }
 
@@ -453,9 +514,6 @@ class qtype_moopt_renderer extends qtype_renderer {
             $PAGE->requires->js_call_amd('qtype_moopt/change_display_name_of_redo_button', 'init', [$qa->get_slot()]);
 
             if ($qa->get_state() == question_state::$finished) {
-                $PAGE->requires->js_call_amd('qtype_moopt/pull_grading_status', 'init', [$qa->get_usage_id(), $qa->get_slot(),
-                    get_config("qtype_moopt",
-                        "service_client_polling_interval") * 1000 /* to milliseconds */]);
                 $loader = '<div class="loader"></div>';
                 return html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
             } else if ($qa->get_state() == question_state::$gaveup) {
@@ -515,12 +573,10 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                                 $xpathtask = new DOMXPath($taskdoc);
                                 $xpathtask->registerNamespace('p', $taskxmlnamespace);
-                                $xpathresponse = new DOMXPath($doc);
-                                $xpathresponse->registerNamespace('p', $namespace);
 
                                 $separatefeedbackhelper = new separate_feedback_handler($gradinghints, $tests,
-                                    $separatetestfeedbackelem, $feedbackfiles, $taskxmlnamespace, $namespace,
-                                    $qa->get_max_mark(), $xpathtask, $xpathresponse);
+                                        $separatetestfeedbackelem, $feedbackfiles, $taskxmlnamespace, $namespace,
+                                        $qa->get_max_mark(), $xpathtask);
                                 $separatefeedbackhelper->process_result();
 
                                 // File download URLs of files that are attached to the response
@@ -549,14 +605,14 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                                 $fileinfos = [
                                     'component' => COMPONENT_NAME,
-                                    'itemid' => $qa->get_database_id(),
+                                    'itemid' => "{$qa->get_usage_id()}/{$qa->get_slot()}/{$qa->get_database_id()}",
                                     'contextid' => $qa->get_question()->contextid,
-                                    'filepath' => "/{$qa->get_usage_id()}/{$qa->get_slot()}/{$qa->get_database_id()}/"
+                                    'filepath' => "/"
                                 ];
                                 $feedbackblockid = "moopt-feedbackblock-" . $qa->get_usage_id() . "-" . $qa->get_slot();
-                                $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_separate_feedback_buttons', 'init', [$feedbackblockid]);
+                                $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_grading_scheme_buttons', 'init', [$feedbackblockid]);
 
-                                $separatefeedbackrenderersummarised = new separate_feedback_text_renderer(
+                                $separatefeedbackrenderersummarised = new grading_hints_renderer(
                                     $separatefeedbackhelper->get_summarised_feedback(),
                                     has_capability('mod/quiz:grade', $PAGE->context), $fileinfos,
                                     $qa->get_question()->showstudscorecalcscheme);
@@ -568,7 +624,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 $html .= "<div id='" . $feedbackblockid . "'>";
                                 $html .= $separatefeedbackrenderersummarised->render();
                                 $html .= '<p/>'; // vertical space between summarized and detailed feedback buttons
-                                $separatefeedbackrendererdetailed = new separate_feedback_text_renderer(
+                                $separatefeedbackrendererdetailed = new grading_hints_renderer(
                                     $separatefeedbackhelper->get_detailed_feedback(), has_capability('mod/quiz:grade',
                                     $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
                                 $html .= $separatefeedbackrendererdetailed->render();

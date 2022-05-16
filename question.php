@@ -43,6 +43,7 @@ class qtype_moopt_question extends question_graded_automatically {
     public $gradername; // A grader is uniquely identified by the grader name and the grader version
     public $graderversion;
     public $taskuuid;
+    public $showstudgradingscheme;
     public $showstudscorecalcscheme;
     public $enablefilesubmissions;
     public $enablefreetextsubmissions;
@@ -216,10 +217,20 @@ class qtype_moopt_question extends question_graded_automatically {
             // file contents.
         }
 
+        global $PAGE;
         try {
             $includetaskfile = !$communicator->is_task_cached($this->taskuuid);
             $includetaskfile = true; // TODO: remove this and test the caching mechanism
-        } catch (invalid_response_exception $ex) {
+        } catch (\qtype_moopt\exceptions\service_communicator_exception $ex) {
+            debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+            if (!has_capability('mod/quiz:grade', $PAGE->context))
+                redirect(new moodle_url('/question/type/moopt/errorpage.php', array('courseid' =>
+                    $COURSE->id, 'error' => 'serviceunavailable'))); // show a generic error to students
+            // let anyone with quiz:grade capabilities see the full details of the error, displayed in
+            // moodle's own detailed way
+            throw $ex;
+        }
+        catch (invalid_response_exception $ex) {
             // Not good but not severe either - just assume the task isn't cached and include it.
             $includetaskfile = true;
             debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
@@ -230,6 +241,7 @@ class qtype_moopt_question extends question_graded_automatically {
         $sourcearea = '';
         $taskreftype = '';
         if ($includetaskfile) {
+            // Try getting the task.zip, then task.xml filename from the DB, whatever is available at this point
             $sourcearea = PROFORMA_TASKZIP_FILEAREA;
             $taskreftype = 'zip';
             $rec = $DB->get_record('qtype_moopt_files', array('questionid' => $this->id,
@@ -281,6 +293,12 @@ class qtype_moopt_question extends question_graded_automatically {
             $DB->insert_record('qtype_moopt_gradeprocesses', ['qubaid' => $qa->get_usage_id(),
                 'questionattemptdbid' => $qa->get_database_id(), 'gradeprocessid' => $gradeprocessid,
                 'gradername' => $this->gradername, 'graderversion' => $this->graderversion]);
+        } catch (\qtype_moopt\exceptions\service_communicator_exception $ex) {
+            debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
+            if (!has_capability('mod/quiz:grade', $PAGE->context))
+                redirect(new moodle_url('/question/type/moopt/errorpage.php', array('courseid' =>
+                    $COURSE->id, 'error' => 'serviceunavailable')));
+            throw $ex;
         } catch (invalid_response_exception $ex) {
             debugging($ex->module . '/' . $ex->errorcode . '( ' . $ex->debuginfo . ')');
             $returnstate = question_state::$needsgrading;

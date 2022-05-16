@@ -369,4 +369,40 @@ class qtype_moopt_external extends external_api {
         $area = file_get_draft_area_info($draftid, "/");
         return ($area['filecount'] == 0 && $area['foldercount'] == 0);
     }
+
+    public static function get_grader_data_parameters() {
+        return new external_function_parameters([]);
+    }
+
+    public static function get_grader_data_returns() {
+        return new external_multiple_structure(
+            new external_single_structure(
+                array(
+                    'name' => new external_value(PARAM_TEXT, 'grader name', VALUE_REQUIRED),
+                    'version' => new external_value(PARAM_TEXT, 'grader version', VALUE_REQUIRED),
+                    'display_name' => new external_value(PARAM_TEXT, 'grader display name', VALUE_REQUIRED),
+                    'proglangs' => new external_multiple_structure(
+                        new external_value(PARAM_TEXT, 'the programming language that is supported', VALUE_OPTIONAL)
+                        , 'programming languages that are supported by the grader', VALUE_OPTIONAL),
+                    'result_spec' => new external_single_structure(
+                        array(
+                            'format' => new external_value(PARAM_TEXT, 'The Result Specifications Format', VALUE_OPTIONAL),
+                            'structure' => new external_value(PARAM_TEXT, 'The Result Specifications Structure', VALUE_OPTIONAL),
+                            'teacher_feedback_level' => new external_value(PARAM_TEXT, 'The feedback level for teachers', VALUE_OPTIONAL),
+                            'student_feedback_level' => new external_value(PARAM_TEXT, 'The feedback level for students', VALUE_OPTIONAL)
+                        )
+                        , 'Default Values for the Result Specifications for a grader', VALUE_OPTIONAL),
+                    'html_representation' => new external_value(PARAM_TEXT, 'html representation of the grader', VALUE_REQUIRED)
+                )
+            ), "Available Graders", VALUE_REQUIRED);
+    }
+
+    public static function get_grader_data() : array {
+
+        // Do some param validation.
+        self::validate_parameters(self::get_grader_data_parameters(), array());
+
+        return array_values(get_available_graders_form_data());
+    }
+
 }

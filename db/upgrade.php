@@ -187,9 +187,9 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2022012700, 'qtype', 'moopt');
     }
 
-    if ($oldversion < 2022020600) {
+    if ($oldversion < 2022030200) {
 
-        // -- 2022020600 Migration Code
+        // -- 2022030200 Migration Code
         $migrationSQL = array(
             //"SET gradername" = '<graderName>', graderversion = '<graderVersion>' WHERE graderid = '<oldGraderId>'",
             "SET gradername = 'Graja', graderversion = '2.2' WHERE graderid = 'Graja2.2'",
@@ -266,8 +266,24 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         }
 
         // Moopt savepoint reached.
-        upgrade_plugin_savepoint(true, 2022020600, 'qtype', 'moopt');
+        upgrade_plugin_savepoint(true, 2022030200, 'qtype', 'moopt');
     }
+
+    if ($oldversion < 2022032600) {
+
+        // Define field showstudgradingscheme to be added to qtype_moopt_options.
+        $table = new xmldb_table('qtype_moopt_options');
+        $field = new xmldb_field('showstudgradingscheme', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, 0, 'taskuuid');
+
+        // Conditionally launch add field showstudgradingscheme.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2022032600, 'qtype', 'moopt');
+    }
+
 
     return true;
 }

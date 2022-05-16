@@ -25,8 +25,6 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once('locallib.php');
 
-use qtype_moopt\utility\communicator\communicator_factory;
-
 /**
  * moopt question editing form definition.
  *
@@ -43,7 +41,8 @@ class qtype_moopt_edit_form extends question_edit_form {
         global $COURSE, $PAGE;
 
         if (!has_capability("qtype/moopt:author", $this->context)) {
-            redirect(new moodle_url('/question/type/moopt/missing_capability_errorpage.php', array('courseid' => $COURSE->id)));
+            redirect(new moodle_url('/question/type/moopt/errorpage.php', array('courseid' => $COURSE->id, 'error' =>
+                'missingauthorcapability')));
         } else {
             $mform = $this->_form;
 
@@ -65,7 +64,7 @@ class qtype_moopt_edit_form extends question_edit_form {
 
             parent::definition();
 
-            $PAGE->requires->js_call_amd('qtype_moopt/creation_via_drag_and_drop', 'init', [array_values($this->availableGraders)]);
+            $PAGE->requires->js_call_amd('qtype_moopt/creation_via_drag_and_drop', 'init');
         }
     }
 
@@ -76,22 +75,12 @@ class qtype_moopt_edit_form extends question_edit_form {
         $mform->setType('internaldescription', PARAM_RAW); // No XSS prevention here, users must be trusted.
         $mform->addHelpButton('internaldescription', 'internaldescription', 'qtype_moopt');
 
-        $this->availableGraders = array();
+        $this->availableGraders = get_available_graders_form_data();
         $graderSelectOptions = array();
-        try {
-            $graders = communicator_factory::get_instance()->get_graders()['graders'];
-            foreach ($graders as $grader) {
-                $key = array_push($this->availableGraders, $grader) - 1;
-                $graderid_html_representation = get_html_representation_of_graderid($grader['name'], $grader['version']);
-                //Add this field so creation_via_drag_and_drop.js can select the grader
-                $this->availableGraders[$key]['html_representation'] = $graderid_html_representation;
-                //This Array is only used for the options of the graderselect element
-                $graderSelectOptions[$graderid_html_representation] = $grader['display_name'];
-            }
-        } catch (Exception $ex) {
-            // backend not reachable.
-            // no available graders.
+        foreach ($this->availableGraders as $grader) {
+            $graderSelectOptions[$grader['html_representation']] = $grader['display_name'];
         }
+
         $this->graderselect = $mform->addElement('select', 'graderselect', get_string('grader', 'qtype_moopt'),
             $graderSelectOptions);
         $mform->addHelpButton('graderselect', 'grader', 'qtype_moopt');
@@ -132,17 +121,22 @@ class qtype_moopt_edit_form extends question_edit_form {
         );
         $select = $mform->addElement('select', 'studentfeedbacklevel', get_string('studentfeedbacklevel', 'qtype_moopt'), $feedbackleveloptions);
         $mform->addHelpButton('studentfeedbacklevel', 'studentfeedbacklevel', 'qtype_moopt');
-        $select->setSelected(PROFORMA_FEEDBACK_LEVEL_INFO); // this default could be changed by a grader- or question-specific value in the near future
+        $select->setSelected(PROFORMA_FEEDBACK_LEVEL_INFO);
         $mform->setType('studentfeedbacklevel', PARAM_TEXT);
         $select = $mform->addElement('select', 'teacherfeedbacklevel', get_string('teacherfeedbacklevel', 'qtype_moopt'), $feedbackleveloptions);
         $mform->addHelpButton('teacherfeedbacklevel', 'teacherfeedbacklevel', 'qtype_moopt');
         $mform->setType('teacherfeedbacklevel', PARAM_TEXT);
-        $select->setSelected(PROFORMA_FEEDBACK_LEVEL_DEBUG); // this default could be changed by a grader- or question-specific value in the near future
+        $select->setSelected(PROFORMA_FEEDBACK_LEVEL_DEBUG);
 
         $mform->addElement('text', 'taskuuid', get_string('taskuuid', 'qtype_moopt'), array("size" => '36'));
         $mform->addHelpButton('taskuuid', 'taskuuid', 'qtype_moopt');
         $mform->setType('taskuuid', PARAM_TEXT);
         $mform->addRule('taskuuid', get_string('taskuuidrequired', 'qtype_moopt'), 'required');
+
+        $mform->addElement('advcheckbox', 'showstudgradingscheme',
+            get_string('showstudgradingscheme', 'qtype_moopt'), ' ');
+        $mform->addHelpButton('showstudgradingscheme', 'showstudgradingscheme', 'qtype_moopt');
+        $mform->setDefault('showstudgradingscheme', true);
 
         $mform->addElement('advcheckbox', 'showstudscorecalcscheme',
                 get_string('showstudscorecalcscheme', 'qtype_moopt'), ' ');
@@ -245,6 +239,7 @@ class qtype_moopt_edit_form extends question_edit_form {
 //            $mform->setType("freetextinputfieldtemplate$i", PARAM_RAW);
             $this->hide_custom_fts_conditionally($mform, "freetextinputfieldtemplate", $i);
         }
+        parent::add_interactive_settings();
     }
 
     protected function data_preprocessing($question) {

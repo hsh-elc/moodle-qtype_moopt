@@ -16,43 +16,31 @@
 
 namespace qtype_moopt\utility\proforma_xml;
 
-/**
- * Description of separate_feedback_text_node
- *
- * @author robin
- */
-class separate_feedback_text_node {
+class grading_hints_text_node {
 
     private $id;
     private $heading;
     private $children;
-    private $isnullified;
-    private $rawscore;
-    private $score;
     private $accumulatorfunction;
     private $internaldescription;
     private $title;
     private $description;
-    private $studentfeedback;
-    private $teacherfeedback;
-    private $hasinternalerror;
     private $maxscore;
     private $weight;
-    private $nullifyconditionroot;
     private $type;
     private $refid;
+    private $subref;
+    private $nullifyconditionroot;
 
     public function __construct($id, $heading = null, $content = null) {
         $this->id = $id;
         $this->heading = $heading;
         $this->content = $content;
         $this->children = [];
-        $this->studentfeedback = [];
-        $this->teacherfeedback = [];
         $this->filerefs = [];
     }
 
-    public function add_child(separate_feedback_text_node $node) {
+    public function add_child(grading_hints_text_node $node) {
         $this->children[] = $node;
     }
 
@@ -70,30 +58,6 @@ class separate_feedback_text_node {
 
     public function set_heading($heading) {
         $this->heading = $heading;
-    }
-
-    public function set_nullified($isnullified) {
-        $this->isnullified = $isnullified;
-    }
-
-    public function is_nullified() {
-        return $this->isnullified;
-    }
-
-    public function get_rawscore() {
-        return $this->rawscore;
-    }
-
-    public function set_rawscore($rawscore) {
-        $this->rawscore = $rawscore;
-    }
-
-    public function get_score() {
-        return $this->score;
-    }
-
-    public function set_score($score) {
-        $this->score = $score;
     }
 
     public function get_accumulator_function() {
@@ -128,58 +92,12 @@ class separate_feedback_text_node {
         $this->description = $description;
     }
 
-    public function get_student_feedback() {
-        return $this->studentfeedback;
-    }
-
-    public function get_teacher_feedback() {
-        return $this->teacherfeedback;
-    }
-
-    public function add_student_feedback($feedback) {
-        if ($feedback['content'] == null && $feedback['title'] == null) {
-            return;
-        }
-        $this->studentfeedback[] = $feedback;
-    }
-
-    public function add_teacher_feedback($feedback) {
-        if ($feedback['content'] == null && $feedback['title'] == null) {
-            return;
-        }
-        $this->teacherfeedback[] = $feedback;
-    }
-
-    public function has_internal_error() {
-        return $this->hasinternalerror;
-    }
-
-    public function set_has_internal_error($err) {
-        $this->hasinternalerror = $err;
-    }
-
     public function set_max_score($score) {
         $this->maxscore = $score;
     }
 
     public function get_max_score() {
         return $this->maxscore;
-    }
-
-    public function set_weight($weight) {
-        $this->weight = $weight;
-    }
-
-    public function get_weight() {
-        return $this->weight;
-    }
-
-    public function set_nullifyconditionroot($nullifyconditionroot) {
-        $this->nullifyconditionroot = $nullifyconditionroot;
-    }
-
-    public function get_nullifyconditionroot() {
-        return $this->nullifyconditionroot;
     }
 
     public function set_type($type) {
@@ -190,6 +108,14 @@ class separate_feedback_text_node {
         return $this->type;
     }
 
+    public function set_weight($weight) {
+        $this->weight = $weight;
+    }
+
+    public function get_weight() {
+        return $this->weight;
+    }
+
     public function set_refid($refid) {
         $this->refid = $refid;
     }
@@ -198,13 +124,28 @@ class separate_feedback_text_node {
         return $this->refid;
     }
 
-    //TODO: is this not a little bit to redundant?
-    public function get_child_by_refid($refid) : ?separate_feedback_text_node {
-        if ($this->get_refid() === $refid) {
+    public function set_subref($subref) {
+        $this->subref = $subref;
+    }
+
+    public function get_subref() {
+        return $this->subref;
+    }
+
+    public function set_nullifyconditionroot($nullifyconditionroot) {
+        $this->nullifyconditionroot = $nullifyconditionroot;
+    }
+
+    public function get_nullifyconditionroot() {
+        return $this->nullifyconditionroot;
+    }
+
+    public function get_child_by_refid($refid, $subref = null) : ?grading_hints_text_node {
+        if ($this->ref_equals($refid, $subref)) {
             return $this;
         } else {
             foreach ($this->get_children() as $child) {
-                $ret = $child->get_child_by_refid($refid);
+                $ret = $child->get_child_by_refid($refid, $subref);
                 if ($ret !== null) {
                     return $ret;
                 }
@@ -213,4 +154,11 @@ class separate_feedback_text_node {
         }
     }
 
+    private function ref_equals($refid, $subref = null) : bool {
+        $condition = true;
+        if ($subref !== null) {
+            $condition = $this->get_subref() === $subref;
+        }
+        return $this->get_refid() === $refid && $condition;
+    }
 }
