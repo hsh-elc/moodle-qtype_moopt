@@ -116,10 +116,9 @@ require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
 
+use qtype_moopt\exceptions\resource_not_found_exception;
 use qtype_moopt\utility\communicator\communicator_factory;
 use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
-use qtype_moopt\exceptions\resource_not_found_exception;
-use qtype_moopt\exceptions\service_communicator_exception;
 
 /*
  * Unzips the task zip file in the given draft area into the area
@@ -1012,21 +1011,15 @@ function get_name_and_version_from_graderid_html_representation($html_representa
 /**
  * @return array with one entry for every available grader. Every entry contains further information about the grader
  */
-function get_available_graders_form_data() : array {
+function get_available_graders_form_data(): array {
     global $COURSE;
     $availableGraders = array();
-    try {
-        $graders = communicator_factory::get_instance()->get_graders()['graders'];
-        foreach ($graders as $grader) {
-            $key = array_push($availableGraders, $grader) - 1;
-            $graderid_html_representation = get_html_representation_of_graderid($grader['name'], $grader['version']);
-            //Add this field so creation_via_drag_and_drop.js can select the grader
-            $availableGraders[$key]['html_representation'] = $graderid_html_representation;
-        }
-    } catch (Exception $ex) {
-        debugging($ex->getMessage());
-        redirect(new moodle_url('/question/type/moopt/errorpage.php', array('courseid' =>
-            $COURSE->id, 'error' => 'serviceunavailable')));
+    $graders = communicator_factory::get_instance()->get_graders()['graders'];
+    foreach ($graders as $grader) {
+        $key = array_push($availableGraders, $grader) - 1;
+        $graderid_html_representation = get_html_representation_of_graderid($grader['name'], $grader['version']);
+        //Add this field so creation_via_drag_and_drop.js can select the grader
+        $availableGraders[$key]['html_representation'] = $graderid_html_representation;
     }
     return $availableGraders;
 }
