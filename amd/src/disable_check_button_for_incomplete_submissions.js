@@ -1,11 +1,17 @@
 define(['core/ajax'], function (ajax) {
     return {
 
-        initForFileSubmissions: function (checkbuttonid, itemid) {
+        initForFileSubmissions: function (checkbuttonid, filemanagerid, draftareaid) {
             let self = this;
-            setInterval(function () { //TODO: maybe find a better solution than polling
-                self.toggleCheckbuttonForFileSubmissions(checkbuttonid, itemid);
-            }, 1000);
+            let target = document.getElementById(filemanagerid);
+            let observer = new MutationObserver(function(mutations) {
+                self.toggleCheckbuttonForFileSubmissions(checkbuttonid, draftareaid);
+            });
+            observer.observe(target, {
+                attributes:    true,
+                childList:     true,
+                characterData: true
+            });
         },
         initForFreetextSubmissions: function (checkbuttonid, textareaids) {
             let self = this;
@@ -24,17 +30,18 @@ define(['core/ajax'], function (ajax) {
             }, 1000);
         },
 
-        toggleCheckbuttonForFileSubmissions: function (checkbuttonid, itemid) {
+        toggleCheckbuttonForFileSubmissions: function (checkbuttonid, draftareaid) {
             let self = this;
             ajax.call([
                 {
                     methodname: 'qtype_moopt_check_if_filearea_is_empty',
-                    args: {itemid: itemid},
+                    args: {itemid: draftareaid},
                     async: false,
                     done: function (result) {
                         self.toggleCheckbutton(checkbuttonid, result);
                     },
-                    fail: function () {
+                    fail: function (errorObject) {
+                        console.error(errorObject);
                         //Activate that button if something went wrong so the answer can still be submitted
                         self.toggleCheckbutton(checkbuttonid, false);
                     }
@@ -54,7 +61,8 @@ define(['core/ajax'], function (ajax) {
 
         toggleCheckbutton: function (checkbuttonid, disable) {
             document.getElementById(checkbuttonid).disabled = disable;
+            // somewhat hacky, but the element id is not likely to change
+            document.getElementById('mod_quiz-next-nav').disabled = disable;
         }
-
     };
 });

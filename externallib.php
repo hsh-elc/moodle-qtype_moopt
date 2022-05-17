@@ -398,7 +398,6 @@ class qtype_moopt_external extends external_api {
     }
 
     public static function get_grader_data() : array {
-
         // Do some param validation.
         self::validate_parameters(self::get_grader_data_parameters(), array());
 

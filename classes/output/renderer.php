@@ -349,6 +349,7 @@ class qtype_moopt_renderer extends qtype_renderer {
         $renderedarea = '';
 
         $itemid = null;
+        $filemanagerid = null;
         $answertextids = array();
 
         if ($questionoptions->enablefilesubmissions) {
@@ -367,6 +368,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
             $renderedarea .= $filesrenderer->render($fm) . $hidden;
 
+            $filemanagerid = 'filemanager-'.$fm->options->client_id;
             $itemid = $pickeroptions->itemid;
         }
         if ($questionoptions->enablefreetextsubmissions) {
@@ -457,7 +459,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                     'initForFileAndFreetextSubmissions', [$qa->get_behaviour_field_name('submit'), $itemid, $answertextids]);
             } elseif ($questionoptions->enablefilesubmissions) {
                 $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
-                    'initForFileSubmissions', [$qa->get_behaviour_field_name('submit'), $itemid]);
+                    'initForFileSubmissions', [$qa->get_behaviour_field_name('submit'), $filemanagerid, $itemid]);
             } elseif ($questionoptions->enablefreetextsubmissions) {
                 $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
                     'initForFreetextSubmissions', [$qa->get_behaviour_field_name('submit'), $answertextids]);
