@@ -383,9 +383,13 @@ class qtype_moopt_renderer extends qtype_renderer {
                 $answertextinputname = $qa->get_qt_field_name($answertextname);
                 $answertextid = $answertextinputname . '_id';
 
-                $answertextresponse = $qa->get_last_step_with_qt_var($answertextname)->get_qt_var($answertextname) ?? '';
-                if ($customoptions && !is_null($customoptions->filecontent))
-                    $answertextresponse = $customoptions->filecontent;
+                $answertextresponse = $qa->get_last_step_with_qt_var($answertextname)->get_qt_var($answertextname);
+                if(!isset($answertextresponse)) {
+                    if ($customoptions && !is_null($customoptions->filecontent))
+                        $answertextresponse = $customoptions->filecontent;
+                    else
+                        $answertextresponse = '';
+                }
 
                 $filenamename = "answerfilename$i";
                 $filenameinputname = $qa->get_qt_field_name($filenamename);
