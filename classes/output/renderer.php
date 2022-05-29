@@ -390,7 +390,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                 $answertextinputname = $qa->get_qt_field_name($answertextname);
                 $answertextid = $answertextinputname . '_id';
 
-                $answertextids[$i] = $answertextid;
+                $answertextids[$i] = 'qtype_moopt_answertext_' . $qa->get_question_id() . "_$i";
 
                 $answertextresponse = $qa->get_last_step_with_qt_var($answertextname)->get_qt_var($answertextname) ?? '';
                 if ($customoptions && !is_null($customoptions->filecontent))
@@ -410,7 +410,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $output = '';
                 $output .= html_writer::start_tag('div', array('class' => "qtype_moopt_answertext",
-                        'id' =>  'qtype_moopt_answertext_' . $qa->get_question_id() . "_$i"));
+                        'id' =>  $answertextids[$i]));
                 $output .= html_writer::start_div('answertextfilename');
                 $output .= html_writer::label(get_string('filename', 'qtype_moopt') . ":", $filenameid);
                 $inputoptions = ['id' => $filenameid, 'name' => $filenameinputname, 'style' => 'width: 100%;padding-left: 10px;',
@@ -456,7 +456,7 @@ class qtype_moopt_renderer extends qtype_renderer {
         if ($qa->get_behaviour_name() == 'immediatemoopt') {
             if ($questionoptions->enablefilesubmissions && $questionoptions->enablefreetextsubmissions) {
                 $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
-                    'initForFileAndFreetextSubmissions', [$qa->get_behaviour_field_name('submit'), $itemid, $answertextids]);
+                    'initForFileAndFreetextSubmissions', [$qa->get_behaviour_field_name('submit'), $filemanagerid, $itemid, $answertextids]);
             } elseif ($questionoptions->enablefilesubmissions) {
                 $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
                     'initForFileSubmissions', [$qa->get_behaviour_field_name('submit'), $filemanagerid, $itemid]);

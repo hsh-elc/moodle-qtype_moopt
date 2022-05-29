@@ -3,6 +3,9 @@ define(['core/ajax'], function (ajax) {
 
         initForFileSubmissions: function (checkbuttonid, filemanagerid, draftareaid) {
             let self = this;
+
+            self.toggleCheckbuttonForFileSubmissions(checkbuttonid, draftareaid);
+
             let target = document.getElementById(filemanagerid);
             let observer = new MutationObserver(function(mutations) {
                 self.toggleCheckbuttonForFileSubmissions(checkbuttonid, draftareaid);
@@ -15,19 +18,49 @@ define(['core/ajax'], function (ajax) {
         },
         initForFreetextSubmissions: function (checkbuttonid, textareaids) {
             let self = this;
-            setInterval(function() { //TODO: maybe find a better solution than polling
+
+            self.toggleCheckbutton(checkbuttonid, self.checkIfAllTextareasAreEmpty(textareaids));
+
+            let observer = new MutationObserver(function(mutations) {
                 self.toggleCheckbutton(checkbuttonid, self.checkIfAllTextareasAreEmpty(textareaids));
-            }, 1000);
+            });
+            textareaids.forEach(function(textareaid) {
+                let target = document.getElementById(textareaid);
+                observer.observe(target, {
+                    attributes: true,
+                    attributeFilter: ["value"],
+                    subtree: true,
+                    childList: true
+                });
+            });
         },
-        initForFileAndFreetextSubmissions: function (checkbuttonid, itemid, textareaids) {
+        initForFileAndFreetextSubmissions: function (checkbuttonid, filemanagerid, draftareaid, textareaids) {
             let self = this;
-            setInterval(function () { //TODO: maybe find a better solution than polling
-                if (self.checkIfAllTextareasAreEmpty(textareaids)) {
-                    self.toggleCheckbuttonForFileSubmissions(checkbuttonid, itemid);
-                } else {
-                    self.toggleCheckbutton(checkbuttonid, false);
-                }
-            }, 1000);
+
+            self.toggleForFileAndFreetextSubmissions(checkbuttonid, draftareaid, textareaids);
+
+            let target = document.getElementById(filemanagerid);
+            let observerForFileManager = new MutationObserver(function(mutations) {
+                self.toggleForFileAndFreetextSubmissions(checkbuttonid, draftareaid, textareaids);
+            });
+            observerForFileManager.observe(target, {
+                attributes:    true,
+                childList:     true,
+                characterData: true
+            });
+
+            let observerForFreetext = new MutationObserver(function(mutations) {
+                self.toggleForFileAndFreetextSubmissions(checkbuttonid, draftareaid, textareaids);
+            });
+            textareaids.forEach(function(textareaid) {
+                let target = document.getElementById(textareaid);
+                observerForFreetext.observe(target, {
+                    attributes: true,
+                    attributeFilter: ["value"],
+                    subtree: true,
+                    childList: true
+                });
+            });
         },
 
         toggleCheckbuttonForFileSubmissions: function (checkbuttonid, draftareaid) {
@@ -36,7 +69,6 @@ define(['core/ajax'], function (ajax) {
                 {
                     methodname: 'qtype_moopt_check_if_filearea_is_empty',
                     args: {itemid: draftareaid},
-                    async: false,
                     done: function (result) {
                         self.toggleCheckbutton(checkbuttonid, result);
                     },
@@ -51,18 +83,24 @@ define(['core/ajax'], function (ajax) {
         checkIfAllTextareasAreEmpty: function (textareaids) {
             let onlyEmptyAreas = true;
             for (let i = 0; i < textareaids.length; i++) {
-                if (document.getElementById(textareaids[i]).value.length > 0) {
+                if (document.querySelector("#" + textareaids[i] + " textarea").value.length > 0) {
                     onlyEmptyAreas = false;
                     break;
                 }
             }
             return onlyEmptyAreas;
         },
+        toggleForFileAndFreetextSubmissions: function(checkbuttonid, draftareaid, textareaids) {
+            let self = this;
+            if (self.checkIfAllTextareasAreEmpty(textareaids)) {
+                self.toggleCheckbuttonForFileSubmissions(checkbuttonid, draftareaid);
+            } else {
+                self.toggleCheckbutton(checkbuttonid, false);
+            }
+        },
 
         toggleCheckbutton: function (checkbuttonid, disable) {
             document.getElementById(checkbuttonid).disabled = disable;
-            // somewhat hacky, but the element id is not likely to change
-            document.getElementById('mod_quiz-next-nav').disabled = disable;
         }
     };
 });
