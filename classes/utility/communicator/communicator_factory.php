@@ -24,10 +24,10 @@ class communicator_factory {
         $communicator = get_config("qtype_moopt", "communicator");
         switch ($communicator) {
             case 'grappa':
-                return grappa_communicator::get_instance();
+                return new grappa_communicator();
             default:
                 throw new \moodle_exception("Invalid communicator set. Communicator '$communicator' is unknown");
         }
     }
-
 }
+
