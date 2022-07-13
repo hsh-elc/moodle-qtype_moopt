@@ -297,7 +297,19 @@ class qtype_moopt_external extends external_api {
     }
 
     public static function service_retrieve_grading_results_returns() {
-        return new external_value(PARAM_BOOL, "whether any grade process finished");
+        return new external_single_structure(
+            array(
+                'estimatedSecondsRemainingForEachQuestion' => new external_multiple_structure(
+                    new external_single_structure(
+                        array(
+                            'questionId' => new external_value(PARAM_INT, "the question id of the question to which the estimated seconds remaining belong"),
+                            'estimatedSecondsRemaining' => new external_value(PARAM_INT, "the estimated seconds remaining for this gradeprocess")
+                        )
+                    ), "the list of all estimated seconds remaining of an unfinished gradingprocess"
+                ),
+                'finished' => new external_value(PARAM_BOOL, "whether any grade process finished")
+            )
+        );
     }
 
     public static function service_retrieve_grading_results($qubaid) {
@@ -339,7 +351,6 @@ class qtype_moopt_external extends external_api {
                 return false;
             }
         }
-
         return retrieve_grading_results($qubaid);
     }
 

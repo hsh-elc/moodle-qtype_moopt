@@ -70,6 +70,7 @@ class qtype_moopt_renderer extends qtype_renderer {
             $o .= "<div class='specificfeedback queuedforgrading'>";
             $loader = '<div class="loader"></div>';
             $o .= html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
+            $o .= '<div style="display: none;" class="estimatedSecondsRemaining_' . $qa->get_question_id() . '">' . '(<span class="estimatedSecondsRemainingValue_' . $qa->get_question_id() . '"></span> '. get_string('estimatedSecondsRemaining', 'qtype_moopt') . ')</div>';
             $o .= "</div><br>";
         }
 
@@ -223,7 +224,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                 // skip files that are
                 // - not configured to be downloadable (usagebylms)
                 // - not visible to students
-                if ($file->usagebylms == 'display' 
+                if ($file->usagebylms == 'display'
                     || ($file->visibletostudents == 'no' && !$isteacher)
                     || ($file->usagebylms == 'edit' && !$isteacher)) {
                     continue;
@@ -521,7 +522,9 @@ class qtype_moopt_renderer extends qtype_renderer {
 
             if ($qa->get_state() == question_state::$finished) {
                 $loader = '<div class="loader"></div>';
-                return html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
+                $o = html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
+                $o .= '<div style="display: none;" class="estimatedSecondsRemaining_' . $qa->get_question_id() . '">' . '(<span class="estimatedSecondsRemainingValue_' . $qa->get_question_id() . '"></span> '. get_string('estimatedSecondsRemaining', 'qtype_moopt') . ')</div>';
+                return $o;
             } else if ($qa->get_state() == question_state::$gaveup) {
                 return get_string('gaveup', 'qtype_moopt');
             } else if ($qa->get_state() == question_state::$needsgrading && !has_capability('mod/quiz:grade', $PAGE->context)) {
@@ -591,7 +594,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 // where context-id denotes a context of context level "module"
                                 // and qa-id denotes the database id of the question attempt
                                 // and quba-id denotes the database id of the question usage by activity object.
-                                // 
+                                //
                                 // The URL gets processed as a download request by the following call chain:
                                 //  1. lib/filelib.php: function file_pluginfile
                                 //  2. lib/questionlib.php: function question_pluginfile
@@ -602,7 +605,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 //         resulting in a key record of the file table as:
                                 //         - component: question
                                 //         - context: a context of level 70 (=module)
-                                //         - filearea: <filearea>_<qa-id>, 
+                                //         - filearea: <filearea>_<qa-id>,
                                 //             where <filearea> is one of the labels responsefilesresponsefile, responsefiles or responsefilesembedded
                                 //             and <qa-id> is the database id of a question attempt
                                 //         - itemid: <quba-id>, i. e. the database id of a question usage by activity object

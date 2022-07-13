@@ -64,18 +64,30 @@ class grappa_communicator implements communicator_interface {
         return json_decode($responsejson)->gradeProcessId;
     }
 
+    /**
+     * @param string $gradername
+     * @param string $graderversion
+     * @param string $gradeprocessid
+     * @return \stdClass a stdClass with two fields:
+     * 'finished' - a boolean value that indicates whether the gradeprocess finished or not,
+     * 'response' - contains the response that came back from grappa
+     */
     public function get_grading_result(string $gradername, string $graderversion, string $gradeprocessid) {
         $url = "{$this->serviceurl}/{$this->lmsid}/gradeprocesses/$gradeprocessid";
         list($response, $httpstatuscode) = $this->get_from_grappa($url);
+        $ret = new \stdClass();
         if ($httpstatuscode == 202) {
-            return false;
+            $ret->finished = false;
+            $ret->response = json_decode($response)->estimatedSecondsRemaining;
         } else if ($httpstatuscode == 200) {
-            return $response;
+            $ret->finished = true;
+            $ret->response = $response;
         } else if($httpstatuscode == 404) {
             throw new resource_not_found_exception("A grading result does not exist for grade process id $gradeprocessid");
         } else {
             throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL POST $url");
         }
+        return $ret;
     }
 
     /*
@@ -173,7 +185,7 @@ class grappa_communicator implements communicator_interface {
     }
 
     protected function __clone() {
-        
+
     }
 
 }

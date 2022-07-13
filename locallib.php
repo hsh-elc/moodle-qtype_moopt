@@ -24,7 +24,7 @@ define('COMPONENT_NAME', 'qtype_moopt');
 // All these four file areas store files with the following key values:
 // - component: question
 // - context: a context of level 50 (=course)
-// - filearea: <key>, 
+// - filearea: <key>,
 //             where <key> is one of the four labels
 // - itemid: <q-id>, i. e. the database id of the question
 // - filepath: for PROFORMA_TASKZIP_FILEAREA and PROFORMA_TASKXML_FILEAREA this is "/".
@@ -468,9 +468,14 @@ function save_task_and_according_files($question)
  * Checks if any of the grade processes belonging to the given $qubaid finished. If so retrieves the grading results and
  * writes them to the system.
  * @param type $qubaid
- * @return bool whether any of grade process finished
+ * @return array an array with two elements with the following keys:
+ *      'finished' - a boolean value that indicates whether any grade process finished,
+ *      'estimatedSecondsRemainingForEachQuestion' - another array that contains several arrays as elements,
+ *          each of these array's contains two elements with the following keys:
+ *              'questionId',
+ *              'estimatedSecondsRemaining'
  */
-function retrieve_grading_results($qubaid)
+function retrieve_grading_results($qubaid) : array
 {
 
     /*
@@ -483,7 +488,10 @@ function retrieve_grading_results($qubaid)
     $lockfactory = \core\lock\lock_config::get_lock_factory($locktype);
     $lock = $lockfactory->get_lock($resource, 0, PROFORMA_RETRIEVE_GRADING_RESULTS_LOCK_MAXLIFETIME);
     if (!$lock) {
-        return false;
+        return array(
+            'estimatedSecondsRemainingForEachQuestion' => array(),
+            'finished' => false
+        );
     }
 
     try {
@@ -499,12 +507,21 @@ function retrieve_grading_results($qubaid)
 
 /**
  * Do not call this function unless you know what you are doing. Use retrieve_grading_results instead
+ * @return array an array with two elements with the following keys:
+ *      'finished' - a boolean value that indicates whether any grade process finished,
+ *      'estimatedSecondsRemainingForEachQuestion' - another array that contains several arrays as elements,
+ *          each of these array's contains two elements with the following keys:
+ *              'questionId',
+ *              'estimatedSecondsRemaining'
  */
-function internal_retrieve_grading_results($qubaid)
+function internal_retrieve_grading_results($qubaid) : array
 {
     global $DB, $USER;
     $communicator = communicator_factory::get_instance();
     $fs = get_file_storage();
+
+    $ret = array();
+    $ret['estimatedSecondsRemainingForEachQuestion'] = array();
 
     $finishedgradingprocesses = [];
     $qubarecord = $DB->get_record('question_usages', ['id' => $qubaid]);
@@ -556,7 +573,7 @@ function internal_retrieve_grading_results($qubaid)
             debugging($e->getMessage());
         }
 
-        if ($response) {
+        if ($response->finished) {
             $internalerror = false;
             $hasdisplayablefeedback = false;
             $couldsaveresponsetodisk = false;
@@ -578,7 +595,7 @@ function internal_retrieve_grading_results($qubaid)
                 }
 
                 // Check if response is zip file or xml.
-                if (substr($response, 0, 2) == 'PK') {
+                if (substr($response->response, 0, 2) == 'PK') {
                     // ZIP file.
                     // Write response to file system.
                     $filerecord = array(
@@ -589,7 +606,7 @@ function internal_retrieve_grading_results($qubaid)
                         'filepath' => "/",
                         'filename' => 'response.zip');
 
-                    $file = $fs->create_file_from_string($filerecord, $response);
+                    $file = $fs->create_file_from_string($filerecord, $response->response);
                     $zipper = get_file_packer('application/zip');
 
                     $couldsaveresponsetodisk = $file->extract_to_storage($zipper, $quba->get_question($slot)->contextid,
@@ -605,7 +622,7 @@ function internal_retrieve_grading_results($qubaid)
                         'filepath' => "/",
                         'filename' => 'response.xml');
 
-                    $couldsaveresponsetodisk = $fs->create_file_from_string($filerecord, $response);
+                    $couldsaveresponsetodisk = $fs->create_file_from_string($filerecord, $response->response);
                 }
 
 
@@ -770,6 +787,15 @@ function internal_retrieve_grading_results($qubaid)
             // Update gradebook.
             $quiz = $DB->get_record('quiz', array('id' => $attempt->quiz), '*', MUST_EXIST);
             quiz_save_best_grade($quiz, $USER->id);
+
+
+        } else {
+            if ($response->response != null) {
+                $estimatedSecondsRemainingForCurrentQuestion = array();
+                $estimatedSecondsRemainingForCurrentQuestion['questionId'] = $quba->get_question_attempt($slot)->get_question_id();
+                $estimatedSecondsRemainingForCurrentQuestion['estimatedSecondsRemaining'] = $response->response;
+                $ret['estimatedSecondsRemainingForEachQuestion'][] = $estimatedSecondsRemainingForCurrentQuestion;
+            }
         }
     }
 
@@ -777,7 +803,8 @@ function internal_retrieve_grading_results($qubaid)
         $DB->delete_records('qtype_moopt_gradeprocesses', ['id' => $doneid]);
     }
 
-    return !empty($finishedgradingprocesses);
+    $ret['finished'] = !empty($finishedgradingprocesses);
+    return $ret;
 }
 
 function detect_proforma_namespace(DOMDocument $doc)

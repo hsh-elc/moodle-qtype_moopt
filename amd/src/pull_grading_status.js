@@ -11,7 +11,17 @@ function (ajax, ModalFactory, ModalEvents, Strings) {
                 methodname: 'qtype_moopt_service_retrieve_grading_results',
                 args: {qubaid: qubaid},
                 done: function (result) {
-                    if (result) {
+                    result['estimatedSecondsRemainingForEachQuestion'].forEach(function (estimatedSecondsRemainingForOneQuestion) {
+                        document.getElementsByClassName("estimatedSecondsRemaining_" + estimatedSecondsRemainingForOneQuestion['questionId']).forEach(function(div) {
+                            if (div.style.display === 'none') {
+                                div.style.display = 'block';
+                            }
+                        });
+                        document.getElementsByClassName("estimatedSecondsRemainingValue_" + estimatedSecondsRemainingForOneQuestion['questionId']).forEach(function(elem) {
+                            elem.innerHTML = estimatedSecondsRemainingForOneQuestion['estimatedSecondsRemaining'];
+                        })
+                    });
+                    if (result['finished']) {
                         showReloadModal();
                     }
                 },
