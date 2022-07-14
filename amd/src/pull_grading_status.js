@@ -12,12 +12,14 @@ function (ajax, ModalFactory, ModalEvents, Strings) {
                 args: {qubaid: qubaid},
                 done: function (result) {
                     result['estimatedSecondsRemainingForEachQuestion'].forEach(function (estimatedSecondsRemainingForOneQuestion) {
-                        document.getElementsByClassName("estimatedSecondsRemaining_" + estimatedSecondsRemainingForOneQuestion['questionId']).forEach(function(div) {
+                        let elems = document.getElementsByClassName("estimatedSecondsRemaining_" + estimatedSecondsRemainingForOneQuestion['questionId']);
+                            Array.from(elems).forEach(function(div) {
                             if (div.style.display === 'none') {
                                 div.style.display = 'block';
                             }
                         });
-                        document.getElementsByClassName("estimatedSecondsRemainingValue_" + estimatedSecondsRemainingForOneQuestion['questionId']).forEach(function(elem) {
+                        elems = document.getElementsByClassName("estimatedSecondsRemainingValue_" + estimatedSecondsRemainingForOneQuestion['questionId']);
+                        Array.from(elems).forEach(function(elem) {
                             elem.innerHTML = estimatedSecondsRemainingForOneQuestion['estimatedSecondsRemaining'];
                         })
                     });
