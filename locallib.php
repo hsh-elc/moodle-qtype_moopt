@@ -684,15 +684,12 @@ function internal_retrieve_grading_results($qubaid) : array
                             $mtf = $doc->getElementsByTagNameNS($namespace, 'merged-test-feedback');
                             if ($mtf->length == 1) {
                                 // Merged test feedback.
-
                                 $overallresult = $mtf[0]->getElementsByTagNameNS($namespace, 'overall-result')[0];
 
-                                if ($overallresult->hasAttribute('is-internal-error') &&
-                                    $overallresult->getAttribute('is-internal-error') == 'true') {
-                                    $internalerror = true;
-                                } else {
-                                    $score = $overallresult->getElementsByTagNameNS($namespace, 'score')[0]->nodeValue;
-                                }
+                                $internalerror = $overallresult->hasAttribute('is-internal-error') &&
+                                    $overallresult->getAttribute('is-internal-error') == 'true';
+                                // get the score despite any is-internal-error flag, we will use the score regardless
+                                $score = $overallresult->getElementsByTagNameNS($namespace, 'score')[0]->nodeValue;
                                 $hasdisplayablefeedback = true;
                             } else {
                                 // Separate test feedback.
@@ -719,11 +716,11 @@ function internal_retrieve_grading_results($qubaid) : array
                                     $quba->get_question_max_mark($slot), $xpathtask, $xpathresponse);
 
                                 $separatefeedbackhelper->process_result();
-                                if (!$separatefeedbackhelper->get_detailed_feedback()->has_internal_error()) {
-                                    $score = $separatefeedbackhelper->get_calculated_score();
-                                } else {
-                                    $internalerror = true;
-                                }
+
+                                $internalerror = $separatefeedbackhelper->get_detailed_feedback()->has_internal_error();
+                                // retrieve the score and apply it (later on) regardless of whether there
+                                // was an error or not
+                                $score = $separatefeedbackhelper->get_calculated_score();
                                 $hasdisplayablefeedback = true;
                             }
                         }
@@ -746,33 +743,27 @@ function internal_retrieve_grading_results($qubaid) : array
                     $er->getMessage() . ')');
             }
 
-            if ($hasdisplayablefeedback && $internalerror) {
+            $qubagradingresultdata = array('gradeprocessdbid' => $gradeprocrecord->id);
+            if (!$couldsaveresponsetodisk || !$hasdisplayablefeedback) {
+                // Change the state to the question needing manual grading because something went wrong
+                $qubagradingresultdata['-graderunavailable'] = 1;
+            } else  {
                 // Even when the grader is unavailable or failing because of internal errors, there might
                 // be displayable feedback. We record this in order to display that feedback when rendering.
                 // We don't have a score.
-                $quba->process_action($slot, ['-gradingresult' => 1, 'gradeprocessdbid' => $gradeprocrecord->id]);
-                question_engine::save_questions_usage_by_activity($quba);
-
-                // fall through now and proceed with updating the total mark etc.
-
-                // TODO: The ProFormA whitepaper states, that internal error responses shouldn't increase
-                // the attempt counter. Unfortunately, MooPT doesn't handle this correctly at the moment.
-
-            } else if (!$couldsaveresponsetodisk || !isset($score) || $internalerror) {
-                if (!$internalerror) {
-                    debugging("Received invalid response from grader");
-                }
-
-                // Change the state to the question needing manual grading because automatic grading failed.
-                $quba->process_action($slot, ['-graderunavailable' => 1, 'gradeprocessdbid' => $gradeprocrecord->id]);
-                question_engine::save_questions_usage_by_activity($quba);
-
-                continue;
-            } else {
-                // Apply the grading result to the question attempt
-                $quba->process_action($slot, ['-gradingresult' => 1, 'score' => $score, 'gradeprocessdbid' => $gradeprocrecord->id]);
-                question_engine::save_questions_usage_by_activity($quba);
+                $qubagradingresultdata['-gradingresult'] = 1;
             }
+            if (isset($score)) {
+                // At this point, we explicitly ignore the Proforma Whitepaper stating that student submissions
+                // should be invalidated if a response was returned with the is-internal-error flag set to true.
+                // This is because this plugin does not support limitations on submissions yet, and because
+                // even if one or some of the many sub-tests failed, displaying the scores achieved
+                // for other sub-tests is more helpful to the student than showing them none at all.
+                $qubagradingresultdata['score'] = $score;
+            }
+            // Apply the grading result to the question attempt
+            $quba->process_action($slot, $qubagradingresultdata);
+            question_engine::save_questions_usage_by_activity($quba);
 
             // make sure we are in the context of a quiz and not a preview before proceeding with updating the quizze's
             // attempt data with a total mark
