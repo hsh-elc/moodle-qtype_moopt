@@ -272,37 +272,35 @@ class separate_feedback_handler {
     private function get_weighted_score_testref(grading_hints_text_node $gradinghintsnode, separate_feedback_text_node $detailedfeedbacknode, $scalescoretolms = true) {
         $refid = $gradinghintsnode->get_refid();
 
-        if(!isset($this->testresults[$refid])) {
-            throw new \Exception("Missing test-response: The response file does not contain a test-response with ID '".$refid."'.");
-        }
-
-        if ($gradinghintsnode->get_subref() !== null && $gradinghintsnode->get_subref() !== '') {
-            $tmp = $this->testresults[$refid];
-            if(is_array($tmp) && isset($tmp[$gradinghintsnode->get_subref()])) {
-                $testresult = $tmp[$gradinghintsnode->get_subref()];
+        if(isset($this->testresults[$refid])) {
+            if ($gradinghintsnode->get_subref() !== null && $gradinghintsnode->get_subref() !== '') {
+                $tmp = $this->testresults[$refid];
+                if (is_array($tmp) && isset($tmp[$gradinghintsnode->get_subref()])) {
+                    $testresult = $tmp[$gradinghintsnode->get_subref()];
+                } else {
+                    // The ProFormA whitepaper allows test results without sub results even if the grading hints
+                    // section has sub-ref references. A common use case is that the grader cannot start the
+                    // respective test at all so it doesn't make sense to report individual sub-test results,
+                    // because none of sub-tests has succeeded.
+                    $testresult = $tmp;
+                }
             } else {
-                // The ProFormA whitepaper allows test results without sub results even if the grading hints
-                // section has sub-ref references. A common use case is that the grader cannot start the
-                // respective test at all so it doesn't make sense to report individual sub-test results,
-                // because none of sub-tests has succeeded.
-                $testresult = $tmp;
-            }
-        } else {
-            $testresult = $this->testresults[$refid];
-            if (is_array($testresult)) {
-                throw new service_communicator_exception("Grader returned subresult(s) for test result with id '$refid' but there were no" .
-                    " subresults specified in the grading hints. According to the specification this is invalid behaviour");
+                $testresult = $this->testresults[$refid];
+                if (is_array($testresult)) {
+                    throw new service_communicator_exception("Grader returned subresult(s) for test result with id '$refid' but there were no" .
+                        " subresults specified in the grading hints. According to the specification this is invalid behaviour");
+                }
             }
         }
         if (isset($testresult)) {
             $result = $testresult->getElementsByTagNameNS($this->namespacefeedback, 'result')[0];
             $score = $result->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
+            $this->fill_feedback_node_with_testresult_infos($detailedfeedbacknode, $testresult);
         } else {
             $result = null;
             $score = 0;
         }
         $detailedfeedbacknode->set_heading(get_string('test', 'qtype_moopt') . ' ');
-        $this->fill_feedback_node_with_testresult_infos($detailedfeedbacknode, $testresult);
 
         if (isset($result) && $result->hasAttribute('is-internal-error')) {
             $detailedfeedbacknode->set_has_internal_error($result->getAttribute('is-internal-error') == "true");
@@ -314,7 +312,7 @@ class separate_feedback_handler {
             $detailedfeedbacknode->set_nullified(true);
         }
 
-        $detailedfeedbacknode->set_rawscore($score); //TODO: put this outside of this function?
+        $detailedfeedbacknode->set_rawscore($score);
 
         if ($scalescoretolms) {
             return $score * $gradinghintsnode->get_weight() * $this->scorecompensationfactor;
