@@ -128,6 +128,7 @@ class qtype_moopt_question extends question_graded_automatically {
             if(substr($preferredbehaviour, 0, strlen($old)) == $old){
                 $preferredbehaviour = $new;
                 $found = true;
+                break;
             }
         }
 
