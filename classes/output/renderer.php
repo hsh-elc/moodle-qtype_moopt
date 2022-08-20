@@ -59,8 +59,13 @@ class qtype_moopt_renderer extends qtype_renderer {
         // A grader may return a Proforma response file with the is-internal-error attribute set to true, allowing
         // the student to redo their attempt -- by then the student will already have seen the correct solution in the
         // feedback.
-        $this->generalfeedbacktemp = $qa->get_question()->generalfeedback;
-        $qa->get_question()->generalfeedback = '<p />';
+        // Do this unless the question has the manual graded behaviour.
+        // Since the manual grading can not fail displaying the solution at this point
+        // don´t give the student an advantage
+        if (!$qa->get_behaviour() instanceof qbehaviour_manualgraded){
+            $this->generalfeedbacktemp = $qa->get_question()->generalfeedback;
+            $qa->get_question()->generalfeedback = '<p />';
+        }
 
         $o = "";
 
