@@ -118,7 +118,7 @@ class qtype_moopt_question extends question_graded_automatically {
         $mappings['interactive'] = 'interactivemoopt';
         $mappings['deferredcbm'] = 'deferredmooptcbm';
         $mappings['immediatecbm'] = 'immediatemooptcbm';
-        //$mappings['adaptivenopenalty'] = 'adaptivemooptnopenalty'; //TODO
+        $mappings['adaptivenopenalty'] = 'adaptivemooptnopenalty';
 
         // Sort mappings in descending order to ensure deferredcbm will be checked before deferred, etc.
         krsort($mappings);
