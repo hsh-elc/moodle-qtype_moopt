@@ -31,6 +31,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/question/behaviour/immediatemoopt/behaviour.php');
 require_once($CFG->dirroot . '/question/behaviour/deferredmoopt/behaviour.php');
 require_once($CFG->dirroot . '/question/behaviour/adaptivemoopt/behaviour.php');
+require_once($CFG->dirroot . '/question/behaviour/adaptivemooptnopenalty/behaviour.php');
 require_once($CFG->dirroot . '/question/behaviour/manualgraded/behaviour.php');
 require_once($CFG->dirroot . '/question/behaviour/deferredmooptcbm/behaviour.php');
 require_once($CFG->dirroot . '/question/behaviour/immediatemooptcbm/behaviour.php');
