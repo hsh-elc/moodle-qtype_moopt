@@ -41,6 +41,7 @@ class separate_feedback_text_node {
     private $nullifyconditionroot;
     private $type;
     private $refid;
+    private $subref;
 
     public function __construct($id, $heading = null, $content = null) {
         $this->id = $id;
@@ -198,19 +199,34 @@ class separate_feedback_text_node {
         return $this->refid;
     }
 
-    //TODO: is this not a little bit to redundant?
-    public function get_child_by_refid($refid) : ?separate_feedback_text_node {
-        if ($this->get_refid() === $refid) {
+    public function set_subref($subref) {
+        $this->subref = $subref;
+    }
+
+    public function get_subref() {
+        return $this->subref;
+    }
+
+    public function get_child_by_refid($refid, $subref = null) : ?separate_feedback_text_node {
+        if ($this->ref_equals($refid, $subref)) {
             return $this;
         } else {
             foreach ($this->get_children() as $child) {
-                $ret = $child->get_child_by_refid($refid);
+                $ret = $child->get_child_by_refid($refid, $subref);
                 if ($ret !== null) {
                     return $ret;
                 }
             }
             return null;
         }
+    }
+
+    private function ref_equals($refid, $subref = null) : bool {
+        $condition = true;
+        if ($subref !== null) {
+            $condition = $this->get_subref() === $subref;
+        }
+        return $this->get_refid() === $refid && $condition;
     }
 
 }

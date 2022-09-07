@@ -426,6 +426,7 @@ class separate_feedback_handler {
         $targetnode->set_nullifyconditionroot($sourcenode->get_nullifyconditionroot());
         $targetnode->set_type($sourcenode->get_type());
         $targetnode->set_refid($sourcenode->get_refid());
+        $targetnode->set_subref($sourcenode->get_subref());
     }
 
     // Nullifying from here on.
