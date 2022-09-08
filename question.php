@@ -384,12 +384,13 @@ class qtype_moopt_question extends question_graded_automatically {
         }
         if ($this->enablefreetextsubmissions) {
             for ($i = 0; $i < $this->ftsmaxnumfields; $i++) {
-                if (!isset($prevresponse["answertext$i"])) {
+                if (!isset($prevresponse["answertext$i"]) || !isset($prevresponse["answerfilename$i"])) {
                     // If there wasn't an answer before it can't be the same.
                     return false;
                 }
-                if ($prevresponse["answertext$i"] != $newresponse["answertext$i"]) {
-                    // If filecontent isn't the same it's not the same answer.
+                if ($prevresponse["answertext$i"] != $newresponse["answertext$i"] ||
+                        $prevresponse["answerfilename$i"] != $newresponse["answerfilename$i"]) {
+                    // If filename or filecontent isn't the same it's not the same answer.
                     return false;
                 }
             }
