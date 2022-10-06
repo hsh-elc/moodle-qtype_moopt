@@ -421,7 +421,9 @@ class qtype_moopt_renderer extends qtype_renderer {
                 $inputoptions = ['id' => $filenameid, 'name' => $filenameinputname, 'style' => 'width: 100%;padding-left: 10px;',
                     'value' => $filenameresponse];
                 if ($disablefilenameinput) {
-                    $inputoptions['disabled'] = true;
+                    // readonly is used instead of disabled because the data in this field would not be submitted if it is disabled
+                    $inputoptions['readonly'] = true;
+                    $inputoptions['style'] .= "color: grey;";
                 }
 
                 // Adjust the height of the textarea based on the content of the textarea
