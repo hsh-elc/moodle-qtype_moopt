@@ -59,14 +59,21 @@ class qtype_moopt_renderer extends qtype_renderer {
         // A grader may return a Proforma response file with the is-internal-error attribute set to true, allowing
         // the student to redo their attempt -- by then the student will already have seen the correct solution in the
         // feedback.
-        $this->generalfeedbacktemp = $qa->get_question()->generalfeedback;
-        $qa->get_question()->generalfeedback = '<p />';
+        // Do this unless the question has the manual graded behaviour.
+        // Since the manual grading can not fail displaying the solution at this point
+        // don´t give the student an advantage
+        if (!$qa->get_behaviour() instanceof qbehaviour_manualgraded){
+            $this->generalfeedbacktemp = $qa->get_question()->generalfeedback;
+            $qa->get_question()->generalfeedback = '<p />';
+        }
 
         $o = "";
 
 
+        $laststep = $qa->get_last_step();
+
         // Question is queued for grading, print the message that the question have been queued for grading
-        if ($qa->get_state() == question_state::$finished) {
+        if ($qa->get_state() == question_state::$finished || $laststep->has_behaviour_var('_completeForGrading')) {
             $o .= "<div class='specificfeedback queuedforgrading'>";
             $loader = '<div class="loader"></div>';
             $o .= html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
@@ -136,12 +143,12 @@ class qtype_moopt_renderer extends qtype_renderer {
             $gradingscheme = $this->render_grading_scheme($qa);
             $o .= html_writer::tag('div', $gradingscheme);
         }
-        if ($qa->get_state()->is_finished()) {
+        if ($qa->get_state()->is_finished() || $laststep->has_behaviour_var('_completeForGrading')) {
             // state->is_finished() implies that a question attempt has been finished by the student,
             // i.e. the student was sure enough to click the button to submit their solution.
             // The question attempt's state is not 'todo', 'invalid', or anything like that anymore
             // (for which case the is_finished() would return a 'false' value).
-            if ($qa->get_state() == question_state::$finished) {
+            if ($qa->get_state() == question_state::$finished || $laststep->has_behaviour_var('_completeForGrading')) {
                 // Check if the question attempt's state is set to a particular state: question_state::$finished.
                 // This is not the same as checking whether the state finished via is_finished() (as mentioned above,
                 // a few other states return is_finished()==true (e.g. needsgrading, gaveup, and finished)).
@@ -518,11 +525,13 @@ class qtype_moopt_renderer extends qtype_renderer {
      */
     protected function specific_feedback(question_attempt $qa) {
         global $PAGE, $DB;
-        if ($qa->get_state()->is_finished()) {
+        $laststep = $qa->get_last_step();
+        if ($qa->get_state()->is_finished() || $laststep->has_behaviour_var('_showGradedFeedback') ||
+            $laststep->has_behaviour_var('_completeForGrading')) {
 
             $PAGE->requires->js_call_amd('qtype_moopt/change_display_name_of_redo_button', 'init', [$qa->get_slot()]);
 
-            if ($qa->get_state() == question_state::$finished) {
+            if ($qa->get_state() == question_state::$finished || $laststep->has_behaviour_var('_completeForGrading')) {
                 $loader = '<div class="loader"></div>';
                 $o = html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
                 $o .= '<div style="display: none;" class="estimatedSecondsRemaining_' . $qa->get_question_id() . '">' . '(<span class="estimatedSecondsRemainingValue_' . $qa->get_question_id() . '"></span> '. get_string('estimatedSecondsRemaining', 'qtype_moopt') . ')</div>';
@@ -533,8 +542,8 @@ class qtype_moopt_renderer extends qtype_renderer {
                 // If a teacher is looking at this feedback and we did receive a valid response but it has an
                 // internal-error-attribute we still want to display this result.
                 return html_writer::div(get_string('needsgradingbyteacher', 'qtype_moopt'), 'gradingstatus');
-            } else if ($qa->get_state()->is_graded() || (has_capability('mod/quiz:grade', $PAGE->context) &&
-                    $qa->get_state() == question_state::$needsgrading)) {
+            } else if ($qa->get_state()->is_graded() || $laststep->has_behaviour_var('_showGradedFeedback') ||
+                (has_capability('mod/quiz:grade', $PAGE->context) && $qa->get_state() == question_state::$needsgrading)) {
 
                 $qubarecord = $DB->get_record('question_usages', ['id' => $qa->get_usage_id()]);
 
