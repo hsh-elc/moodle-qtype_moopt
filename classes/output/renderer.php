@@ -56,12 +56,11 @@ class qtype_moopt_renderer extends qtype_renderer {
         // Temporarly hide the generalfeedback until the grader returns a response file
         // Since the general feedback may contain the solution to the question,
         // hiding the general feedback is neccessary for the fellowing reason:
-        // A grader may return a Proforma response file with the is-internal-error attribute set to true, allowing
-        // the student to redo their attempt -- by then the student will already have seen the correct solution in the
-        // feedback.
-        // Do this unless the question has the manual graded behaviour.
-        // Since the manual grading can not fail displaying the solution at this point
-        // don´t give the student an advantage
+        // A grader may return a Proforma response file with the is-internal-error
+        // attribute set to true, allowing the student to redo their attempt -- by then
+        // the student will already have seen the correct solution in the feedback.
+        // Do this unless the question is using the manual graded behaviour,
+        // since the manual grading cannot create an internal error.
         if (!$qa->get_behaviour() instanceof qbehaviour_manualgraded){
             $this->generalfeedbacktemp = $qa->get_question()->generalfeedback;
             $qa->get_question()->generalfeedback = '<p />';
@@ -72,7 +71,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
         $laststep = $qa->get_last_step();
 
-        // Question is queued for grading, print the message that the question have been queued for grading
+        // Question has been queued for grading, let the user know
         if ($qa->get_state() == question_state::$finished || $laststep->has_behaviour_var('_completeForGrading')) {
             $o .= "<div class='specificfeedback queuedforgrading'>";
             $loader = '<div class="loader"></div>';
