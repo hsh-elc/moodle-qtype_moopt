@@ -27,11 +27,6 @@ define([], function () {
             } else {
                 tinyMCE.get(common_id).setContent(contents);
             }
-        },
-
-        setContentsOfText: function (common_id, contents) {
-            document.querySelector("[id^='" + common_id + "']").value = contents;
         }
-
     };
 });

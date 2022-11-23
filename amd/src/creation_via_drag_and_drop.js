@@ -48,8 +48,8 @@ define(['core/ajax',
                                 document.querySelector("#id_name").value = result.title;
                                 editorEditor.setContents('id_questiontext', result.description);
                                 editorEditor.setContents('id_internaldescription', result.internaldescription);
-                                editorEditor.setContentsOfText('id_taskuuid', result.taskuuid);
-                                editorEditor.setContentsOfText('id_defaultmark', result.maxscoregradinghints);
+                                editorEditor.setContents('id_taskuuid', result.taskuuid);
+                                editorEditor.setContents('id_defaultmark', result.maxscoregradinghints);
                                 editorEditor.setContents('id_generalfeedback', result.filesdisplayedingeneralfeedback);
 
                                 ajax.call([
@@ -229,6 +229,4 @@ function setSelectionSafely(query) {
     select = document.querySelector(query);
     if(null !== select)
         select.selected = true;
-    else
-        console.warn("object not found for query: " + query)
 }
