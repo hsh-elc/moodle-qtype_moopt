@@ -466,7 +466,9 @@ class qtype_moopt_renderer extends qtype_renderer {
                     [(int)$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, (int)$questionoptions->ftsnuminitialfields), $qa->get_question_id()]);
         }
 
-        if ($qa->get_behaviour_name() == 'immediatemoopt') {
+        if ($qa->get_behaviour_name() == 'immediatemoopt' || $qa->get_behaviour_name() == 'adaptivemoopt' ||
+            $qa->get_behaviour_name() == 'adaptivemooptnopenalty' || $qa->get_behaviour_name() == 'interactivemoopt' ||
+            $qa->get_behaviour_name() == 'immediatemooptcbm') {
             if ($questionoptions->enablefilesubmissions && $questionoptions->enablefreetextsubmissions) {
                 $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
                     'initForFileAndFreetextSubmissions', [$qa->get_behaviour_field_name('submit'), $filemanagerid, $itemid, $answertextids]);
