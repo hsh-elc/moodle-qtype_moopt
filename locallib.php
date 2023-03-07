@@ -717,7 +717,7 @@ function internal_retrieve_grading_results($qubaid) : array
 
                                 $separatefeedbackhelper->process_result();
 
-                                $internalerror = $separatefeedbackhelper->get_detailed_feedback()->has_internal_error();
+                                $internalerror = $separatefeedbackhelper->get_detailed_feedback()->getSeparateFeedbackData()->has_internal_error();
                                 // retrieve the score and apply it (later on) regardless of whether there
                                 // was an error or not
                                 $score = $separatefeedbackhelper->get_calculated_score();

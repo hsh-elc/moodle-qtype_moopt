@@ -31,7 +31,6 @@ class separate_feedback_handler {
     private $maxscorelms;
     private $scorecompensationfactor;
     private $calculatedscore;
-    private $gradingscheme;
     private $detailedfeedback;
     private $summarisedfeedback;
     private $files;
@@ -61,7 +60,8 @@ class separate_feedback_handler {
         //Preprocess GradingScheme
         $gradingschemehandler = new grading_scheme_handler($this->gradinghints,  $this->testselement, $this->namespacegradinghints, $this->maxscorelms, $this->xpathtask);
         $gradingschemehandler->build_grading_scheme();
-        $this->gradingscheme = $gradingschemehandler->get_grading_scheme();
+        $this->detailedfeedback = $gradingschemehandler->get_grading_scheme();
+        $this->detailedfeedback->addSeparateFeedbackData();
         $this->hasgradinghintsrootchildren = $gradingschemehandler->has_gradinghintsroot_children();
         $this->scorecompensationfactor = $gradingschemehandler->get_scorecompensationfactor();
 
@@ -96,23 +96,21 @@ class separate_feedback_handler {
      * @throws service_communicator_exception
      */
     public function process_result() {
-
-        $this->detailedfeedback = new separate_feedback_text_node('detailed_feedback');
-        $this->copy_infos_from_grading_hints_node($this->detailedfeedback, $this->gradingscheme);
         $this->detailedfeedback->set_heading(get_string('detailedfeedback', 'qtype_moopt'));
 
         if ($this->hasgradinghintsrootchildren) {
-            $this->calculatedscore = $this->calculate_from_children($this->gradingscheme, $this->detailedfeedback);
+            $this->calculatedscore = $this->fill_node_with_feedback_data_from_children($this->detailedfeedback);
         } else {
-            $this->calculatedscore = $this->calculate_without_children($this->gradingscheme, $this->detailedfeedback);
+            $this->calculatedscore = $this->fill_with_feedback_no_children($this->detailedfeedback);
         }
 
-        $this->detailedfeedback->set_score($this->calculatedscore);
+        $this->detailedfeedback->getSeparateFeedbackData()->set_score($this->calculatedscore);
 
-        $this->summarisedfeedback = new separate_feedback_text_node('summarised_feedback',
+        $this->summarisedfeedback = new grading_hints_node('summarised_feedback',
                 get_string('summarizedfeedback', 'qtype_moopt'));
-        $this->summarisedfeedback->set_has_internal_error($this->detailedfeedback->has_internal_error());
-        $this->fill_feedback_node_with_feedback_list($this->summarisedfeedback,
+        $this->summarisedfeedback->addSeparateFeedbackData();
+        $this->summarisedfeedback->getSeparateFeedbackData()->set_has_internal_error($this->detailedfeedback->getSeparateFeedbackData()->has_internal_error());
+        $this->fill_feedback_node_with_feedback_list($this->summarisedfeedback->getSeparateFeedbackData(),
                 $this->separatetestfeedback->getElementsByTagNameNS($this->namespacefeedback, 'submission-feedback-list')[0]);
     }
 
@@ -126,45 +124,24 @@ class separate_feedback_handler {
     /**
      * @return separate_feedback_text_node The rootnode of the separate feedback tree
      */
-    public function get_detailed_feedback(): separate_feedback_text_node {
+    public function get_detailed_feedback(): grading_hints_node {
         return $this->detailedfeedback;
     }
 
-    public function get_summarised_feedback(): separate_feedback_text_node {
+    public function get_summarised_feedback(): grading_hints_node {
         return $this->summarisedfeedback;
     }
 
     /**
-     * Calculates the score for the submission when there are no childs in the grading hints root element.
-     * In this case, the calculated score is the accumulated score of all tests of the task.
-     * @param grading_hints_text_node $gradinghintsnode The root node of the grading scheme
-     * @param separate_feedback_text_node $detailedfeedback The root node of the separate feedback tree
-     * @return float|int|mixed The calculated score
-     * @throws service_communicator_exception
+     * Fills the grading hints tree with the feedback information in case there are no childs in the grading hints root element.
+     * The calculated score is the accumulated score of all tests of the task.
+     * @param grading_hints_node $rootnode
+     * @return mixed
      */
-    private function calculate_without_children(grading_hints_text_node $gradinghintsnode, separate_feedback_text_node $detailedfeedback) {
-
-        switch ($gradinghintsnode->get_accumulator_function()) {
-            case 'min':
-                $totalscore = PHP_INT_MAX;
-                $mergefunc = 'min';
-                break;
-            case 'max':
-                $totalscore = 0.0;
-                $mergefunc = 'max';
-                break;
-            case 'sum':
-                $totalscore = 0.0;
-                $mergefunc = function($a, $b) {
-                    return $a + $b;
-                };
-                break;
-        }
-
-        foreach ($this->gradingscheme->get_children() as $child) {
-            $newchild = new separate_feedback_text_node($child->get_id());
-            $this->copy_infos_from_grading_hints_node($newchild, $child);
-            $detailedfeedback->add_child($newchild);
+    public function fill_with_feedback_no_children(grading_hints_node $rootnode) {
+        list("maxvalue" => $totalscore, "mergefunc" => $mergefunc) = $this->get_merge_variables($rootnode->get_accumulator_function());
+        foreach ($this->detailedfeedback->get_children() as $child) {
+            $child->addSeparateFeedbackData();
 
             $value = $this->testresults[$child->get_id()];
             if (is_array($value)) {
@@ -177,99 +154,101 @@ class separate_feedback_handler {
                     " In fact there are no grading hints in the task at all.");
             } else {
                 $result = $value->getElementsByTagNameNS($this->namespacefeedback, 'result')[0];
-                $score = $result->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
-                $this->fill_feedback_node_with_feedback_list($newchild, $value->getElementsByTagNameNS(
+                $this->fill_feedback_node_with_feedback_list($child->getSeparateFeedbackData(), $value->getElementsByTagNameNS(
                     $this->namespacefeedback, 'feedback-list')[0]);
-                $newchild->set_score($score);
-                $totalscore = $mergefunc($totalscore, $score);
 
                 if ($result->hasAttribute('is-internal-error') && $result->getAttribute('is-internal-error') == "true") {
-                    $newchild->set_has_internal_error(true);
-                    $detailedfeedback->set_has_internal_error(true);
+                    $child->getSeparateFeedbackData()->set_has_internal_error(true);
+                    $rootnode->getSeparateFeedbackData()->set_has_internal_error(true);
                 }
+                $result = $value->getElementsByTagNameNS($this->namespacefeedback, 'result')[0];
+                $score = $result->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
+                $child->getSeparateFeedbackData()->set_score($score);
+                $totalscore = $mergefunc($totalscore, $score);
             }
         }
-
         return $totalscore;
     }
 
     /**
      * This function will build a subtree of separate_feedback_text_nodes that represents a part of the
      * separate feedback tree. It will calculate the score of the separate feedback subtree.
-     * @param grading_hints_text_node $gradinghintsnode The root node of the grading scheme subtree
-     * @param separate_feedback_text_node $detailedfeedback The root node of the separate feedback subtree
+     * @param grading_hints_node $rootnode The root node of the grading scheme subtree
      * @param bool $scalescoretolms
      * @return int|mixed The calculated score
      * @throws \coding_exception
      * @throws service_communicator_exception
      */
-    private function calculate_from_children(grading_hints_text_node $gradinghintsnode, separate_feedback_text_node $detailedfeedback,
-                                                                     $scalescoretolms = true) {
-        switch ($gradinghintsnode->get_accumulator_function()) {
-            case 'min':
-                $value = PHP_INT_MAX;
-                $mergefunc = 'min';
-                break;
-            case 'max':
-                $value = 0;
-                $mergefunc = 'max';
-                break;
-            case 'sum':
-                $value = 0;
-                $mergefunc = function($a, $b) {
-                    return $a + $b;
-                };
-                break;
-        }
-
-        $counter = 0;
+    private function fill_node_with_feedback_data_from_children(grading_hints_node $rootnode, $scalescoretolms = true) {
+        list("maxvalue" => $value, "mergefunc" => $mergefunc) = $this->get_merge_variables($rootnode->get_accumulator_function());
         $internalerrorinchildren = false;
-
-        foreach ($gradinghintsnode->get_children() as $id => $child) {
-            $newchild = new separate_feedback_text_node($detailedfeedback->get_id() . '_' . $counter++);
-            $this->copy_infos_from_grading_hints_node($newchild, $child);
-            $detailedfeedback->add_child($newchild);
+        foreach ($rootnode->get_children() as $id => $child) {
+            $child->addSeparateFeedbackData();
             if ($child->get_type() === 'test') {
-                $score = $this->get_weighted_score_testref($child, $newchild, $scalescoretolms);
-
-                $newchild->set_score($score);
-
+                $score = $this->fill_test_node_with_feedback_data($child, $scalescoretolms);
                 $value = $mergefunc($value, $score);
-
-                if ($newchild->has_internal_error()) {
+                if ($child->getSeparateFeedbackData()->has_internal_error()) {
                     $internalerrorinchildren = true;
                 }
             } elseif ($child->get_type() === 'combine') {
-                $newchild->set_heading(get_string('combinedresult', 'qtype_moopt'));
+                $rawscore = $this->fill_node_with_feedback_data_from_children($child, $scalescoretolms);
 
-                $score = $this->get_weighted_score_combineref($child, $newchild, $scalescoretolms);
+                $child->getSeparateFeedbackData()->set_rawscore($rawscore);
 
-                $newchild->set_score($score);
+                // Execute function and only later set score to 0 because the above function also processes the child elements.
+                if ($this->should_be_nullified_node($child)) {
+                    $rawscore = 0;
+                    $child->getSeparateFeedbackData()->set_nullified(true);
+                }
 
-                $value = $mergefunc($value, $score);
-
-                if ($newchild->has_internal_error()) {
+                $child->getSeparateFeedbackData()->set_score($rawscore);
+                $value = $mergefunc($value, $rawscore);
+                if ($child->getSeparateFeedbackData()->has_internal_error()) {
                     $internalerrorinchildren = true;
                 }
             }
         }
         if ($internalerrorinchildren) {
-            $detailedfeedback->set_has_internal_error(true);
+            $rootnode->getSeparateFeedbackData()->set_has_internal_error(true);
         }
+        return $value;
+    }
 
+    /**
+     * Only calculates the score of a given node and does not manipulate any data of the grading hints tree
+     * @param grading_hints_node $node The root of the subtree. The childs of the subtree must already be processed by the fill_node_with_feedback_data_from_children function,
+     * more specifically, the rawscore must be already be set for all the test nodes
+     * @param bool $scalescoretolms
+     * @return float
+     */
+    private function calc_score_from_children(grading_hints_node $node, $scalescoretolms = true) : float {
+        list("maxvalue" => $value, "mergefunc" => $mergefunc) = $this->get_merge_variables($node->get_accumulator_function());
+        foreach ($node->get_children() as $id => $child) {
+            $child->addSeparateFeedbackData();
+            if ($child->get_type() === 'test') {
+                $score = $this->calc_score_from_rawscore($child->getSeparateFeedbackData()->get_rawscore(),$child->get_weight(), $scalescoretolms);
+                $value = $mergefunc($value, $score);
+            } elseif ($child->get_type() === 'combine') {
+                if ($child->getSeparateFeedbackData()->is_nullified()) {
+                    $score = 0;
+                } else {
+                    $score = $this->calc_score_from_children($child, $scalescoretolms);
+                }
+                $value = $mergefunc($value, $score);
+            }
+        }
         return $value;
     }
 
     /**
      * Fills the separate feedback tree with infos of the test and calculates the weighted score of the test
-     * @param grading_hints_text_node $gradinghintsnode The grading hints node that represents the test
-     * @param separate_feedback_text_node $detailedfeedbacknode The separate feedback node that represents the test
+     * @param grading_hints_node $gradinghintsnode The grading hints node that represents the test
      * @param bool $scalescoretolms
      * @return float|int The calculated score of the test
      * @throws \coding_exception
      * @throws service_communicator_exception
      */
-    private function get_weighted_score_testref(grading_hints_text_node $gradinghintsnode, separate_feedback_text_node $detailedfeedbacknode, $scalescoretolms = true) {
+    private function fill_test_node_with_feedback_data(grading_hints_node $gradinghintsnode, $scalescoretolms = true) {
         $refid = $gradinghintsnode->get_refid();
 
         if(isset($this->testresults[$refid])) {
@@ -294,52 +273,38 @@ class separate_feedback_handler {
         }
         if (isset($testresult)) {
             $result = $testresult->getElementsByTagNameNS($this->namespacefeedback, 'result')[0];
-            $score = $result->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
-            $this->fill_feedback_node_with_testresult_infos($detailedfeedbacknode, $testresult);
+            $rawscore = $result->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
+            $this->fill_feedback_node_with_testresult_infos($gradinghintsnode->getSeparateFeedbackData(), $testresult);
         } else {
             $result = null;
-            $score = 0;
+            $rawscore = 0;
         }
-        $detailedfeedbacknode->set_heading(get_string('test', 'qtype_moopt') . ' ');
+        $gradinghintsnode->set_heading(get_string('test', 'qtype_moopt') . ' ');
 
         if (isset($result) && $result->hasAttribute('is-internal-error')) {
-            $detailedfeedbacknode->set_has_internal_error($result->getAttribute('is-internal-error') == "true");
+            $gradinghintsnode->getSeparateFeedbackData()->set_has_internal_error($result->getAttribute('is-internal-error') == "true");
         }
 
         // Execute functions and only later set score to 0 because the above functions also fills the feedback elements.
         if ($this->should_be_nullified_node($gradinghintsnode)) {
-            $score = 0;
-            $detailedfeedbacknode->set_nullified(true);
+            $rawscore = 0;
+            $gradinghintsnode->getSeparateFeedbackData()->set_nullified(true);
         }
 
-        $detailedfeedbacknode->set_rawscore($score);
+        $gradinghintsnode->getSeparateFeedbackData()->set_rawscore($rawscore);
 
-        if ($scalescoretolms) {
-            return $score * $gradinghintsnode->get_weight() * $this->scorecompensationfactor;
-        } else {
-            return $score * $gradinghintsnode->get_weight();
-        }
+        $score = $this->calc_score_from_rawscore($rawscore, $gradinghintsnode->get_weight(), $scalescoretolms);
+
+        $gradinghintsnode->getSeparateFeedbackData()->set_score($score);
+        return $score;
     }
 
-    /**
-     * Fills the separate feedback tree with infos of the combined test and calculates the weighted score of the combined test.
-     * It processes all child elements of the combined test
-     * @param grading_hints_text_node $gradinghintsnode
-     * @param separate_feedback_text_node $node
-     * @param bool $scalescoretolms
-     * @return float|int
-     * @throws \coding_exception
-     * @throws service_communicator_exception
-     */
-    private function get_weighted_score_combineref(grading_hints_text_node $gradinghintsnode, separate_feedback_text_node $node, $scalescoretolms = true) {
-        $score = $this->calculate_from_children($gradinghintsnode, $node, $scalescoretolms);
-        // Execute function and only later set score to 0 because the above function also processes the child elements.
-        if ($this->should_be_nullified_node($gradinghintsnode)) {
-            $score = 0;
-            $node->set_nullified(true);
+    private function calc_score_from_rawscore($rawscore, $weight, $scalescoretolms = true) : float {
+        if ($scalescoretolms) {
+            return $rawscore * $weight * $this->scorecompensationfactor;
+        } else {
+            return $rawscore * $weight;
         }
-        $node->set_rawscore($score);
-        return $score * $gradinghintsnode->get_weight();
     }
 
     private function fill_feedback_node_with_testresult_infos(separate_feedback_text_node $node,
@@ -411,32 +376,37 @@ class separate_feedback_handler {
     }
 
     /**
-     * Copies all grading scheme related information from a grading hints node in to a separate feedback node
-     * @param separate_feedback_text_node $targetnode
-     * @param grading_hints_text_node $sourcenode
+     * @param $accumulatorfunction
+     * @return array An array containing two fields: maxvalue and mergefunc
      */
-    private function copy_infos_from_grading_hints_node(separate_feedback_text_node $targetnode, grading_hints_text_node $sourcenode) {
-        $targetnode->set_accumulator_function($sourcenode->get_accumulator_function());
-        $targetnode->set_heading($sourcenode->get_heading());
-        $targetnode->set_description($sourcenode->get_description());
-        $targetnode->set_internal_description($sourcenode->get_internal_description());
-        $targetnode->set_max_score($sourcenode->get_max_score());
-        $targetnode->set_title($sourcenode->get_title());
-        $targetnode->set_weight($sourcenode->get_weight());
-        $targetnode->set_nullifyconditionroot($sourcenode->get_nullifyconditionroot());
-        $targetnode->set_type($sourcenode->get_type());
-        $targetnode->set_refid($sourcenode->get_refid());
-        $targetnode->set_subref($sourcenode->get_subref());
+    private function get_merge_variables($accumulatorfunction) : array {
+        switch ($accumulatorfunction) {
+            case 'max':
+                $maxvalue = 0;
+                $mergefunc = 'max';
+                break;
+            case 'sum':
+                $maxvalue = 0;
+                $mergefunc = function ($a, $b) {
+                    return $a + $b;
+                };
+                break;
+            default:
+                $maxvalue = PHP_INT_MAX;
+                $mergefunc = 'min';
+                break;
+        }
+        return array("maxvalue" => $maxvalue, "mergefunc" => $mergefunc);
     }
 
     // Nullifying from here on.
 
     /**
      * Checks if the score of the separate feedback node should be nullified
-     * @param grading_hints_text_node $node The corresponding node to the separate feedback node
+     * @param grading_hints_node $node The corresponding node to the separate feedback node
      * @return bool
      */
-    private function should_be_nullified_node(grading_hints_text_node $node): bool {
+    private function should_be_nullified_node(grading_hints_node $node): bool {
         if ($node->get_nullifyconditionroot() !== null) {
             $nullifyconditionroot = $node->get_nullifyconditionroot();
             switch (get_class($nullifyconditionroot)) {
@@ -508,10 +478,8 @@ class separate_feedback_handler {
      */
     private function get_nullify_combine_value(grading_hints_nullify_condition_combineref_operand $operand): float {
         $refid = $operand->get_ref();
-        $gradinghintsnode = $this->gradingscheme->get_child_by_refid($refid);
-        $score = $this->calculate_from_children($gradinghintsnode,
-                new separate_feedback_text_node('dummy') /* This is just a dummy object */, false);
-        return $score;
+        $gradinghintsnode = $this->detailedfeedback->get_child_by_refid($refid);
+        return $this->calc_score_from_children($gradinghintsnode, false);
     }
 
     /**

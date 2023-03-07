@@ -16,7 +16,7 @@
 
 namespace qtype_moopt\utility\proforma_xml;
 
-class grading_hints_text_node {
+class grading_hints_node {
 
     private $id;
     private $heading;
@@ -31,16 +31,21 @@ class grading_hints_text_node {
     private $refid;
     private $subref;
     private $nullifyconditionroot;
+    private separate_feedback_text_node $separate_feedback_data;
 
-    public function __construct($id, $heading = null, $content = null) {
+    public function __construct($id, $heading = null) {
         $this->id = $id;
         $this->heading = $heading;
-        $this->content = $content;
         $this->children = [];
-        $this->filerefs = [];
     }
 
-    public function add_child(grading_hints_text_node $node) {
+    public function addSeparateFeedbackData() {
+        if (!isset($this->separate_feedback_data)) {
+            $this->separate_feedback_data = new separate_feedback_text_node();
+        }
+    }
+
+    public function add_child(grading_hints_node $node) {
         $this->children[] = $node;
     }
 
@@ -140,7 +145,19 @@ class grading_hints_text_node {
         return $this->nullifyconditionroot;
     }
 
-    public function get_child_by_refid($refid, $subref = null) : ?grading_hints_text_node {
+    public function has_feedback_data() : bool {
+        return isset($this->separate_feedback_data);
+    }
+
+    /**
+     * @return separate_feedback_text_node All the feedback related data
+     */
+    public function getSeparateFeedbackData(): separate_feedback_text_node
+    {
+        return $this->separate_feedback_data;
+    }
+
+    public function get_child_by_refid($refid, $subref = null) : ?grading_hints_node {
         if ($this->ref_equals($refid, $subref)) {
             return $this;
         } else {

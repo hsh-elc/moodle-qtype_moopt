@@ -19,7 +19,7 @@ namespace qtype_moopt\output;
 
 use qtype_moopt\utility\proforma_xml\grading_hints_nullify_condition;
 use qtype_moopt\utility\proforma_xml\grading_hints_nullify_conditions;
-use qtype_moopt\utility\proforma_xml\grading_hints_text_node;
+use qtype_moopt\utility\proforma_xml\grading_hints_node;
 use qtype_moopt\utility\proforma_xml\separate_feedback_text_node;
 
 /**
@@ -38,7 +38,7 @@ class grading_hints_renderer
     private $showfeedbackdata;
 
     /**
-     * @param separate_feedback_text_node|grading_hints_text_node $rootnode The type of the rootnode determines whether only the scheme should be rendered or the separate feedback tree
+     * @param separate_feedback_text_node|grading_hints_node $rootnode The type of the rootnode determines whether only the scheme should be rendered or the separate feedback tree
      * @param $displayteachercontent
      * @param $fileinfos
      * @param $showstudentsscorecalculationscheme
@@ -52,7 +52,7 @@ class grading_hints_renderer
         $this->showstudentsscorecalculationscheme = $showstudentsscorecalculationscheme;
         $this->randid = bin2hex(random_bytes(6));
         $this->showfeedbackdata = true;
-        if (get_class($rootnode) == 'qtype_moopt\utility\proforma_xml\grading_hints_text_node') {
+        if (!$rootnode->has_feedback_data()) {
             $this->showfeedbackdata = false;
             $this->showstudentsscorecalculationscheme = true;
         }
@@ -70,7 +70,7 @@ class grading_hints_renderer
 
         $additionalheaderclasses = '';
         if ($this->showfeedbackdata) {
-            $additionalheaderclasses = "<div class='card-header, " . ($node->has_internal_error() ? ', internalerror' : '') . "'";
+            $additionalheaderclasses = "<div class='card-header, " . ($node->getSeparateFeedbackData()->has_internal_error() ? ', internalerror' : '') . "'";
         }
 
         $text = "<div id='$accordionid'>";
@@ -109,7 +109,7 @@ class grading_hints_renderer
         }
         $heading = '<div style="text-align:left;width:'. $titlewidth .'%;display:inline-block;">';
 
-        if ($this->showfeedbackdata && $node->has_internal_error()) {
+        if ($this->showfeedbackdata && $node->getSeparateFeedbackData()->has_internal_error()) {
             $heading .= '<div style="font-family: FontAwesome; font-size: 1.5em;margin-right:20px;".'
                 . '"display:inline-block;">&#xf00d;</div>';
         }
@@ -121,8 +121,8 @@ class grading_hints_renderer
         $heading .= '</div>';
         $heading .= '</div><div style="text-align:right;vertical-align: text-bottom; width:'. (100-$titlewidth) .'%;display:inline-block;">';
         if ($this->showfeedbackdata) {
-            if (!is_null($node->get_score())) {
-                $score = round($node->get_score(), 2);
+            if (!is_null($node->getSeparateFeedbackData()->get_score())) {
+                $score = round($node->getSeparateFeedbackData()->get_score(), 2);
                 $maxscore = round($node->get_max_score(), 2);
 
                 if (!is_null($node->get_max_score())) {
@@ -130,8 +130,8 @@ class grading_hints_renderer
                 } else {
                     $heading .= get_string('score', 'qtype_moopt') .": $score";
                 }
-                if (!is_null($node->get_rawscore()) && $node->get_type() == 'test') {
-                    $heading .= ' (' . get_string("rawscore", "qtype_moopt") . ' ' . $node->get_rawscore() . ')';
+                if (!is_null($node->getSeparateFeedbackData()->get_rawscore()) && $node->get_type() == 'test') {
+                    $heading .= ' (' . get_string("rawscore", "qtype_moopt") . ' ' . $node->getSeparateFeedbackData()->get_rawscore() . ')';
                 }
             }
         } else {
@@ -139,7 +139,7 @@ class grading_hints_renderer
                 $heading .= get_string('maxscore', 'qtype_moopt') . ': ' . round($node->get_max_score(), 2);
             }
         }
-        if ($this->showfeedbackdata && $node->is_nullified()) {
+        if ($this->showfeedbackdata && $node->getSeparateFeedbackData()->is_nullified()) {
             $heading .= ' (' . get_string('hasbeennullified', 'qtype_moopt') . ')';
         }
         $heading .= '</div>';
@@ -185,7 +185,7 @@ class grading_hints_renderer
                     $subscores = [];
                     foreach ($node->get_children() as $child) {
                         if ($this->showfeedbackdata) {
-                            $subscores[] = round($child->get_score(), 2);
+                            $subscores[] = round($child->getSeparateFeedbackData()->get_score(), 2);
                         } else {
                             $subscores[] = round($child->get_max_score(), 2);
                         }
@@ -197,7 +197,7 @@ class grading_hints_renderer
                     }
                     $scorecalc .= $scorecalcschemeprefix . ': ';
                     if ($this->showfeedbackdata) {
-                        $scorecalc .= round($node->get_score(), 2);
+                        $scorecalc .= round($node->getSeparateFeedbackData()->get_score(), 2);
                     } else {
                         $scorecalc .= round($node->get_max_score(), 2);
                     }
@@ -222,9 +222,9 @@ class grading_hints_renderer
             }
         } else {
             if ($this->showfeedbackdata) {
-                if (!empty($node->get_student_feedback())) {
+                if (!empty($node->getSeparateFeedbackData()->get_student_feedback())) {
                     $content .= '<div class=\'moopt-feedback-student\'><h4>' . get_string('feedback', 'qtype_moopt') . '</h4>';
-                    foreach ($node->get_student_feedback() as $studfeed) {
+                    foreach ($node->getSeparateFeedbackData()->get_student_feedback() as $studfeed) {
                         if ($studfeed['title'] != null) {
                             $content .= "<p><strong>{$studfeed['title']}</strong></p>";
                         }
@@ -251,9 +251,9 @@ class grading_hints_renderer
                     }
                     $content .= '</div>';
                 }
-                if (!empty($node->get_teacher_feedback()) && $this->displayteachercontent) {
+                if (!empty($node->getSeparateFeedbackData()->get_teacher_feedback()) && $this->displayteachercontent) {
                     $content .= '<div class=\'moopt-feedback-teacher\'><h4>' . get_string('teacherfeedback', 'qtype_moopt') . '</h4>';
-                    foreach ($node->get_teacher_feedback() as $teacherfeed) {
+                    foreach ($node->getSeparateFeedbackData()->get_teacher_feedback() as $teacherfeed) {
                         $content .= '<p>';
                         if ($teacherfeed['title'] != null) {
                             $content .= "<p><strong>{$teacherfeed['title']}</strong></p>";
@@ -292,7 +292,7 @@ class grading_hints_renderer
 
     /**
      * Formats the content of all childrens of the node, will call render_internal() recursively
-     * @param grading_hints_text_node|separate_feedback_text_node $node
+     * @param grading_hints_node|separate_feedback_text_node $node
      * @return string
      */
     private function format_children($node) {
@@ -310,13 +310,13 @@ class grading_hints_renderer
 
     /**
      * Generates the nullifycondition output for a given node
-     * @param grading_hints_text_node|separate_feedback_text_node $node
+     * @param grading_hints_node|separate_feedback_text_node $node
      * @return string the output for the nullifycondition. An empty string will be returned if the element does not have a nullifycondition or is not nullified
      * @throws \coding_exception
      */
     private function format_nullifying($node) : string {
         //Show the nullify information in feedback only if the $node has been nullified
-        if (!$this->showfeedbackdata || $node->is_nullified()) {
+        if (!$this->showfeedbackdata || $node->getSeparateFeedbackData()->is_nullified()) {
             if ($node->get_nullifyconditionroot() !== null) {
                 $o = '<div align="right" style="margin-bottom: 10px"><small><i>';
 
@@ -430,12 +430,12 @@ class grading_hints_renderer
                     $reftitle = $referencednode->get_title();
                 } else {
                     $reftitle = $operand->get_ref();
-                    if ($operand->get_subref !== null) {
+                    if ($operand->get_subref() !== null && $operand->get_subref() !== '') {
                        $reftitle .= '/' . $operand->get_subref();
                     }
                 }
                 if ($this->showfeedbackdata) {
-                    $achievedscore = round($referencednode->get_rawscore(), 2);
+                    $achievedscore = round($referencednode->getSeparateFeedbackData()->get_rawscore(), 2);
                 }
                 $scoretype = get_string("rawscoreof", "qtype_moopt");
                 break;
@@ -449,12 +449,12 @@ class grading_hints_renderer
                     $reftitle = $operand->get_ref();
                 }
                 if ($this->showfeedbackdata) {
-                    $achievedscore = round($referencednode->get_rawscore(), 2);
+                    $achievedscore = round($referencednode->getSeparateFeedbackData()->get_rawscore(), 2);
                 }
                 if ($this->get_nullifycondition_operand_type($otheroperand) == 'literal') {
                     $scoretype = get_string("weightedscoreof", "qtype_moopt");
                     if ($this->showfeedbackdata) {
-                        $achievedscore = round($referencednode->get_score(), 2);
+                        $achievedscore = round($referencednode->getSeparateFeedbackData()->get_score(), 2);
                     }
                 }
                 break;

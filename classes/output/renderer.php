@@ -208,7 +208,6 @@ class qtype_moopt_renderer extends qtype_renderer {
         return $o;
     }
 
-
     private function render_downloadable_files(question_attempt $qa, question_display_options $options) {
         global $DB;
 
