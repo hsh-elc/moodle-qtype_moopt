@@ -31,7 +31,7 @@ class grading_hints_node {
     private $refid;
     private $subref;
     private $nullifyconditionroot;
-    private separate_feedback_text_node $separate_feedback_data;
+    private $separate_feedback_data;
 
     public function __construct($id, $heading = null) {
         $this->id = $id;
