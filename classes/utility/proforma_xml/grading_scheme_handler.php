@@ -167,11 +167,10 @@ class grading_scheme_handler {
     /**
      * It will calculate the maximum score of a subtree of the gradingscheme.
      * @param grading_hints_node $root The root node of the subtree
-     * @param bool $scalescoretolms
      * @return int|mixed The maximum score of the subtree of the gradingscheme
      * @throws \coding_exception
      */
-    private function calculate_maxscore_from_children(grading_hints_node $root, $scalescoretolms = true)
+    private function calculate_maxscore_from_children(grading_hints_node $root)
     {
         switch ($root->get_accumulator_function()) {
             case 'max':
@@ -193,12 +192,9 @@ class grading_scheme_handler {
         foreach ($root->get_children() as $child) {
             $maxscore = 0;
             if ($child->get_type() == 'test') {
-                $maxscore = $child->get_weight();
-                if ($scalescoretolms) {
-                    $maxscore *= $this->scorecompensationfactor;
-                }
+                $maxscore = $child->get_weight() * $this->scorecompensationfactor;
             } else if ($child->get_type() == 'combine') {
-                $maxscore = $child->get_weight() * $this->calculate_maxscore_from_children($child, $scalescoretolms);
+                $maxscore = $child->get_weight() * $this->calculate_maxscore_from_children($child);
             }
             $child->set_max_score($maxscore);
             $maxvalue = $mergefunc($maxvalue, $maxscore);
@@ -280,10 +276,10 @@ class grading_scheme_handler {
                 continue;
             }
             if ($child->localName == 'nullify-condition') {
-                $node->set_nullifyconditionroot(new grading_hints_nullify_condition($child, $this->namespace));
+                $node->set_nullifyconditionroot(new grading_hints_nullify_condition($child, $this->namespace, $this->scorecompensationfactor));
                 break;
             } elseif ($child->localName == 'nullify-conditions') {
-                $node->set_nullifyconditionroot(new grading_hints_nullify_conditions($child, $this->namespace));
+                $node->set_nullifyconditionroot(new grading_hints_nullify_conditions($child, $this->namespace, $this->scorecompensationfactor));
                 break;
             }
         }

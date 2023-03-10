@@ -15,8 +15,9 @@ class grading_hints_nullify_condition
      * Constructs the nullifycondition based on a DOMElement, that contains the nullifycondition data
      * @param \DOMElement $elem The nullify-condition element from which the information will be retrieved
      * @param $namespace
+     * @param float $scorecompensationfactor
      */
-    public function __construct(\DOMElement $elem, $namespace) {
+    public function __construct(\DOMElement $elem, $namespace, float $scorecompensationfactor) {
         if (($foundElems = $elem->getElementsByTagNameNS($namespace, 'title'))->length == 1) {
             $this->title = $foundElems[0]->nodeValue;
         }
@@ -45,7 +46,7 @@ class grading_hints_nullify_condition
                     break;
                 case 'nullify-literal':
                     $operand = floatval($childnode->getAttribute('value'));
-                    $operands[] = $operand;
+                    $operands[] = $operand * $scorecompensationfactor;
                     break;
             }
         }

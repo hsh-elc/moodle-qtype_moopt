@@ -20,8 +20,9 @@ class grading_hints_nullify_conditions
      * Constructs the composite nullifycondition based on a DOMElement, that contains the composite nulifycondition data
      * @param \DOMElement $elem The nullify-conditions element from which the information will be retrieved
      * @param $namespace
+     * @param float $scorecompensationfactor
      */
-    public function __construct(\DOMElement $elem, $namespace) {
+    public function __construct(\DOMElement $elem, $namespace, float $scorecompensationfactor) {
         if (($foundElems = $elem->getElementsByTagNameNS($namespace, 'title'))->length == 1) {
             $this->title = $foundElems[0]->nodeValue;
         }
@@ -41,9 +42,9 @@ class grading_hints_nullify_conditions
                 continue;
             }
             if ($child->localName == 'nullify-condition') {
-                $this->operands[] = new grading_hints_nullify_condition($child, $namespace);
+                $this->operands[] = new grading_hints_nullify_condition($child, $namespace, $scorecompensationfactor);
             } elseif ($child->localName == 'nullify-conditions') {
-                $this->operands[] = new grading_hints_nullify_conditions($child, $namespace);
+                $this->operands[] = new grading_hints_nullify_conditions($child, $namespace, $scorecompensationfactor);
             }
         }
     }
