@@ -140,6 +140,10 @@ class qtype_moopt_renderer extends qtype_renderer {
         }
         if (!$qa->get_state()->is_graded() && ($qa->get_question()->showstudgradingscheme || has_capability('mod/quiz:grade', $PAGE->context))) {
             $gradingscheme = $this->render_grading_scheme($qa);
+            //$o .= html_writer::tag('div', $gradingscheme, array('class' => 'gradingscheme'));
+            if(!$qa->get_question()->showstudgradingscheme){
+                $o .= html_writer::tag('div', $gradingscheme, array('class' => 'gradingscheme'));
+            }
             $o .= html_writer::tag('div', $gradingscheme);
         }
         if ($qa->get_state()->is_finished() || $laststep->has_behaviour_var('_completeForGrading')) {
@@ -164,7 +168,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
     private function render_internal_description($question) {
         $o = '';
-        $o .= $this->output->heading(get_string('internaldescription', 'qtype_moopt'), 3);
+        $o .= $this->output->heading(get_string('internaldescription', 'qtype_moopt'), 3, 'internaldescription');
         $o .= $question->internaldescription;
         return $o;
     }
