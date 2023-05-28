@@ -73,7 +73,7 @@ p.expandcollapselink a {
     margin-left: 10px;
 }
 
-.providedfiles{
+.providedfiles, .providedfilesteacher{
     margin-left: 10px;
 }
 
@@ -90,7 +90,7 @@ p.expandcollapselink a {
     100% { transform: rotate(360deg); }
 }
 
-.internaldescription, .gradingscheme {
+.internaldescription, .gradingscheme, .providedfilesteacher {
     background-color: #73afdc;
     margin-top: 10px;
 }
