@@ -257,18 +257,52 @@ class separate_feedback_handler {
             $gradinghintsnode->getSeparateFeedbackData()->set_has_internal_error($result->getAttribute('is-internal-error') == "true");
         }
 
-        // Execute functions and only later set score to 0 because the above functions also fills the feedback elements.
-        if ($this->should_be_nullified_node($gradinghintsnode)) {
-            $rawscore = 0;
-            $gradinghintsnode->getSeparateFeedbackData()->set_nullified(true);
-        }
-
         $gradinghintsnode->getSeparateFeedbackData()->set_rawscore($rawscore);
 
-        $score = $rawscore * $gradinghintsnode->get_weight() * $this->scorecompensationfactor;
+        // Execute functions and only later set score to 0 because the above functions also fills the feedback elements.
+        if ($this->should_be_nullified_node($gradinghintsnode)) {
+            $score = 0;
+            $gradinghintsnode->getSeparateFeedbackData()->set_nullified(true);
+        } else {
+            $score = $rawscore * $gradinghintsnode->get_weight() * $this->scorecompensationfactor;
+        }
 
         $gradinghintsnode->getSeparateFeedbackData()->set_score($score);
         return $score;
+    }
+
+    /**
+     * Only calculates the score of a given node and does not manipulate any data of the grading hints tree
+     * @param grading_hints_node $node The root of the subtree
+     * @param bool $scalescoretolms
+     * @return float
+     */
+    private function calc_score_from_children(grading_hints_node $node) : float {
+        list("maxvalue" => $value, "mergefunc" => $mergefunc) = $this->get_merge_variables($node->get_accumulator_function());
+        foreach ($node->get_children() as $id => $child) {
+            if (!$child->has_feedback_data()) {
+                // if the node was not processed already
+                $child->addSeparateFeedbackData();
+            }
+            if ($child->get_type() === 'test') {
+                $score = $child->getSeparateFeedbackData()->get_score();
+                if ($score === null) {
+                    // if the test node was not processed already, process it now
+                    $this->fill_test_node_with_feedback_data($child);
+                    $score = $child->getSeparateFeedbackData()->get_score();
+                }
+                $value = $mergefunc($value, $score);
+            } elseif ($child->get_type() === 'combine') {
+                if ($this->should_be_nullified_node($child)) {
+                    $score = 0;
+                    $child->getSeparateFeedbackData()->set_nullified(true);
+                } else {
+                    $score = $this->calc_score_from_children($child);
+                }
+                $value = $mergefunc($value, $score);
+            }
+        }
+        return $value;
     }
 
     private function fill_feedback_node_with_testresult_infos(separate_feedback_text_node $node,
@@ -443,7 +477,12 @@ class separate_feedback_handler {
     private function get_nullify_combine_value(grading_hints_nullify_condition_combineref_operand $operand): float {
         $refid = $operand->get_ref();
         $gradinghintsnode = $this->detailedfeedback->get_child_by_refid($refid);
-        return $gradinghintsnode->getSeparateFeedbackData()->get_score();
+        if ($gradinghintsnode->has_feedback_data()) {
+            $score = $gradinghintsnode->getSeparateFeedbackData()->get_rawscore();
+        } else {
+            $score = $this->calc_score_from_children($gradinghintsnode);
+        }
+        return $score;
     }
 
     /**
@@ -458,9 +497,7 @@ class separate_feedback_handler {
         } else {
             $testresult = $this->testresults[$refid];
         }
-        $score = $testresult->getElementsByTagNameNS($this->namespacefeedback, 'result')[0]->getElementsByTagNameNS(
-                        $this->namespacefeedback, 'score')[0]->nodeValue;
-        return $score;
+        return $testresult->getElementsByTagNameNS($this->namespacefeedback, 'result')[0]->getElementsByTagNameNS($this->namespacefeedback, 'score')[0]->nodeValue;
     }
 
     /**

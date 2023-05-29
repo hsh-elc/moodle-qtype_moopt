@@ -238,9 +238,14 @@ class grading_scheme_handler {
     private function fill_grading_hints_node_with_testref_infos(\DOMElement $elem, grading_hints_node $node)
     {
         $refid = $elem->getAttribute('ref');
-        if (($titlelist = $elem->getElementsByTagNameNS($this->namespace, 'title'))->length == 1) {
-            $node->set_title($titlelist[0]->nodeValue);
-        } else {
+        $foundTitle = false;
+        foreach($elem->childNodes as $child) {
+            if ($child->localName == 'title') {
+                $node->set_title($child->nodeValue);
+                $foundTitle = true;
+            }
+        }
+        if(!$foundTitle) {
             $node->set_title($this->tests[$refid] !== null && $this->tests[$refid]->getElementsByTagNameNS($this->namespace, 'title')[0]->nodeValue);
         }
         if (($list = $elem->getElementsByTagNameNS($this->namespace, 'description'))->length == 1) {
