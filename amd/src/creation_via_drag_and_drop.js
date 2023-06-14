@@ -158,6 +158,13 @@ define(['core/ajax',
                                     elem.value = ftsmaxnumfields;
                                     elem.click();
                                     elem.dispatchEvent(new Event('change')); // trigger hideIf rules in edit_moopt_form
+                                    elem = document.querySelector("#id_ftsstandardlang");
+                                    let options = elem.options;
+                                    for(let i = 0; i < options.length; i++) {
+                                        if(options[i].text.toLowerCase() === result.proglang.toLowerCase()) {
+                                            elem.selectedIndex = i;
+                                        }
+                                    }
                                     elem = document.querySelector("#id_enablecustomsettingsforfreetextinputfields");
                                     elem.checked = false;
                                     elem.click();
