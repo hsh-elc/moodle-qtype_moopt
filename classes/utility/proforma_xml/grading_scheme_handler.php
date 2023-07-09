@@ -246,7 +246,11 @@ class grading_scheme_handler {
             }
         }
         if(!$foundTitle) {
-            $node->set_title($this->tests[$refid] !== null && $this->tests[$refid]->getElementsByTagNameNS($this->namespace, 'title')[0]->nodeValue);
+            $title = "";
+            if ($this->tests[$refid] !== null && $this->tests[$refid]->getElementsByTagNameNS($this->namespace, 'title')->length >= 1) {
+                $title = $this->tests[$refid]->getElementsByTagNameNS($this->namespace, 'title')[0]->nodeValue;
+            }
+            $node->set_title($title);
         }
         if (($list = $elem->getElementsByTagNameNS($this->namespace, 'description'))->length == 1) {
             $node->set_description($list[0]->nodeValue);
