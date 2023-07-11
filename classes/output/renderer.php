@@ -140,11 +140,11 @@ class qtype_moopt_renderer extends qtype_renderer {
         }
         if (!$qa->get_state()->is_graded() && ($qa->get_question()->showstudgradingscheme || has_capability('mod/quiz:grade', $PAGE->context))) {
             $gradingscheme = $this->render_grading_scheme($qa);
-            //$o .= html_writer::tag('div', $gradingscheme, array('class' => 'gradingscheme'));
             if(!$qa->get_question()->showstudgradingscheme){
                 $o .= html_writer::tag('div', $gradingscheme, array('class' => 'gradingscheme'));
+            } else {
+                $o .= html_writer::tag('div', $gradingscheme);
             }
-            $o .= html_writer::tag('div', $gradingscheme);
         }
         if ($qa->get_state()->is_finished() || $laststep->has_behaviour_var('_completeForGrading')) {
             // state->is_finished() implies that a question attempt has been finished by the student,
@@ -220,12 +220,12 @@ class qtype_moopt_renderer extends qtype_renderer {
         $o = '';
         $isteacher = has_capability('mod/quiz:grade', $options->context);
 
-        $studentfiles = $DB->get_records('qtype_moopt_files', array('questionid' => $questionid, 
+        $studentfiles = $DB->get_records('qtype_moopt_files', array('questionid' => $questionid,
         'visibletostudents' => 'yes', 'usagebylms' => 'download'));
         if(count($studentfiles) != 0) {
             $o .= $this->render_downloadable_files_only($qa, $options, $studentfiles, 'providedfiles');
         }
-            
+
         if ($isteacher){
             $teacherfiles = $DB->get_records('qtype_moopt_files', array('questionid' => $questionid, 'visibletostudents' => 'no'));
             if(count($teacherfiles) != 0) {
@@ -234,7 +234,7 @@ class qtype_moopt_renderer extends qtype_renderer {
         }
         return $o;
     }
-    
+
     private function render_downloadable_files_only (question_attempt $qa, question_display_options $options, $files, $divclass) {
         $question = $qa->get_question();
         $qubaid = $qa->get_usage_id();
@@ -276,7 +276,7 @@ class qtype_moopt_renderer extends qtype_renderer {
         if ($anythingtodisplay) {
             $o .= $downloadurls;
         }
-        
+
         return $o;
     }
 
