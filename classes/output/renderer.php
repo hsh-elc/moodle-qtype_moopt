@@ -140,11 +140,11 @@ class qtype_moopt_renderer extends qtype_renderer {
         }
         if (!$qa->get_state()->is_graded() && ($qa->get_question()->showstudgradingscheme || has_capability('mod/quiz:grade', $PAGE->context))) {
             $gradingscheme = $this->render_grading_scheme($qa);
-            //$o .= html_writer::tag('div', $gradingscheme, array('class' => 'gradingscheme'));
             if(!$qa->get_question()->showstudgradingscheme){
                 $o .= html_writer::tag('div', $gradingscheme, array('class' => 'gradingscheme'));
+            } else {
+                $o .= html_writer::tag('div', $gradingscheme);
             }
-            $o .= html_writer::tag('div', $gradingscheme);
         }
         if ($qa->get_state()->is_finished() || $laststep->has_behaviour_var('_completeForGrading')) {
             // state->is_finished() implies that a question attempt has been finished by the student,
@@ -180,7 +180,7 @@ class qtype_moopt_renderer extends qtype_renderer {
         global $PAGE;
 
         $o = '<br>';
-        $o .= $this->output->heading(get_string('gradingscheme', 'qtype_moopt'), 3);#
+        $o .= $this->output->heading(get_string('gradingscheme', 'qtype_moopt'), 3);
 
         $blockid = "moopt-gradingscheme-" . $qa->get_usage_id() . "-" . $qa->get_slot();
         $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_grading_scheme_buttons', 'init', [$blockid]);
@@ -216,49 +216,67 @@ class qtype_moopt_renderer extends qtype_renderer {
         global $DB;
 
         $question = $qa->get_question();
-        $qubaid = $qa->get_usage_id();
-        $slot = $qa->get_slot();
         $questionid = $question->id;
         $o = '';
         $isteacher = has_capability('mod/quiz:grade', $options->context);
 
-        $files = $DB->get_records('qtype_moopt_files', array('questionid' => $questionid));
-        $anythingtodisplay = false;
-        if (count($files) != 0) { // TODO: this check should happen before these render methods are called
-            $downloadurls = '';
-            $downloadurls .= $this->output->heading(get_string('providedfiles', 'qtype_moopt'), 3);
-            $downloadurls .= html_writer::start_div('providedfiles');
-            $downloadurls .= '<ul>';
-            foreach ($files as $file) {
-                // skip files that are
-                // - not configured to be downloadable (usagebylms)
-                // - not visible to students
-                if ($file->usagebylms == 'display'
-                    || ($file->visibletostudents == 'no' && !$isteacher)
-                    || ($file->usagebylms == 'edit' && !$isteacher)) {
-                    continue;
-                }
+        $studentfiles = $DB->get_records('qtype_moopt_files', array('questionid' => $questionid,
+        'visibletostudents' => 'yes', 'usagebylms' => 'download'));
+        if(count($studentfiles) != 0) {
+            $o .= $this->render_downloadable_files_only($qa, $options, $studentfiles, 'providedfiles');
+        }
 
-                $anythingtodisplay = true;
-                $url = moodle_url::make_pluginfile_url($question->contextid, COMPONENT_NAME, $file->filearea,
-                                "$qubaid/$slot/$questionid", $file->filepath, $file->filename, true);
-                if ($file->filearea == PROFORMA_ATTACHED_TASK_FILES_FILEAREA) {
-                    $folderdisplay = $file->filepath;
-                    // remove leading slash:
-                    if (strlen($folderdisplay) > 0 && $folderdisplay[0] == '/') $folderdisplay = substr($folderdisplay, 1);
-                } else {
-                    $folderdisplay = '';
-                }
-                $linkdisplay = $folderdisplay . $file->filename;
-                $downloadurls .= '<li><a href="' . $url . '">' . $linkdisplay . '</a></li>';
-            }
-            $downloadurls .= '</ul>';
-            $downloadurls .= html_writer::end_div('providedfiles');
-
-            if ($anythingtodisplay) {
-                $o .= $downloadurls;
+        if ($isteacher){
+            $teacherfiles = $DB->get_records('qtype_moopt_files', array('questionid' => $questionid, 'visibletostudents' => 'no'));
+            if(count($teacherfiles) != 0) {
+                $o .= $this->render_downloadable_files_only($qa, $options, $teacherfiles, 'providedfilesteacher');
             }
         }
+        return $o;
+    }
+
+    private function render_downloadable_files_only (question_attempt $qa, question_display_options $options, $files, $divclass) {
+        $question = $qa->get_question();
+        $qubaid = $qa->get_usage_id();
+        $slot = $qa->get_slot();
+        $questionid = $question->id;
+        $isteacher = has_capability('mod/quiz:grade', $options->context);
+        $o = '';
+
+        $anythingtodisplay = false;
+        $downloadurls = '';
+        if(!$isteacher) {
+            $o .= $this->output->heading(get_string('providedfiles', 'qtype_moopt'), 3);
+        }
+        $downloadurls .= html_writer::start_div($divclass);
+        $downloadurls .= '<ul>';
+        foreach ($files as $file) {
+            // skip files that are
+            // - not configured to be downloadable (usagebylms)
+            if ($file->usagebylms == 'display') {
+                continue;
+            }
+
+            $anythingtodisplay = true;
+            $url = moodle_url::make_pluginfile_url($question->contextid, COMPONENT_NAME, $file->filearea,
+                            "$qubaid/$slot/$questionid", $file->filepath, $file->filename, true);
+            if ($file->filearea == PROFORMA_ATTACHED_TASK_FILES_FILEAREA) {
+                $folderdisplay = $file->filepath;
+                // remove leading slash:
+                if (strlen($folderdisplay) > 0 && $folderdisplay[0] == '/') $folderdisplay = substr($folderdisplay, 1);
+            } else {
+                $folderdisplay = '';
+            }
+            $linkdisplay = $folderdisplay . $file->filename;
+            $downloadurls .= '<li><a href="' . $url . '">' . $linkdisplay . '</a></li>';
+        }
+        $downloadurls .= '</ul>';
+        $downloadurls .= html_writer::end_div($divclass);
+
+        if ($anythingtodisplay) {
+            $o .= $downloadurls;
+        }
+
         return $o;
     }
 
