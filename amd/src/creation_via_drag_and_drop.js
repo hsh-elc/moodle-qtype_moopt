@@ -118,6 +118,15 @@ define(['core/ajax',
                                                 let searchVal = selectedGrader["html_representation"];
                                                 setSelectionSafely("#id_graderselect option[value='" + searchVal + "']");
 
+                                                //setting the proglang and gradername as tag (easiest point to access selected grader name)
+                                                let tagInput = document.querySelectorAll('[id^=form_autocomplete_input]')[0];
+                                                tagInput.value = result.proglang;
+                                                enterKeyEvent(tagInput);
+                                                let gradername = document.querySelector("#id_graderselect option[value='" + searchVal + "']").text;
+                                                tagInput.value = gradername;
+                                                enterKeyEvent(tagInput);
+
+
                                                 if ('result_spec' in selectedGrader) {
                                                     if ('format' in selectedGrader['result_spec']) {
                                                         searchVal = selectedGrader['result_spec']['format'];
@@ -236,4 +245,20 @@ function setSelectionSafely(query) {
     select = document.querySelector(query);
     if(null !== select)
         select.selected = true;
+}
+
+function enterKeyEvent(elem) {
+        var event = new KeyboardEvent("keydown", {
+            bubbles: true,
+            cancelBubble: false, 
+            cancelable: true,
+            charCode: 0,
+            code: "Enter",
+            isTrusted: true,
+            key: "Enter",
+            keyCode: 13,
+            repeat: false,
+            type: "keydown",
+            which: 13});
+        elem.dispatchEvent(event);
 }
