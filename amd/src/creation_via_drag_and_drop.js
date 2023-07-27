@@ -125,7 +125,8 @@ define(['core/ajax',
                                                 let gradername = document.querySelector("#id_graderselect option[value='" + searchVal + "']").text;
                                                 tagInput.value = gradername;
                                                 enterKeyEvent(tagInput);
-
+                                                tagInput.value = "MooPT";
+                                                enterKeyEvent(tagInput);
 
                                                 if ('result_spec' in selectedGrader) {
                                                     if ('format' in selectedGrader['result_spec']) {
