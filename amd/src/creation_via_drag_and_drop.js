@@ -120,16 +120,12 @@ define(['core/ajax',
 
                                                 //setting the proglang and gradername as tag (easiest point to access selected grader name)
                                                 let tagInput = document.querySelectorAll('[id^=form_autocomplete_input]')[0];
-                                                console.log(tagInput);
                                                 tagInput.value = result.proglang;
-                                                console.log(tagInput.value);
                                                 enterKeyEvent(tagInput);
                                                 let gradername = document.querySelector("#id_graderselect option[value='" + searchVal + "']").text;
                                                 tagInput.value = gradername;
-                                                console.log(tagInput.value);
                                                 enterKeyEvent(tagInput);
                                                 tagInput.value = "MooPT";
-                                                console.log(tagInput.value);
                                                 enterKeyEvent(tagInput);
 
                                                 if ('result_spec' in selectedGrader) {
