@@ -410,6 +410,8 @@ class qtype_moopt_renderer extends qtype_renderer {
 
             $defaultproglang = $questionoptions->ftsstandardlang;
 
+            $fixedfilenames = false;
+
             for ($i = 0; $i < (int)$questionoptions->ftsmaxnumfields; $i++) {
                 $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
                     'inputindex' => $i]);
@@ -451,6 +453,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                     // readonly is used instead of disabled because the data in this field would not be submitted if it is disabled
                     $inputoptions['readonly'] = true;
                     $inputoptions['style'] .= "color: grey;";
+                    $fixedfilenames = true;
                 }
 
                 // Adjust the height of the textarea based on the content of the textarea
@@ -476,12 +479,14 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper', ['ace', $answertextid]);
             }
-            $renderedarea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
-            $renderedarea .= html_writer::tag('button', get_string('addanswertext', 'qtype_moopt'),
-                            ['id' => 'addAnswertextButton_' . $qa->get_question_id()]);
-            $renderedarea .= html_writer::tag('button', get_string('removelastanswertext', 'qtype_moopt'),
-                            ['id' => 'removeLastAnswertextButton_' . $qa->get_question_id(), 'style' => 'margin-left: 10px']);
-            $renderedarea .= html_writer::end_div();
+            if(!($fixedfilenames && !has_capability('mod/quiz:grade', $PAGE->context))){
+                $renderedarea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
+                $renderedarea .= html_writer::tag('button', get_string('addanswertext', 'qtype_moopt'),
+                                ['id' => 'addAnswertextButton_' . $qa->get_question_id()]);
+                $renderedarea .= html_writer::tag('button', get_string('removelastanswertext', 'qtype_moopt'),
+                                ['id' => 'removeLastAnswertextButton_' . $qa->get_question_id(), 'style' => 'margin-left: 10px']);
+                $renderedarea .= html_writer::end_div();
+            }
 
             $PAGE->requires->js_call_amd('qtype_moopt/manage_answer_texts', 'init',
                     [(int)$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, (int)$questionoptions->ftsnuminitialfields), $qa->get_question_id()]);
