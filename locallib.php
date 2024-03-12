@@ -282,7 +282,7 @@ function create_domdocument_from_task_xml($usercontext, $draftareaid, $xmlfilena
  * @return string
  * @throws invalid_parameter_exception
  */
-function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $filepath, $filename)
+function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $filepath, $filename, $attached, $encoding)
 {
     $fs = get_file_storage();
     $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, $filepath, $filename);
@@ -294,7 +294,22 @@ function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $
     // TODO: make sure the mimetype is plain text
     // even task.xmls may contain mistakes (eg PDF )
 
-    return $file->get_content();
+    //check if encoding of attached ist utf-8 else convert
+    $content = $file->get_content();
+    if($encoding!==false){
+        $enc=$encoding;
+    } else {
+        $enc = mb_detect_encoding($content, mb_detect_order(), true);
+        if($enc===false){
+            throw new invalid_parameter_exception('Encoding of attached file ' . $filepath . $filename . 'could\'nt be detectet.');
+        }
+    }
+    $content = mb_convert_encoding($content, $enc, 'UTF-8');
+    if($enc!=='UTF-8'){
+        $content = mb_convert_encoding($content, 'UTF-8', $enc);
+    }
+
+    return $content;
 }
 
 

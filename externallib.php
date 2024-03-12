@@ -192,8 +192,9 @@ class qtype_moopt_external extends external_api {
                             break;
                         } else if ($child->localName == 'attached-txt-file') {
                             $pathinfo = pathinfo('/' . $child->nodeValue);
+                            $encoding = $child->attributes->getNamedItem('encoding')->nodeValue;
                             $filecontent = get_text_content_from_file($usercontext, $draftid, $keepfilename,
-                                $pathinfo['dirname'] . '/', $pathinfo['basename']);
+                                $pathinfo['dirname'] . '/', $pathinfo['basename'], true, $encoding);
                             $defaultfilename = basename($child->nodeValue);
                             $fileid = $file->attributes->getNamedItem('id')->nodeValue;
                             $enablefreetext = true;
@@ -259,8 +260,9 @@ class qtype_moopt_external extends external_api {
                         } else if ($child->localName == 'attached-txt-file') {
                             $pathinfo = pathinfo('/' . $child->nodeValue);
                             $filename = basename($child->nodeValue);
+                            $encoding = $child->attributes->getNamedItem('encoding')->nodeValue;
                             $filecontent = get_text_content_from_file($usercontext, $draftid, $keepfilename,
-                                $pathinfo['dirname'] . '/', $pathinfo['basename']);
+                                $pathinfo['dirname'] . '/', $pathinfo['basename'], true, $encoding);
                         }
 
                         if(!empty($filecontent))
