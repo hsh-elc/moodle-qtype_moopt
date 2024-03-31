@@ -69,10 +69,11 @@ class qtype_moopt extends question_type {
      */
     public function save_question_options($question) {
         // Convert the combined representation of the graderID to graderName and graderVersion
-        $separatedGraderID = get_name_and_version_from_graderid_html_representation($question->graderselect);
-        $question->gradername = $separatedGraderID->gradername;
-        $question->graderversion = $separatedGraderID->graderversion;
-
+        if (!is_null($question->graderselect)) {
+            $separatedGraderID = get_name_and_version_from_graderid_html_representation($question->graderselect);
+            $question->gradername = $separatedGraderID->gradername;
+            $question->graderversion = $separatedGraderID->graderversion;
+        }
         if (!isset($question->internaldescription['text'])) {
             $question->internaldescription = '';
         } else {
@@ -87,10 +88,10 @@ class qtype_moopt extends question_type {
         // First remove all old files and db entries.
         $DB->delete_records('qtype_moopt_files', array('questionid' => $question->id));
         $fs = get_file_storage();
-        $fs->delete_area_files($question->context->id, COMPONENT_NAME, PROFORMA_TASKZIP_FILEAREA, $question->id);
-        $fs->delete_area_files($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id);
-        $fs->delete_area_files($question->context->id, COMPONENT_NAME, PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $question->id);
-        $fs->delete_area_files($question->context->id, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, COMPONENT_NAME_ZIP, PROFORMA_TASKZIP_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, COMPONENT_NAME_ZIP, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, COMPONENT_NAME_ZIP, PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $question->id);
+        $fs->delete_area_files($question->context->id, COMPONENT_NAME_ZIP, PROFORMA_TASKXML_FILEAREA, $question->id);
         save_task_and_according_files($question);
 
         // Store custom settings for free text input fields.
@@ -127,10 +128,10 @@ class qtype_moopt extends question_type {
 
         $DB->delete_records('qtype_moopt_files', array('questionid' => $questionid));
         $fs = get_file_storage();
-        $fs->delete_area_files($contextid, COMPONENT_NAME, PROFORMA_TASKZIP_FILEAREA, $questionid);
-        $fs->delete_area_files($contextid, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $questionid);
-        $fs->delete_area_files($contextid, COMPONENT_NAME, PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $questionid);
-        $fs->delete_area_files($contextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, COMPONENT_NAME_ZIP, PROFORMA_TASKZIP_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, COMPONENT_NAME_ZIP, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, COMPONENT_NAME_ZIP, PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $questionid);
+        $fs->delete_area_files($contextid, COMPONENT_NAME_ZIP, PROFORMA_TASKXML_FILEAREA, $questionid);
 
         parent::delete_question($questionid, $contextid);
     }

@@ -31,7 +31,8 @@ define('COMPONENT_NAME', 'qtype_moopt');
 //             for PROFORMA_ATTACHED_TASK_FILES_FILEAREA this is the path inside the zip file
 //             for PROFORMA_EMBEDDED_TASK_FILES_FILEAREA this is "/<file-id>/", where <file-id> denotes the ProFormA file id of the embedded file
 // - filename: the filename inside the task.zip  (or the name of the zip file in case of PROFORMA_TASKZIP_FILEAREA)
-define('PROFORMA_TASKZIP_FILEAREA', 'taskfile'); // the task.zip file
+define('COMPONENT_NAME_ZIP', 'question');
+define('PROFORMA_TASKZIP_FILEAREA', 'questiontext'); // the task.zip file
 define('PROFORMA_TASKXML_FILEAREA', 'taskxmlfile'); // the task.xml file
 define('PROFORMA_ATTACHED_TASK_FILES_FILEAREA', 'attachedtaskfiles'); // files attached in a task.zip file
 define('PROFORMA_EMBEDDED_TASK_FILES_FILEAREA', 'embeddedtaskfiles'); // files embedded in a task.xml file
@@ -320,7 +321,8 @@ function save_task_and_according_files($question)
     global $USER, $DB;
 
     if (!isset($question->proformataskfileupload)) {
-        return;
+        $question->proformataskfileupload = $question->questiontextitemid;
+        //return;
     }
     $draftareaid = $question->proformataskfileupload;
 
@@ -419,7 +421,6 @@ function save_task_and_according_files($question)
         'filepath' => '/',
         'filename' => $taskxmlfilename);
     $fs->create_file_from_storedfile($newfilerecord, $file);
-    $file->delete();
 
     $record = new stdClass();
     $record->questionid = $question->id;
@@ -432,11 +433,21 @@ function save_task_and_according_files($question)
     $record->filearea = PROFORMA_TASKXML_FILEAREA;
     $filesfordb[] = $record;
 
+    if ($taskzipfilename == null) {
+        $newfilerecord['component'] = COMPONENT_NAME_ZIP;
+        $newfilerecord['filearea'] = PROFORMA_TASKZIP_FILEAREA;
+        // Überprüfung, ob die Datei bereits existiert, um Duplikate zu vermeiden
+        if (!$fs->file_exists($question->context->id, 'question', PROFORMA_TASKZIP_FILEAREA, $question->id, '/', $taskxmlfilename)) {
+            $fs->create_file_from_storedfile($newfilerecord, $file);
+        }
+    }
+
+    $file->delete();
     if ($taskzipfilename != null) {
         // Now move the task zip file to the designated area.
         $file = $fs->get_file($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id, '/', $taskzipfilename);
         $newfilerecord = array(
-            'component' => COMPONENT_NAME,
+            'component' => 'question',
             'filearea' => PROFORMA_TASKZIP_FILEAREA,
             'itemid' => $question->id,
             'contextid' => $question->context->id,
