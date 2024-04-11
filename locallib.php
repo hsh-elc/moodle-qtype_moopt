@@ -301,7 +301,7 @@ function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $
     } else {
         $enc = mb_detect_encoding($content, null, true);
         if($enc===false){
-            throw new invalid_parameter_exception('Encoding of attached file ' . $filepath . $filename . 'could\'nt be detectet.');
+            throw new invalid_parameter_exception('Encoding of attached file ' . $filepath . $filename . ' could\'nt be detectet.');
         }
     }
     if($enc!=='UTF-8'){
