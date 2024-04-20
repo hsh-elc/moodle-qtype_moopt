@@ -745,7 +745,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                         $responsefileinfos['filename'], true);
                     $downloadable_responsefilename = $responsefileinfos['filename'];
                     $html .= "<a href='$url' style='display:block;text-align:right;'>" .
-                        " <span class='fa-solid fa-download'></span> " .
+                        " <span class='fa fa-download'></span> " .
                         get_string('downloadcompletefile', 'qtype_moopt', $downloadable_responsefilename) . "</a>";
                 }
                 return $html;

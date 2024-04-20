@@ -110,8 +110,8 @@ class grading_hints_renderer
         $heading = '<div style="text-align:left;width:'. $titlewidth .'%;display:inline-block;">';
 
         if ($this->showfeedbackdata && $node->getSeparateFeedbackData()->has_internal_error()) {
-            $heading .= '<div style="font-family: FontAwesome; font-size: 1.5em;margin-right:20px;".'
-                . '"display:inline-block;">&#xf00d;</div>';
+            $heading .= '<div style="font-size: 1.5em;margin-right:20px;".'
+                . '"display:inline-block;"><span class="fa fa-close"/></div>';
         }
 
         $heading .= '<div style="vertical-align: text-bottom;display:inline-block;">' . $node->get_heading();
