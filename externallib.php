@@ -195,6 +195,9 @@ class qtype_moopt_external extends external_api {
                             $encoding = $child->attributes->getNamedItem('encoding')->nodeValue;
                             $filecontent = get_text_content_from_file($usercontext, $draftid, $keepfilename,
                                 $pathinfo['dirname'] . '/', $pathinfo['basename'], true, $encoding);
+                            if($filecontent === null){
+                                $returnval['error'] = "Das Encoding der Datei ".$pathinfo['basename']." konnte nicht erkannt werden";
+                            }
                             $defaultfilename = basename($child->nodeValue);
                             $fileid = $file->attributes->getNamedItem('id')->nodeValue;
                             $enablefreetext = true;

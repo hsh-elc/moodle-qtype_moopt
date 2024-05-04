@@ -294,18 +294,21 @@ function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $
     // TODO: make sure the mimetype is plain text
     // even task.xmls may contain mistakes (eg PDF )
 
-    //check if encoding of attached file is utf-8 else convert
+    //check if encoding of attached file is utf-8 else convert if encoding could be detectet
     $content = $file->get_content();
+    $test_encodings = array('UTF-8', 'ISO-8859-1', 'ISO-8859-15', 'Windows-1252', 'UTF-16');
     if($attached){
         if($encoding!=null){
             $enc=$encoding;
         } else {
-            $enc = mb_detect_encoding($content, null, true);
-            if($enc===false){
-                throw new invalid_parameter_exception('Encoding of attached file ' . $filepath . $filename . ' could\'nt be detectet.');
+            $enc = mb_detect_encoding($content, null, false);
+            if ($enc==false){
+                $enc = mb_detect_encoding($content, $test_encodings, true);
             }
         }
-        if($enc!=='UTF-8'){
+        if($enc==false){
+            return null;
+        } else if($enc!=='UTF-8'){
             $content = mb_convert_encoding($content, 'UTF-8', $enc);        
         }
     }
