@@ -42,7 +42,7 @@ class qtype_moopt_external extends external_api {
             'taskuuid' => new external_value(PARAM_RAW, 'task\'s uuid', VALUE_OPTIONAL),
             'maxscoregradinghints' => new external_value(PARAM_FLOAT, 'maximum score', VALUE_OPTIONAL),
             'filesdisplayedingeneralfeedback' => new external_value(PARAM_RAW, 'general feedback', VALUE_OPTIONAL),
-            'enablefileinput' => new external_value(PARAM_BOOL, 'Enable file submissions'),
+            'enablefileinput' => new external_value(PARAM_BOOL, 'Enable file submissions', VALUE_OPTIONAL),
             'freetextfilesettings' => new external_multiple_structure(
                         new external_single_structure(
                             array(
@@ -56,7 +56,6 @@ class qtype_moopt_external extends external_api {
                         )
                     ,'Free text settings', VALUE_OPTIONAL),
             'moodleValidationProformaNamespace' => new external_value(PARAM_TEXT, 'detected namespace', VALUE_OPTIONAL),
-            'moodleValidationWarningInvalidNamespace' => new external_value(PARAM_TEXT, 'warning message in case of invalid XML namespace', VALUE_OPTIONAL),
             'moodleValidationWarnings' => new external_multiple_structure(
                     new external_single_structure(
                         array(
@@ -96,8 +95,7 @@ class qtype_moopt_external extends external_api {
         $returnval = array();
 
         if ($namespace == null) {
-
-            $returnval['moodleValidationWarningInvalidNamespace'] = get_string('invalidproformanamespace', 'qtype_moopt',
+            $returnval['error'] = get_string('invalidproformanamespace', 'qtype_moopt',
                     implode(", ", PROFORMA_TASK_XML_NAMESPACES));
         } else {
 
@@ -196,7 +194,7 @@ class qtype_moopt_external extends external_api {
                             $filecontent = get_text_content_from_file($usercontext, $draftid, $keepfilename,
                                 $pathinfo['dirname'] . '/', $pathinfo['basename'], true, $encoding);
                             if($filecontent === null){
-                                $returnval['error'] = "Das Encoding der Datei ".$pathinfo['basename']." konnte nicht erkannt werden";
+                                $returnval['error'] = "Encoding of file ".$pathinfo['basename']." couldn't be detected.";
                             }
                             $defaultfilename = basename($child->nodeValue);
                             $fileid = $file->attributes->getNamedItem('id')->nodeValue;
