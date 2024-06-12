@@ -122,6 +122,7 @@ use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
 
 /*
  * Unzips the task zip file in the given draft area into the area
+ * moodle doesn't display thrown exceptions, so we handle them as array with key 'error' in calling function
  *
  * @param type $draftareaid
  * @param type $usercontext
@@ -131,7 +132,6 @@ use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
  *        'xml' => (string) the name of the xml file (mandatory)
  *      ]
  *      Returns false, if there is no file in the given draft area.
- * @throws invalid_parameter_exception
  */
 function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     global $USER;
@@ -143,8 +143,8 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     if ($area['filecount'] == 0) {
         return false;
     } else if ($area['filecount'] > 1 || $area['foldercount'] != 0) {
-        throw new invalid_parameter_exception(
-            'Only one file is allowed to be in this draft area: A ProFormA-Task as either ZIP or XML file.');
+        $error = 'Only one file is allowed to be in this draft area: A ProFormA-Task as either ZIP or XML file. Check for additional folders as well.';
+        return array('error' => $error);
     }
 
     // Get name of the file.
@@ -166,7 +166,8 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
         return array('xml' => $filename);
     }
     if ($filetype != 'zip') {
-        throw new invalid_parameter_exception('Supplied file must be a xml or zip file.');
+        $error = 'Supplied file must be a xml or zip file.';
+        return array('error' => $error);
     }
     $zipfilename = $filename;
     $result = array('zip' => $zipfilename);
@@ -217,7 +218,8 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     }
 
     if (!array_key_exists('xml', $result)) {
-        throw new invalid_parameter_exception('Supplied zip file must contain the file task.xml.');
+        $error = 'Supplied zip file must contain the file task.xml.';
+        return array('error' => $error);
     }
 
     return $result;

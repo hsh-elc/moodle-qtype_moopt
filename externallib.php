@@ -85,6 +85,8 @@ class qtype_moopt_external extends external_api {
         $unzipinfo = unzip_task_file_in_draft_area($draftid, $usercontext);
         if ($unzipinfo == null) {
             return ['error' => 'Error extracting zip file'];
+        } else if (isset($unzipinfo['error'])) {
+            return $unzipinfo;
         }
         $taskxmlfilename = $unzipinfo['xml'];
         $taskzipfilename = $unzipinfo['zip'] ?? null;
