@@ -113,8 +113,6 @@ define('DEFAULT_INITIAL_DISPLAY_ROWS', 5);
 define('GRADERID_SEPARATOR', '$');
 
 require_once($CFG->dirroot . '/question/engine/lib.php');
-require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
-require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
 
 use qtype_moopt\exceptions\resource_not_found_exception;
 use qtype_moopt\utility\communicator\communicator_factory;
@@ -306,10 +304,10 @@ function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $
             }
         }
         if($enc!=='UTF-8'){
-            $content = mb_convert_encoding($content, 'UTF-8', $enc);        
+            $content = mb_convert_encoding($content, 'UTF-8', $enc);
         }
     }
-    
+
     return $content;
 }
 
