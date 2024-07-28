@@ -120,6 +120,7 @@ use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
 
 /*
  * Unzips the task zip file in the given draft area into the area
+ * moodle doesn't display thrown exceptions, so we handle them as array with key 'error' in calling function
  *
  * @param type $draftareaid
  * @param type $usercontext
@@ -129,7 +130,6 @@ use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
  *        'xml' => (string) the name of the xml file (mandatory)
  *      ]
  *      Returns false, if there is no file in the given draft area.
- * @throws invalid_parameter_exception
  */
 function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     global $USER;
@@ -141,8 +141,8 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     if ($area['filecount'] == 0) {
         return false;
     } else if ($area['filecount'] > 1 || $area['foldercount'] != 0) {
-        throw new invalid_parameter_exception(
-            'Only one file is allowed to be in this draft area: A ProFormA-Task as either ZIP or XML file.');
+        $error = 'Only one file is allowed to be in this draft area: A ProFormA-Task as either ZIP or XML file. Check for additional folders as well.';
+        return array('error' => $error);
     }
 
     // Get name of the file.
@@ -164,7 +164,8 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
         return array('xml' => $filename);
     }
     if ($filetype != 'zip') {
-        throw new invalid_parameter_exception('Supplied file must be a xml or zip file.');
+        $error = 'Supplied file must be a xml or zip file.';
+        return array('error' => $error);
     }
     $zipfilename = $filename;
     $result = array('zip' => $zipfilename);
@@ -215,7 +216,8 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     }
 
     if (!array_key_exists('xml', $result)) {
-        throw new invalid_parameter_exception('Supplied zip file must contain the file task.xml.');
+        $error = 'Supplied zip file must contain the file task.xml.';
+        return array('error' => $error);
     }
 
     return $result;
@@ -292,19 +294,22 @@ function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $
     // TODO: make sure the mimetype is plain text
     // even task.xmls may contain mistakes (eg PDF )
 
-    //check if encoding of attached file is utf-8 else convert
+    //check if encoding of attached file is utf-8 else convert if encoding could be detectet
     $content = $file->get_content();
+    $test_encodings = array('UTF-8', 'ISO-8859-1', 'ISO-8859-15', 'Windows-1252', 'UTF-16');
     if($attached){
         if($encoding!=null){
             $enc=$encoding;
         } else {
-            $enc = mb_detect_encoding($content, null, true);
-            if($enc===false){
-                throw new invalid_parameter_exception('Encoding of attached file ' . $filepath . $filename . ' could\'nt be detectet.');
+            $enc = mb_detect_encoding($content, null, false);
+            if ($enc==false){
+                $enc = mb_detect_encoding($content, $test_encodings, true);
             }
         }
-        if($enc!=='UTF-8'){
-            $content = mb_convert_encoding($content, 'UTF-8', $enc);
+        if($enc==false){
+            return null;
+        } else if($enc!=='UTF-8'){
+            $content = mb_convert_encoding($content, 'UTF-8', $enc);        
         }
     }
 
