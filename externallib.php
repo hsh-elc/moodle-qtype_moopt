@@ -82,7 +82,7 @@ class qtype_moopt_external extends external_api {
         $usercontext = context_user::instance($USER->id);
         self::validate_context($usercontext);
 
-        $unzipinfo = unzip_task_file_in_draft_area($draftid, $usercontext);
+        $unzipinfo = unzip_task_file_in_file_area($usercontext, 'user', 'draft', $draftid);
         if ($unzipinfo == null) {
             return ['error' => 'Error extracting zip file'];
         } else if (isset($unzipinfo['error'])) {
@@ -92,7 +92,7 @@ class qtype_moopt_external extends external_api {
         $taskzipfilename = $unzipinfo['zip'] ?? null;
         $keepfilename = $taskzipfilename != null ? $taskzipfilename : $taskxmlfilename;
 
-        $doc = create_domdocument_from_task_xml($usercontext, $draftid, $taskxmlfilename, $taskzipfilename);
+        $doc = create_domdocument_from_task_xml($usercontext, 'user', 'draft', $draftid, $taskxmlfilename, $taskzipfilename);
         $namespace = detect_proforma_namespace($doc);
         $returnval = array();
 
@@ -290,7 +290,7 @@ class qtype_moopt_external extends external_api {
         }
 
         // Do a little bit of cleanup and remove everything from the file area we extracted.
-        remove_all_files_from_draft_area($draftid, $usercontext, $keepfilename);
+        remove_all_files_from_file_area($usercontext, 'user', 'draft', $draftid, $keepfilename);
 
         return $returnval;
     }

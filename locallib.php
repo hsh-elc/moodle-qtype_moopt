@@ -118,41 +118,43 @@ use qtype_moopt\exceptions\resource_not_found_exception;
 use qtype_moopt\utility\communicator\communicator_factory;
 use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
 
-/*
- * Unzips the task zip file in the given draft area into the area
+/**
+ * Unzips the task zip file in the given file area into the area
  * moodle doesn't display thrown exceptions, so we handle them as array with key 'error' in calling function
  *
- * @param type $draftareaid
- * @param type $usercontext
+ * @param type $context
+ * @param type $component
+ * @param type $filearea
+ * @param type $fileareaid
  * @return array the name of the task zip file and the task xml file.
  *      [
  *        'zip' => (string) the name of the zip file, if any (the key 'zip' is optional)
  *        'xml' => (string) the name of the xml file (mandatory)
  *      ]
- *      Returns false, if there is no file in the given draft area.
+ *      Returns false, if there is no file in the given file area.
  */
-function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
+function unzip_task_file_in_file_area($context, $component, $filearea, $fileareaid) {
     global $USER;
 
     $fs = get_file_storage();
 
     // Check if there is only the file we want.
-    $area = file_get_draft_area_info($draftareaid, "/");
+    $area = file_get_file_area_info($context->id, $component, $filearea, $fileareaid, "/");
     if ($area['filecount'] == 0) {
         return false;
     } else if ($area['filecount'] > 1 || $area['foldercount'] != 0) {
-        $error = 'Only one file is allowed to be in this draft area: A ProFormA-Task as either ZIP or XML file. Check for additional folders as well.';
+        $error = 'Only one file is allowed to be in this file area: A ProFormA-Task as either ZIP or XML file. Check for additional folders as well.';
         return array('error' => $error);
     }
 
     // Get name of the file.
-    $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftareaid);
+    $files = $fs->get_area_files($context->id, $component, $filearea, $fileareaid);
     // Get_area_files returns an associative array where the keys are some kind of hash value.
     $keys = array_keys($files);
     // Index 1 because index 0 is the current directory it seems.
     $filename = $files[$keys[1]]->get_filename();
 
-    $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, "/", $filename);
+    $file = $fs->get_file($context->id, $component, $filearea, $fileareaid, "/", $filename);
 
     // Check file type (it's really only checking the file extension but that is good enough here).
     $fileinfo = pathinfo($filename);
@@ -174,13 +176,13 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     $zipper = get_file_packer('application/zip');
 
     // Find unused name for directory to extract the archive.
-    $temppath = $fs->get_unused_dirname($usercontext->id, 'user', 'draft', $draftareaid, "/" . pathinfo($zipfilename,
+    $temppath = $fs->get_unused_dirname($context->id, $component, $filearea, $fileareaid, "/" . pathinfo($zipfilename,
             PATHINFO_FILENAME) . '/');
     $donotremovedirs = array();
     $doremovedirs = array($temppath);
     // Extract archive and move all files from $temppath to $filepath.
-    if ($file->extract_to_storage($zipper, $usercontext->id, 'user', 'draft', $draftareaid, $temppath, $USER->id)) {
-        $extractedfiles = $fs->get_directory_files($usercontext->id, 'user', 'draft', $draftareaid, $temppath, true);
+    if ($file->extract_to_storage($zipper, $context->id, $component, $filearea, $fileareaid, $temppath, $USER->id)) {
+        $extractedfiles = $fs->get_directory_files($context->id, $component, $filearea, $fileareaid, $temppath, true);
         $xtemppath = preg_quote($temppath, '|');
         foreach ($extractedfiles as $exfile) {
             $realpath = preg_replace('|^' . $xtemppath . '|', '/', $exfile->get_filepath());
@@ -188,13 +190,18 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
                 // Set the source to the extracted file to indicate that it came from archive.
                 $exfile->set_source(serialize((object)array('source' => '/')));
             }
-            if (!$fs->file_exists($usercontext->id, 'user', 'draft', $draftareaid, $realpath, $exfile->get_filename())) {
+            if (!$fs->file_exists($context->id, $component, $filearea, $fileareaid, $realpath, $exfile->get_filename())) {
                 // File or directory did not exist, just move it.
                 $exfile->rename($realpath, $exfile->get_filename());
             } else if (!$exfile->is_directory()) {
                 // File already existed, overwrite it.
-                repository::overwrite_existing_draftfile($draftareaid, $realpath, $exfile->get_filename(), $exfile->get_filepath(),
-                    $exfile->get_filename());
+                if ($file = $fs->get_file($context->id, $component, $filearea, $fileareaid, $realpath, $exfile->get_filename())) {
+                    if ($tempfile = $fs->get_file($context->id, $component, $filearea, $fileareaid, $exfile->get_filepath(), $exfile->get_filename())) {
+                        $file->delete();
+                        $fs->create_file_from_storedfile(array('filepath'=>$exfile->get_filepath(), 'filename'=>$exfile->get_filename()), $tempfile);
+                        $tempfile->delete();
+                    }
+                }
             } else {
                 // Directory already existed, remove temporary dir but make sure we don't remove the existing dir.
                 $doremovedirs[] = $exfile->get_filepath();
@@ -209,7 +216,7 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
     }
     // Remove remaining temporary directories.
     foreach (array_diff($doremovedirs, $donotremovedirs) as $filepath) {
-        $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, $filepath, '.');
+        $file = $fs->get_file($context->id, $component, $filearea, $fileareaid, $filepath, '.');
         if ($file) {
             $file->delete();
         }
@@ -224,16 +231,18 @@ function unzip_task_file_in_draft_area($draftareaid, $usercontext) {
 }
 
 /**
- * Removes all files and directories from the given draft area except a file with the given file name
+ * Removes all files and directories from the given file area except a file with the given file name
  *
- * @param type $draftareaid
- * @param type $user_context
- * @param type $excluded_file_name
+ * @param type $context
+ * @param type $component
+ * @param type $filearea
+ * @param type $fileareaid
+ * @param type $excludedfilename
  */
-function remove_all_files_from_draft_area($draftareaid, $usercontext, $excludedfilename)
+function remove_all_files_from_file_area($context, $component, $filearea, $fileareaid, $excludedfilename)
 {
     $fs = get_file_storage();
-    $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftareaid);
+    $files = $fs->get_area_files($context->id, $component, $filearea, $fileareaid);
     foreach ($files as $fi) {
         if (($fi->is_directory() && $fi->get_filepath() != '/') || ($fi->get_filename() != $excludedfilename &&
                 $fi->get_filename() != '.')) {
@@ -245,26 +254,28 @@ function remove_all_files_from_draft_area($draftareaid, $usercontext, $excludedf
 /**
  * Creates a DOMDocument object from the task.xml file in the given file area and returns it.
  *
- * @param type $user_context
- * @param type $draftareaid
+ * @param type $context
+ * @param type $component
+ * @param type $filearea
+ * @param type $fileareaid
  * @param type $xmlfilename
  * @param type $zipfilename (optional, only if user uploaded a zip)
  * @return \DOMDocument
  * @throws invalid_parameter_exception
  */
 
-function create_domdocument_from_task_xml($usercontext, $draftareaid, $xmlfilename, $zipfilename)
+function create_domdocument_from_task_xml($context, $component, $filearea, $fileareaid, $xmlfilename, $zipfilename)
 {
     $fs = get_file_storage();
-    $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, "/", $xmlfilename);
+    $file = $fs->get_file($context->id, $component, $filearea, $fileareaid, "/", $xmlfilename);
     if (!$file) {
-        remove_all_files_from_draft_area($draftareaid, $usercontext, $zipfilename);
+        remove_all_files_from_file_area($context, $component, $filearea, $fileareaid, $zipfilename);
         throw new invalid_parameter_exception('Supplied zip file doesn\'t contain task.xml file.');
     }
 
     $doc = new DOMDocument();
     if (!$doc->loadXML($file->get_content())) {
-        remove_all_files_from_draft_area($draftareaid, $usercontext, $zipfilename);
+        remove_all_files_from_file_area($context, $component, $filearea, $fileareaid, $zipfilename);
         throw new invalid_parameter_exception('Error parsing the supplied ' . $xmlfilename . ' file. See server log for details.');
     }
 
@@ -287,7 +298,7 @@ function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $
     $fs = get_file_storage();
     $file = $fs->get_file($usercontext->id, 'user', 'draft', $draftareaid, $filepath, $filename);
     if (!$file) {
-        remove_all_files_from_draft_area($draftareaid, $usercontext, $keepfilename);
+        remove_all_files_from_file_area($usercontext, 'user', 'draft', $draftareaid, $keepfilename);
         throw new invalid_parameter_exception('Supplied file doesn\'t contain file ' . $filepath . $filename . '.');
     }
 
@@ -309,13 +320,12 @@ function get_text_content_from_file($usercontext, $draftareaid, $keepfilename, $
         if($enc==false){
             return null;
         } else if($enc!=='UTF-8'){
-            $content = mb_convert_encoding($content, 'UTF-8', $enc);        
+            $content = mb_convert_encoding($content, 'UTF-8', $enc);
         }
     }
 
     return $content;
 }
-
 
 /**
  * Get the stored_file from the file area PROFORMA_TASKXML_FILEAREA, if any.
@@ -334,18 +344,61 @@ function get_task_xml_file_from_filearea($question)
 }
 
 
+/**
+ * @throws stored_file_creation_exception
+ * @throws dml_exception
+ * @throws file_exception
+ * @throws coding_exception
+ * @throws invalid_parameter_exception
+ * @throws Exception
+ */
 function save_task_and_according_files($question)
 {
     global $USER, $DB;
+    $fs = get_file_storage();
+    $context = '';
+    $component = '';
+    $filearea = '';
+    $fileareaid = '';
+    $filesfordb = array();
+    if (property_exists($question, 'taskfile') && !is_null($question->taskfile)) {
+        $context = $question->taskfile['context'];
+        $component = $question->taskfile['component'];
+        $filearea = $question->taskfile['filearea'];
+        $fileareaid = $question->id;
+        $question->taskfileinfo['itemid'] = $fileareaid;
 
-    if (!isset($question->proformataskfileupload)) {
+        $fileinfo = [
+            'contextid' => $context->id,
+            'component' => $component,
+            'filearea'  => $filearea,
+            'itemid'    => $fileareaid,
+            'filepath'  => $question->taskfile['filepath'],
+            'filename'  => $question->taskfile['filename']
+        ];
+        $fs->create_file_from_string($fileinfo, $question->taskfile['content']);
+
+        $record = new stdClass();
+        $record->questionid = $question->id;
+        $record->fileid = $filearea == PROFORMA_TASKZIP_FILEAREA ? 'task' : 'taskxml';
+        $record->usedbygrader = 0;
+        $record->visibletostudents = 'no';
+        $record->usagebylms = 'download';
+        $record->filepath = '/';
+        $record->filename = $fileinfo['filename'];
+        $record->filearea = $filearea;
+        $filesfordb[] = $record;
+
+    } else if (isset($question->proformataskfileupload)) {
+        $context = context_user::instance($USER->id);
+        $component = 'user';
+        $filearea = 'draft';
+        $fileareaid = $question->proformataskfileupload;
+    } else {
         return;
     }
-    $draftareaid = $question->proformataskfileupload;
 
-    $usercontext = context_user::instance($USER->id);
-
-    $unzipinfo = unzip_task_file_in_draft_area($draftareaid, $usercontext);
+    $unzipinfo = unzip_task_file_in_file_area($context, $component, $filearea, $fileareaid);
     if (!$unzipinfo) {
         // Seems like no task file was submitted.
         return false;
@@ -355,14 +408,35 @@ function save_task_and_according_files($question)
     $keepfilename = $taskzipfilename != null ? $taskzipfilename : $taskxmlfilename;
 
     // Copy all extracted files to the corresponding file area.
-    file_save_draft_area_files($draftareaid, $question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA,
-        $question->id, array('subdirs' => true));
+    if ($filearea == 'draft') {
+        file_save_draft_area_files($fileareaid, $question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA,
+            $question->id, array('subdirs' => true));
+    } else {
+        foreach ($fs->get_area_files($context->id, $component, $filearea, $fileareaid) AS $file) {
+            if ($file->get_filename() != '.' && $file->get_filename() != $taskzipfilename /* Skip taskfile because its already present in the correct filearea*/) {
+                $newfileinfo = array(
+                    'contextid' => $context->id,
+                    'component' => COMPONENT_NAME,
+                    'filearea' => PROFORMA_ATTACHED_TASK_FILES_FILEAREA,
+                    'itemid' => $question->id,
+                    'filepath' => $file->get_filepath(),
+                    'filename' => $file->get_filename()
+                );
 
-    $doc = create_domdocument_from_task_xml($usercontext, $draftareaid, $taskxmlfilename, $taskzipfilename);
+                // Check if the file exists.
+                if (!$fs->file_exists($newfileinfo['contextid'], $newfileinfo['component'], $newfileinfo['filearea'], $newfileinfo['itemid'], $newfileinfo['filepath'], $newfileinfo['filename'])) {
+                    $createdFile = $fs->create_file_from_storedfile($newfileinfo, $file);
+                    if (!$createdFile) {
+                        throw new Exception('Could not create task from moodle xml.');
+                    }
+                }
+            }
+        }
+    }
+
+    $doc = create_domdocument_from_task_xml($context, $component, $filearea, $fileareaid, $taskxmlfilename, $taskzipfilename);
     $namespace = detect_proforma_namespace($doc);
 
-    $filesfordb = array();
-    $fs = get_file_storage();
     $embeddedelems = array("embedded-bin-file", "embedded-txt-file");
     $attachedelems = array("attached-bin-file", "attached-txt-file");
     foreach ($doc->getElementsByTagNameNS($namespace, 'file') as $file) {
@@ -428,30 +502,32 @@ function save_task_and_according_files($question)
     }
 
     // Now move the task xml file to the designated area.
-    $file = $fs->get_file($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id,
-        '/', $taskxmlfilename);
-    $newfilerecord = array(
-        'component' => COMPONENT_NAME,
-        'filearea' => PROFORMA_TASKXML_FILEAREA,
-        'itemid' => $question->id,
-        'contextid' => $question->context->id,
-        'filepath' => '/',
-        'filename' => $taskxmlfilename);
-    $fs->create_file_from_storedfile($newfilerecord, $file);
-    $file->delete();
+    if ($filearea == 'draft' || ($taskzipfilename != null /* Taskxmlfile already present in the correct filearea */)) {
+        $file = $fs->get_file($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id,
+            '/', $taskxmlfilename);
+        $newfilerecord = array(
+            'component' => COMPONENT_NAME,
+            'filearea' => PROFORMA_TASKXML_FILEAREA,
+            'itemid' => $question->id,
+            'contextid' => $question->context->id,
+            'filepath' => '/',
+            'filename' => $taskxmlfilename);
+        $fs->create_file_from_storedfile($newfilerecord, $file);
+        $file->delete();
 
-    $record = new stdClass();
-    $record->questionid = $question->id;
-    $record->fileid = 'taskxml';
-    $record->usedbygrader = 0;
-    $record->visibletostudents = 'no';
-    $record->usagebylms = 'download';
-    $record->filepath = '/';
-    $record->filename = $taskxmlfilename;
-    $record->filearea = PROFORMA_TASKXML_FILEAREA;
-    $filesfordb[] = $record;
+        $record = new stdClass();
+        $record->questionid = $question->id;
+        $record->fileid = 'taskxml';
+        $record->usedbygrader = 0;
+        $record->visibletostudents = 'no';
+        $record->usagebylms = 'download';
+        $record->filepath = '/';
+        $record->filename = $taskxmlfilename;
+        $record->filearea = PROFORMA_TASKXML_FILEAREA;
+        $filesfordb[] = $record;
+    }
 
-    if ($taskzipfilename != null) {
+    if ($taskzipfilename != null && $filearea == 'draft' /* Taskzipfile already present in the correct filearea */) {
         // Now move the task zip file to the designated area.
         $file = $fs->get_file($question->context->id, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $question->id, '/', $taskzipfilename);
         $newfilerecord = array(
@@ -480,7 +556,7 @@ function save_task_and_according_files($question)
     $DB->insert_records('qtype_moopt_files', $filesfordb);
 
     // Do a little bit of cleanup and remove everything from the file area we extracted.
-    remove_all_files_from_draft_area($draftareaid, $usercontext, $keepfilename);
+    remove_all_files_from_file_area($context, $component, $filearea, $fileareaid, $keepfilename);
 }
 
 /**
