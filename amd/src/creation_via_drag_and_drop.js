@@ -103,11 +103,19 @@ define(['core/ajax',
                                                         for (let k = 1; k < supportedGradersWithSameName.length; k++) {
                                                             const versionNumDigits = supportedGradersWithSameName[k]['version'].split(".");
                                                             const maxVersionNumDigits = selectedGrader['version'].split(".");
-                                                            for (let i = 0; i < 2; i++) {
-                                                                if (parseInt(versionNumDigits[i]) > parseInt(maxVersionNumDigits[i])) {
+                                                            for (let i = 0; i < Math.max(versionNumDigits.length, maxVersionNumDigits.length); i++) {
+                                                                let versionNumber = parseInt(versionNumDigits[i]);
+                                                                if (isNaN(versionNumber)) {
+                                                                    versionNumber = -1;
+                                                                }
+                                                                let maxVersionNumber = parseInt(maxVersionNumDigits[i]);
+                                                                if (isNaN(maxVersionNumber)) {
+                                                                    maxVersionNumber = -1;
+                                                                }
+                                                                if (versionNumber > maxVersionNumber) {
                                                                     selectedGrader = supportedGradersWithSameName[k];
                                                                     break;
-                                                                } else if (parseInt(versionNumDigits[i]) < parseInt(maxVersionNumDigits[i])) {
+                                                                } else if (versionNumber < maxVersionNumber) {
                                                                     break;
                                                                 }
                                                             }
@@ -251,7 +259,7 @@ function setSelectionSafely(query) {
 function enterKeyEvent(elem) {
         var event = new KeyboardEvent("keydown", {
             bubbles: true,
-            cancelBubble: false, 
+            cancelBubble: false,
             cancelable: true,
             charCode: 0,
             code: "Enter",

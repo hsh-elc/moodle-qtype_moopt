@@ -284,6 +284,25 @@ function xmldb_qtype_moopt_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2022032600, 'qtype', 'moopt');
     }
 
+    if ($oldversion < 2024112600) {
+
+        // Changing precision of field graderversion on table qtype_moopt_options to (50).
+        $table = new xmldb_table('qtype_moopt_options');
+        $field = new xmldb_field('graderversion', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null, 'gradername');
+
+        // Launch change of precision for field graderversion.
+        $dbman->change_field_precision($table, $field);
+
+        // Changing precision of field graderversion on table qtype_moopt_gradeprocesses to (50).
+        $table = new xmldb_table('qtype_moopt_gradeprocesses');
+        $field = new xmldb_field('graderversion', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null, 'gradername');
+
+        // Launch change of precision for field graderversion.
+        $dbman->change_field_precision($table, $field);
+
+        // Moopt savepoint reached.
+        upgrade_plugin_savepoint(true, 2024112600, 'qtype', 'moopt');
+    }
 
     return true;
 }
