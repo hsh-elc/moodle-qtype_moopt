@@ -64,6 +64,13 @@ class qtype_moopt_edit_form extends question_edit_form {
 
             parent::definition();
 
+            $usereditor = get_user_preferences('htmleditor', null); // In table "mdl_user_preferences" on DB
+            if ($usereditor === null || $usereditor === 'tiny') {
+                foreach ($this->query_editor_elements($mform) as $editor) {
+                    $this->add_editor_warning_before_element($mform, $editor);
+                }
+            }
+
             $PAGE->requires->js_call_amd('qtype_moopt/creation_via_drag_and_drop', 'init');
         }
     }
@@ -324,6 +331,41 @@ class qtype_moopt_edit_form extends question_edit_form {
         $mform->hideIf($name . $i, "enablecustomsettingsforfreetextinputfield$i");
         $mform->hideIf($name . $i, 'enablefreetextsubmissions');
         $mform->hideIf($name . $i, "enablecustomsettingsforfreetextinputfields");
+    }
+
+    /**
+     * Takes in id (name) of an element and adds the text editor warning text
+     * before the respective element.
+     * 
+     * @link https://moodle.org/mod/forum/discuss.php?d=453728
+     * @return void
+     */
+    private function add_editor_warning_before_element($mform, string $elementId) {
+        $mform->insertElementBefore(
+            // 'editorrecommendation' + 'questiontext' = 'editorrecommendationquestiontext' for unique id's
+            $mform->createElement('static', 'editorrecommendation' . $elementId, '',
+                '<i class="fa fa-exclamation-triangle text-warning"></i> ' . 
+                get_string('editorrecommendation', 'qtype_moopt')
+            ),
+            $elementId
+        );
+    }
+
+    /**
+     * Queries the whole question form for elements of type 'editor'
+     * and returns the id's (names) of those elements.
+     * 
+     * @link https://wimski.org/api/3.8/d2/d83/class_moodle_quick_form__editor.html
+     * @return string[] editor names
+     */
+    private function query_editor_elements($mform) {
+        $editorNames = [];
+        foreach ($mform->_elements as $element) {
+            if ($element instanceof MoodleQuickForm_editor) {
+                $editorNames[] = $element->getName();
+            }
+        }
+        return $editorNames;
     }
 
     public function validation($fromform, $files) {

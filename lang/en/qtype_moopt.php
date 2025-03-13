@@ -180,3 +180,4 @@ $string['yourcode'] = 'Your code';
 $string['serviceunavailable'] = 'The service is unavailable. {$a}';
 $string['servicecommunicator'] = 'The service encountered a problem. {$a}';
 $string['notfound'] = 'The requested resource was not found. {$a}';
+$string['editorrecommendation'] = 'We strongly recommend you use the Atto (or the plain text area) editor for MooPT questions. Other editors may change content, and this is likely to break questions with JavaScript and other code when you save your question. Go to Preferences -> Editor Preferences and choose the "Atto" editor.';
