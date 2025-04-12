@@ -1177,7 +1177,14 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
             if (is_string($file)) {
                 $sum += strlen($file);
             } else if (is_array($file)) {
-                $sum += count($file);
+                // GraFlap returns an array of Strings as submission file from plain text
+                foreach($file as $stringelement) {
+                    if (is_string($stringelement)) {
+                        $sum += strlen($stringelement);
+                    } else {
+                        throw new Exception("Unexpected type in submitted file (array)");
+                    }
+                }
             } else if (is_object($file) && method_exists($file, 'get_filesize')) {
                 $sum += $file->get_filesize();   
             } else {
@@ -1255,7 +1262,6 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
             default:
                 $use_value = $filerestriction->getAttribute('use');
                 throw new InvalidArgumentException("the use-attribute value: '$use_value' is unknown");
-                break;
         }
     }
     /* find the description in the child nodes of the 'submission-restrictions' node */
@@ -1315,10 +1321,12 @@ function does_key_exist_in_array(array $array, string $key, string $format) {
 function write_proforma_submission_restrictions_msg_to_db($msg, $qa) {
     global $DB;
     /* this is really not the best solution to abuse the responsesummary field of the question_attempt table */
-    $responsesummary = mysqli_real_escape_string(render_proforma_submission_restrictions($msg));
+    //$responsesummary = mysqli_real_escape_string(render_proforma_submission_restrictions($msg));  // NOT NEEDED
+    $responsesummary = render_proforma_submission_restrictions($msg); // Moodle Database API protects from SQL Injections
     $qaid = $qa->get_database_id();
-    $sql = "UPDATE mdl_question_attempts SET responsesummary = '$responsesummary' WHERE id = $qaid";
-    $DB->execute($sql);
+    //$sql = "UPDATE mdl_question_attempts SET responsesummary = '$responsesummary' WHERE id = $qaid";
+    // https://moodledev.io/docs/4.5/apis/core/dml#set_field
+    $DB->set_field('question_attempts', 'responsesummary', $responsesummary, ['id' => $qaid]);
 }
 
 /**
@@ -1564,8 +1572,15 @@ function set_rootdir_of_tree($filespath, $dirtree) {
  */
 function translate_archive_extension_into_mimetype($archivefile) : string {
     // is_array could be problematic in future implementations. Required for check_proforma_submission_restrictions().
-    if (is_string($archivefile) || is_array($archivefile)) {
+    if (is_string($archivefile)) {
         return 'text/plain';
+    } else if (is_array($archivefile)) {
+        foreach($archivefile as $fileelement) {
+            if (!is_string($fileelement)) {
+                throw new Exception("Unexpected type in archive file array");
+            }
+            return 'text/plain';
+        }
     }
 
     $fileinfo = pathinfo($archivefile->get_filename());
@@ -1586,13 +1601,10 @@ function translate_archive_extension_into_mimetype($archivefile) : string {
             } else {
                 return $archivefile->get_mimetype();
             }
-            break;
         case 'tgz':
             return 'application/x-gzip';
-            break;
         case 'tar':
             return 'application/x-gzip';
-            break;
         default:
             return $archivefile->get_mimetype();
     }
