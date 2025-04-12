@@ -111,11 +111,11 @@ class grappa_communicator implements communicator_interface {
      * Utility functions to access grappa from here on
      */
 
-    // public function head_from_grappa($url, $options = array()): array {
-    //     return $this->request_from_grappa($url, function($curl, $options) use ($url) {
-    //         return $curl->head($url, $options);
-    //     });
-    // }
+    public function head_from_grappa($url, $options = array()): array {
+        return $this->request_from_grappa($url, function($curl, $options) use ($url) {
+            return $curl->head($url, $options);
+        });
+    }
 
     public function get_from_grappa($url, $params = array(), $options = array()): array {
         return $this->request_from_grappa($url, function($curl, $options) use ($url, $params) {
@@ -123,12 +123,12 @@ class grappa_communicator implements communicator_interface {
         });
     }
 
-    // public function post_to_grappa($url, $content = '', $options = array()): array {
-    //     return $this->request_from_grappa($url, function($curl, $options) use ($url, $content) {
-    //         $curl->setHeader('Content-Type: application/octet-stream');
-    //         return $curl->post($url, $content, $options);
-    //     });
-    // }
+    public function post_to_grappa($url, $content = '', $options = array()): array {
+        return $this->request_from_grappa($url, function($curl, $options) use ($url, $content) {
+            $curl->setHeader('Content-Type: application/octet-stream');
+            return $curl->post($url, $content, $options);
+        });
+    }
 
     private function request_from_grappa($url, $curlfunc): array {
         $curl = new \curl();
@@ -157,46 +157,46 @@ class grappa_communicator implements communicator_interface {
         return array($response, $info['http_code']);
     }
 
-    private function head_from_grappa($url, $options = array()) {
-        $curl = new \curl();
-        if (!isset($options['CURLOPT_TIMEOUT'])) {
-            $options['CURLOPT_TIMEOUT'] = $this->servicetimeout;
-        }
-        $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
+    // private function head_from_grappa($url, $options = array()) {
+    //     $curl = new \curl();
+    //     if (!isset($options['CURLOPT_TIMEOUT'])) {
+    //         $options['CURLOPT_TIMEOUT'] = $this->servicetimeout;
+    //     }
+    //     $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
 
-        $response = $curl->head($url, $options);
+    //     $response = $curl->head($url, $options);
 
-        $info = $curl->get_info();
-        $errno = $curl->get_errno();
-        if ($errno != 0) {
-            // Errno indicates errors on transport level therefore this is almost certainly an error we do not want
-            // http errors need to be handled by each calling function individually.
-            throw new \invalid_response_exception("Error accessing HEAD $url;  CURL error code: $errno;  Error: {$curl->error}");
-        }
+    //     $info = $curl->get_info();
+    //     $errno = $curl->get_errno();
+    //     if ($errno != 0) {
+    //         // Errno indicates errors on transport level therefore this is almost certainly an error we do not want
+    //         // http errors need to be handled by each calling function individually.
+    //         throw new \invalid_response_exception("Error accessing HEAD $url;  CURL error code: $errno;  Error: {$curl->error}");
+    //     }
 
-        return array($response, $info['http_code']);
-    }
+    //     return array($response, $info['http_code']);
+    // }
 
-    private function post_to_grappa($url, $contents = '', $options = array()) {
-        $curl = new \curl();
-        if (!isset($options['CURLOPT_TIMEOUT'])) {
-            $options['CURLOPT_TIMEOUT'] = $this->servicetimeout;
-        }
-        $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
-        $curl->setHeader('Content-Type: application/octet-stream'); // content-type for a zip-file
+    // private function post_to_grappa($url, $contents = '', $options = array()) {
+    //     $curl = new \curl();
+    //     if (!isset($options['CURLOPT_TIMEOUT'])) {
+    //         $options['CURLOPT_TIMEOUT'] = $this->servicetimeout;
+    //     }
+    //     $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
+    //     $curl->setHeader('Content-Type: application/octet-stream'); // content-type for a zip-file
 
-        $response = $curl->post($url, $contents, $options);
+    //     $response = $curl->post($url, $contents, $options);
 
-        $info = $curl->get_info();
-        $errno = $curl->get_errno();
-        if ($errno != 0) {
-            // Errno indicates errors on transport level therefore this is almost certainly an error we do not want
-            // http errors need to be handled by each calling function individually.
-            throw new \invalid_response_exception("Error accessing POST $url;  CURL error code: $errno;  Error: {$curl->error}");
-        }
+    //     $info = $curl->get_info();
+    //     $errno = $curl->get_errno();
+    //     if ($errno != 0) {
+    //         // Errno indicates errors on transport level therefore this is almost certainly an error we do not want
+    //         // http errors need to be handled by each calling function individually.
+    //         throw new \invalid_response_exception("Error accessing POST $url;  CURL error code: $errno;  Error: {$curl->error}");
+    //     }
 
-        return array($response, $info['http_code']);
-    }
+    //     return array($response, $info['http_code']);
+    // }
 
     /*
      *
@@ -206,7 +206,7 @@ class grappa_communicator implements communicator_interface {
      *
      */
 
-    protected function __construct() {
+    public function __construct() {
         $this->serviceurl = get_config("qtype_moopt", "service_url");
         if(!isset($this->serviceurl) || empty($this->serviceurl))
             throw new service_communicator_exception("The web service URL is not configured or malformed.");

@@ -1163,11 +1163,26 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
     $returnval = array();
 
     $taskxmlnamespace = detect_proforma_namespace($taskdoc);
-    $submissionrestrictions = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'submission-restrictions')[0];
+
+    $submissionrestrictions = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'submission-restrictions');
+    if ($submissionrestrictions->length < 1) {
+        return array(); // Just return an empty array when they are no restrictions provided
+    } else {
+        $submissionrestrictions = $submissionrestrictions[0];
+    }
+
     if ($submissionrestrictions->hasAttribute('max-size')){
         $sum = 0;
         foreach($submissionfiles as $file) {
-            $sum += $file->get_filesize();
+            if (is_string($file)) {
+                $sum += strlen($file);
+            } else if (is_array($file)) {
+                $sum += count($file);
+            } else if (is_object($file) && method_exists($file, 'get_filesize')) {
+                $sum += $file->get_filesize();   
+            } else {
+                throw new Exception("Unexpected type in submission files");
+            }
         }
         if($sum > $submissionrestrictions->getAttribute('max-size')) {
             $returnval['maxfilesizeforthistask'] = $submissionrestrictions->getAttribute('max-size') . " bytes";
@@ -1548,6 +1563,11 @@ function set_rootdir_of_tree($filespath, $dirtree) {
  * @return string The mimetype of the archivefile, if there is no translation needed it will just return the normal mimetype of the file
  */
 function translate_archive_extension_into_mimetype($archivefile) : string {
+    // is_array could be problematic in future implementations. Required for check_proforma_submission_restrictions().
+    if (is_string($archivefile) || is_array($archivefile)) {
+        return 'text/plain';
+    }
+
     $fileinfo = pathinfo($archivefile->get_filename());
     $filetype = '';
     if (array_key_exists('extension', $fileinfo)) {
