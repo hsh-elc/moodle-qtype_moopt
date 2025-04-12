@@ -25,9 +25,10 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../locallib.php');
 
-use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
-use qtype_moopt\output\separate_feedback_text_renderer;
+use qtype_moopt\utility\proforma_xml\grading_scheme_handler;
+use qtype_moopt\output\grading_hints_renderer;
 use qtype_moopt\utility\communicator\communicator_factory;
+use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
 
 /**
  * Generates the output for MooPT questions.
@@ -55,20 +56,27 @@ class qtype_moopt_renderer extends qtype_renderer {
         // Temporarly hide the generalfeedback until the grader returns a response file
         // Since the general feedback may contain the solution to the question,
         // hiding the general feedback is neccessary for the fellowing reason:
-        // A grader may return a Proforma response file with the is-internal-error attribute set to true, allowing
-        // the student to redo their attempt -- by then the student will already have seen the correct solution in the
-        // feedback.
-        $this->generalfeedbacktemp = $qa->get_question()->generalfeedback;
-        $qa->get_question()->generalfeedback = '<p />';
+        // A grader may return a Proforma response file with the is-internal-error
+        // attribute set to true, allowing the student to redo their attempt -- by then
+        // the student will already have seen the correct solution in the feedback.
+        // Do this unless the question is using the manual graded behaviour,
+        // since the manual grading cannot create an internal error.
+        if (!$qa->get_behaviour() instanceof qbehaviour_manualgraded){
+            $this->generalfeedbacktemp = $qa->get_question()->generalfeedback;
+            $qa->get_question()->generalfeedback = '<p />';
+        }
 
         $o = "";
 
 
-        // Question is queued for grading, print the message that the question have been queued for grading
-        if ($qa->get_state() == question_state::$finished) {
+        $laststep = $qa->get_last_step();
+
+        // Question has been queued for grading, let the user know
+        if ($qa->get_state() == question_state::$finished || $laststep->has_behaviour_var('_completeForGrading')) {
             $o .= "<div class='specificfeedback queuedforgrading'>";
             $loader = '<div class="loader"></div>';
             $o .= html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
+            $o .= '<div style="display: none;" class="estimatedSecondsRemaining_' . $qa->get_question_id() . '">' . '(<span class="estimatedSecondsRemainingValue_' . $qa->get_question_id() . '"></span> '. get_string('estimatedSecondsRemaining', 'qtype_moopt') . ')</div>';
             $o .= "</div><br>";
         }
 
@@ -130,65 +138,145 @@ class qtype_moopt_renderer extends qtype_renderer {
             $internaldescription = $this->render_internal_description($question);
             $o .= html_writer::tag('div', $internaldescription, array('class' => 'internaldescription'));
         }
-
+        if (!$qa->get_state()->is_graded() && ($qa->get_question()->showstudgradingscheme || has_capability('mod/quiz:grade', $PAGE->context))) {
+            $gradingscheme = $this->render_grading_scheme($qa);
+            if(!$qa->get_question()->showstudgradingscheme){
+                $o .= html_writer::tag('div', $gradingscheme, array('class' => 'gradingscheme'));
+            } else {
+                $o .= html_writer::tag('div', $gradingscheme);
+            }
+        }
+        if ($qa->get_state()->is_finished() || $laststep->has_behaviour_var('_completeForGrading')) {
+            // state->is_finished() implies that a question attempt has been finished by the student,
+            // i.e. the student was sure enough to click the button to submit their solution.
+            // The question attempt's state is not 'todo', 'invalid', or anything like that anymore
+            // (for which case the is_finished() would return a 'false' value).
+            if ($qa->get_state() == question_state::$finished || $laststep->has_behaviour_var('_completeForGrading')) {
+                // Check if the question attempt's state is set to a particular state: question_state::$finished.
+                // This is not the same as checking whether the state finished via is_finished() (as mentioned above,
+                // a few other states return is_finished()==true (e.g. needsgrading, gaveup, and finished)).
+                // We only care about pulling for a grading result in this particular state since that's
+                // the only one that has a potential grading result lined up for polling.
+                // If the state is anything other than $finished (such as 'gradedright' or 'gradedwrong'), we do
+                // not pull for a grading result, since it's likely been already pulled in the past.
+                $PAGE->requires->js_call_amd('qtype_moopt/pull_grading_status', 'init', [$qa->get_usage_id(), $qa->get_slot(),
+                    get_config("qtype_moopt","service_client_polling_interval") * 1000 /* to milliseconds */]);
+            }
+        }
         return $o;
     }
 
     private function render_internal_description($question) {
         $o = '';
-        $o .= $this->output->heading(get_string('internaldescription', 'qtype_moopt'), 3);
+        $o .= $this->output->heading(get_string('internaldescription', 'qtype_moopt'), 3, 'internaldescription');
         $o .= $question->internaldescription;
         return $o;
     }
 
+    /**
+     * @throws coding_exception
+     */
+    private function render_grading_scheme(question_attempt $qa) {
+        global $PAGE;
+
+        $o = '<br>';
+        $o .= $this->output->heading(get_string('gradingscheme', 'qtype_moopt'), 3);
+
+        $blockid = "moopt-gradingscheme-" . $qa->get_usage_id() . "-" . $qa->get_slot();
+        $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_grading_scheme_buttons', 'init', [$blockid]);
+        $o .= "<p class='expandcollapselink'><a href='#' id='" . $blockid . "-expand-all-button'>"
+            . get_string('expand_all', 'qtype_moopt') . "</a> ";
+        $o .= "<a href='#' id='" . $blockid . "-collapse-all-button'>"
+            . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
+
+        $taskxmlfile = get_task_xml_file_from_filearea($qa->get_question());
+        $taskdoc = new DOMDocument();
+        $taskdoc->loadXML($taskxmlfile->get_content());
+        $taskxmlnamespace = detect_proforma_namespace($taskdoc);
+        $gradinghints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
+        $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
+
+        $xpathtask = new DOMXPath($taskdoc);
+        $xpathtask->registerNamespace('p', $taskxmlnamespace);
+
+        $gradingschemehelper = new grading_scheme_handler($gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark(), $xpathtask);
+        $gradingschemehelper->build_grading_scheme();
+
+        $gradinghintsrenderer = new grading_hints_renderer($gradingschemehelper->get_grading_scheme(),
+            has_capability('mod/quiz:grade', $PAGE->context));
+
+        $o .= "<div id='$blockid'>";
+        $o .= $gradinghintsrenderer->render();
+        $o .= "</div>";
+
+        return $o;
+    }
 
     private function render_downloadable_files(question_attempt $qa, question_display_options $options) {
         global $DB;
 
         $question = $qa->get_question();
-        $qubaid = $qa->get_usage_id();
-        $slot = $qa->get_slot();
         $questionid = $question->id;
         $o = '';
         $isteacher = has_capability('mod/quiz:grade', $options->context);
 
-        $files = $DB->get_records('qtype_moopt_files', array('questionid' => $questionid));
-        $anythingtodisplay = false;
-        if (count($files) != 0) { // TODO: this check should happen before these render methods are called
-            $downloadurls = '';
-            $downloadurls .= $this->output->heading(get_string('providedfiles', 'qtype_moopt'), 3);
-            $downloadurls .= html_writer::start_div('providedfiles');
-            $downloadurls .= '<ul>';
-            foreach ($files as $file) {
-                // skip files that are
-                // - not configured to be downloadable (usagebylms)
-                // - not visible to students
-                if ($file->usagebylms == 'display' 
-                    || ($file->visibletostudents == 'no' && !$isteacher)
-                    || ($file->usagebylms == 'edit' && !$isteacher)) {
-                    continue;
-                }
+        $studentfiles = $DB->get_records('qtype_moopt_files', array('questionid' => $questionid,
+        'visibletostudents' => 'yes', 'usagebylms' => 'download'));
+        if(count($studentfiles) != 0) {
+            $o .= $this->render_downloadable_files_only($qa, $options, $studentfiles, 'providedfiles');
+        }
 
-                $anythingtodisplay = true;
-                $url = moodle_url::make_pluginfile_url($question->contextid, COMPONENT_NAME, $file->filearea,
-                                "$qubaid/$slot/$questionid", $file->filepath, $file->filename, true);
-                if ($file->filearea == PROFORMA_ATTACHED_TASK_FILES_FILEAREA) {
-                    $folderdisplay = $file->filepath;
-                    // remove leading slash:
-                    if (strlen($folderdisplay) > 0 && $folderdisplay[0] == '/') $folderdisplay = substr($folderdisplay, 1);
-                } else {
-                    $folderdisplay = '';
-                }
-                $linkdisplay = $folderdisplay . $file->filename;
-                $downloadurls .= '<li><a href="' . $url . '">' . $linkdisplay . '</a></li>';
-            }
-            $downloadurls .= '</ul>';
-            $downloadurls .= html_writer::end_div('providedfiles');
-
-            if ($anythingtodisplay) {
-                $o .= $downloadurls;
+        if ($isteacher){
+            $teacherfiles = $DB->get_records('qtype_moopt_files', array('questionid' => $questionid, 'visibletostudents' => 'no'));
+            if(count($teacherfiles) != 0) {
+                $o .= $this->render_downloadable_files_only($qa, $options, $teacherfiles, 'providedfilesteacher');
             }
         }
+        return $o;
+    }
+
+    private function render_downloadable_files_only (question_attempt $qa, question_display_options $options, $files, $divclass) {
+        $question = $qa->get_question();
+        $qubaid = $qa->get_usage_id();
+        $slot = $qa->get_slot();
+        $questionid = $question->id;
+        $isteacher = has_capability('mod/quiz:grade', $options->context);
+        $o = '';
+
+        $anythingtodisplay = false;
+        $downloadurls = '';
+        if(!$isteacher) {
+            $o .= $this->output->heading(get_string('providedfiles', 'qtype_moopt'), 3);
+        }
+        $downloadurls .= html_writer::start_div($divclass);
+        $downloadurls .= '<ul>';
+        foreach ($files as $file) {
+            // skip files that are
+            // - not configured to be downloadable (usagebylms)
+            if ($file->usagebylms == 'display') {
+                continue;
+            }
+
+            $anythingtodisplay = true;
+            $url = moodle_url::make_pluginfile_url($question->contextid, COMPONENT_NAME, $file->filearea,
+                            "$qubaid/$slot/$questionid", $file->filepath, $file->filename, true);
+            if ($file->filearea == PROFORMA_ATTACHED_TASK_FILES_FILEAREA) {
+                $folderdisplay = $file->filepath;
+                // remove leading slash:
+                if (strlen($folderdisplay) > 0 && $folderdisplay[0] == '/') $folderdisplay = substr($folderdisplay, 1);
+            } else {
+                $folderdisplay = '';
+            }
+            $linkdisplay = $folderdisplay . $file->filename;
+            $downloadurls .= '<li><a href="' . $url . '">' . $linkdisplay . '</a></li>';
+        }
+        $downloadurls .= '</ul>';
+        $downloadurls .= html_writer::end_div($divclass);
+
+        if ($anythingtodisplay) {
+            $o .= $downloadurls;
+        }
+
         return $o;
     }
 
@@ -288,6 +376,10 @@ class qtype_moopt_renderer extends qtype_renderer {
 
         $renderedarea = '';
 
+        $itemid = null;
+        $filemanagerid = null;
+        $answertextids = array();
+
         if ($questionoptions->enablefilesubmissions) {
             $pickeroptions = new stdClass();
             $pickeroptions->itemid = $qa->prepare_response_files_draft_itemid(
@@ -303,6 +395,9 @@ class qtype_moopt_renderer extends qtype_renderer {
                         'value' => $pickeroptions->itemid));
 
             $renderedarea .= $filesrenderer->render($fm) . $hidden;
+
+            $filemanagerid = 'filemanager-'.$fm->options->client_id;
+            $itemid = $pickeroptions->itemid;
         }
         if ($questionoptions->enablefreetextsubmissions) {
 
@@ -315,6 +410,8 @@ class qtype_moopt_renderer extends qtype_renderer {
 
             $defaultproglang = $questionoptions->ftsstandardlang;
 
+            $fixedfilenames = false;
+
             for ($i = 0; $i < (int)$questionoptions->ftsmaxnumfields; $i++) {
                 $customoptions = $DB->get_record('qtype_moopt_freetexts', ['questionid' => $qa->get_question()->id,
                     'inputindex' => $i]);
@@ -323,9 +420,15 @@ class qtype_moopt_renderer extends qtype_renderer {
                 $answertextinputname = $qa->get_qt_field_name($answertextname);
                 $answertextid = $answertextinputname . '_id';
 
-                $answertextresponse = $qa->get_last_step_with_qt_var($answertextname)->get_qt_var($answertextname) ?? '';
-                if ($customoptions && !is_null($customoptions->filecontent))
-                    $answertextresponse = $customoptions->filecontent;
+                $answertextids[$i] = 'qtype_moopt_answertext_' . $qa->get_question_id() . "_$i";
+
+                $answertextresponse = $qa->get_last_step_with_qt_var($answertextname)->get_qt_var($answertextname);
+                if(!isset($answertextresponse)) {
+                    if ($customoptions && !is_null($customoptions->filecontent))
+                        $answertextresponse = $customoptions->filecontent;
+                    else
+                        $answertextresponse = '';
+                }
 
                 $filenamename = "answerfilename$i";
                 $filenameinputname = $qa->get_qt_field_name($filenamename);
@@ -341,13 +444,16 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $output = '';
                 $output .= html_writer::start_tag('div', array('class' => "qtype_moopt_answertext",
-                            'id' => "qtype_moopt_answertext_" . $qa->get_question_id() . "_$i"));
+                        'id' =>  $answertextids[$i]));
                 $output .= html_writer::start_div('answertextfilename');
                 $output .= html_writer::label(get_string('filename', 'qtype_moopt') . ":", $filenameid);
                 $inputoptions = ['id' => $filenameid, 'name' => $filenameinputname, 'style' => 'width: 100%;padding-left: 10px;',
                     'value' => $filenameresponse];
                 if ($disablefilenameinput) {
-                    $inputoptions['disabled'] = true;
+                    // readonly is used instead of disabled because the data in this field would not be submitted if it is disabled
+                    $inputoptions['readonly'] = true;
+                    $inputoptions['style'] .= "color: grey;";
+                    $fixedfilenames = true;
                 }
 
                 // Adjust the height of the textarea based on the content of the textarea
@@ -373,15 +479,32 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $PAGE->requires->js_call_amd('qtype_moopt/userinterfacewrapper', 'newUiWrapper', ['ace', $answertextid]);
             }
-            $renderedarea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
-            $renderedarea .= html_writer::tag('button', get_string('addanswertext', 'qtype_moopt'),
-                            ['id' => 'addAnswertextButton_' . $qa->get_question_id()]);
-            $renderedarea .= html_writer::tag('button', get_string('removelastanswertext', 'qtype_moopt'),
-                            ['id' => 'removeLastAnswertextButton_' . $qa->get_question_id(), 'style' => 'margin-left: 10px']);
-            $renderedarea .= html_writer::end_div();
+            if(!($fixedfilenames && !has_capability('mod/quiz:grade', $PAGE->context))){
+                $renderedarea .= html_writer::start_div('', ['style' => 'display:flex;justify-content:flex-end;']);
+                $renderedarea .= html_writer::tag('button', get_string('addanswertext', 'qtype_moopt'),
+                                ['id' => 'addAnswertextButton_' . $qa->get_question_id()]);
+                $renderedarea .= html_writer::tag('button', get_string('removelastanswertext', 'qtype_moopt'),
+                                ['id' => 'removeLastAnswertextButton_' . $qa->get_question_id(), 'style' => 'margin-left: 10px']);
+                $renderedarea .= html_writer::end_div();
+            }
 
             $PAGE->requires->js_call_amd('qtype_moopt/manage_answer_texts', 'init',
                     [(int)$questionoptions->ftsmaxnumfields, max($maxindexoffieldwithcontent, (int)$questionoptions->ftsnuminitialfields), $qa->get_question_id()]);
+        }
+
+        if ($qa->get_behaviour_name() == 'immediatemoopt' || $qa->get_behaviour_name() == 'adaptivemoopt' ||
+            $qa->get_behaviour_name() == 'adaptivemooptnopenalty' || $qa->get_behaviour_name() == 'interactivemoopt' ||
+            $qa->get_behaviour_name() == 'immediatemooptcbm') {
+            if ($questionoptions->enablefilesubmissions && $questionoptions->enablefreetextsubmissions) {
+                $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
+                    'initForFileAndFreetextSubmissions', [$qa->get_behaviour_field_name('submit'), $filemanagerid, $itemid, $answertextids]);
+            } elseif ($questionoptions->enablefilesubmissions) {
+                $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
+                    'initForFileSubmissions', [$qa->get_behaviour_field_name('submit'), $filemanagerid, $itemid]);
+            } elseif ($questionoptions->enablefreetextsubmissions) {
+                $PAGE->requires->js_call_amd('qtype_moopt/disable_check_button_for_incomplete_submissions',
+                    'initForFreetextSubmissions', [$qa->get_behaviour_field_name('submit'), $answertextids]);
+            }
         }
 
         if ($renderedarea == '') {
@@ -429,28 +552,25 @@ class qtype_moopt_renderer extends qtype_renderer {
      */
     protected function specific_feedback(question_attempt $qa) {
         global $PAGE, $DB;
-
-        $responsesummary = $DB->get_record("question_attempts", ["id" => $qa->get_database_id()], "responsesummary")->responsesummary;
-        if ($responsesummary != get_string('nosummaryavailable', 'qtype_moopt') && $responsesummary != null){
-            return $responsesummary;
-        }
-
-        if ($qa->get_state()->is_finished()) {
+        $laststep = $qa->get_last_step();
+        if ($qa->get_state()->is_finished() || $laststep->has_behaviour_var('_showGradedFeedback') ||
+            $laststep->has_behaviour_var('_completeForGrading')) {
 
             $PAGE->requires->js_call_amd('qtype_moopt/change_display_name_of_redo_button', 'init', [$qa->get_slot()]);
 
-            if ($qa->get_state() == question_state::$finished) {
-                $PAGE->requires->js_call_amd('qtype_moopt/pull_grading_status', 'init', [$qa->get_usage_id(), $qa->get_slot(),
-                    get_config("qtype_moopt",
-                            "service_client_polling_interval") * 1000 /* to milliseconds */]);
+            if ($qa->get_state() == question_state::$finished || $laststep->has_behaviour_var('_completeForGrading')) {
                 $loader = '<div class="loader"></div>';
-                return html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
+                $o = html_writer::div(get_string('currentlybeinggraded', 'qtype_moopt') . $loader, 'gradingstatus');
+                $o .= '<div style="display: none;" class="estimatedSecondsRemaining_' . $qa->get_question_id() . '">' . '(<span class="estimatedSecondsRemainingValue_' . $qa->get_question_id() . '"></span> '. get_string('estimatedSecondsRemaining', 'qtype_moopt') . ')</div>';
+                return $o;
+            } else if ($qa->get_state() == question_state::$gaveup) {
+                return get_string('gaveup', 'qtype_moopt');
             } else if ($qa->get_state() == question_state::$needsgrading && !has_capability('mod/quiz:grade', $PAGE->context)) {
                 // If a teacher is looking at this feedback and we did receive a valid response but it has an
                 // internal-error-attribute we still want to display this result.
                 return html_writer::div(get_string('needsgradingbyteacher', 'qtype_moopt'), 'gradingstatus');
-            } else if ($qa->get_state()->is_graded() || (has_capability('mod/quiz:grade', $PAGE->context) &&
-                    $qa->get_state() == question_state::$needsgrading)) {
+            } else if ($qa->get_state()->is_graded() || $laststep->has_behaviour_var('_showGradedFeedback') ||
+                (has_capability('mod/quiz:grade', $PAGE->context) && $qa->get_state() == question_state::$needsgrading)) {
 
                 $qubarecord = $DB->get_record('question_usages', ['id' => $qa->get_usage_id()]);
 
@@ -460,11 +580,11 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                 $responsexmlfile = $fs->get_file($qa->get_question()->contextid, COMPONENT_NAME,
                     PROFORMA_RESPONSE_FILE_AREA,
-                    $qa->get_database_id(),"/", 'response.xml');
+                    $qa->get_database_id(), "/", 'response.xml');
                 if ($responsexmlfile) {
                     $doc = new DOMDocument();
 
-                    set_error_handler(function($number, $error) {
+                    set_error_handler(function ($number, $error) {
                         if (preg_match('/^DOMDocument::loadXML\(\): (.+)$/', $error, $m) === 1) {
                             throw new Exception($m[1]);
                         }
@@ -500,12 +620,10 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                                 $xpathtask = new DOMXPath($taskdoc);
                                 $xpathtask->registerNamespace('p', $taskxmlnamespace);
-                                $xpathresponse = new DOMXPath($doc);
-                                $xpathresponse->registerNamespace('p', $namespace);
 
                                 $separatefeedbackhelper = new separate_feedback_handler($gradinghints, $tests,
                                         $separatetestfeedbackelem, $feedbackfiles, $taskxmlnamespace, $namespace,
-                                        $qa->get_max_mark(), $xpathtask, $xpathresponse);
+                                        $qa->get_max_mark(), $xpathtask);
                                 $separatefeedbackhelper->process_result();
 
                                 // File download URLs of files that are attached to the response
@@ -514,7 +632,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 // where context-id denotes a context of context level "module"
                                 // and qa-id denotes the database id of the question attempt
                                 // and quba-id denotes the database id of the question usage by activity object.
-                                // 
+                                //
                                 // The URL gets processed as a download request by the following call chain:
                                 //  1. lib/filelib.php: function file_pluginfile
                                 //  2. lib/questionlib.php: function question_pluginfile
@@ -525,7 +643,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 //         resulting in a key record of the file table as:
                                 //         - component: question
                                 //         - context: a context of level 70 (=module)
-                                //         - filearea: <filearea>_<qa-id>, 
+                                //         - filearea: <filearea>_<qa-id>,
                                 //             where <filearea> is one of the labels responsefilesresponsefile, responsefiles or responsefilesembedded
                                 //             and <qa-id> is the database id of a question attempt
                                 //         - itemid: <quba-id>, i. e. the database id of a question usage by activity object
@@ -534,37 +652,37 @@ class qtype_moopt_renderer extends qtype_renderer {
 
                                 $fileinfos = [
                                     'component' => COMPONENT_NAME,
-                                    'itemid' => $qa->get_database_id(),
+                                    'itemid' => "{$qa->get_usage_id()}/{$qa->get_slot()}/{$qa->get_database_id()}",
                                     'contextid' => $qa->get_question()->contextid,
-                                    'filepath' => "/{$qa->get_usage_id()}/{$qa->get_slot()}/{$qa->get_database_id()}/"
+                                    'filepath' => "/"
                                 ];
                                 $feedbackblockid = "moopt-feedbackblock-" . $qa->get_usage_id() . "-" . $qa->get_slot();
-                                $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_separate_feedback_buttons', 'init', [$feedbackblockid]);
+                                $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_grading_scheme_buttons', 'init', [$feedbackblockid]);
 
-                                $separatefeedbackrenderersummarised = new separate_feedback_text_renderer(
-                                        $separatefeedbackhelper->get_summarised_feedback(),
-                                        has_capability('mod/quiz:grade', $PAGE->context), $fileinfos,
-                                        $qa->get_question()->showstudscorecalcscheme);
+                                $separatefeedbackrenderersummarised = new grading_hints_renderer(
+                                    $separatefeedbackhelper->get_summarised_feedback(),
+                                    has_capability('mod/quiz:grade', $PAGE->context), $fileinfos,
+                                    $qa->get_question()->showstudscorecalcscheme);
                                 $html .= "<p class='expandcollapselink'><a href='#' id='" . $feedbackblockid . "-expand-all-button'>"
-                                         . get_string('expand_all', 'qtype_moopt') . "</a> ";
+                                    . get_string('expand_all', 'qtype_moopt') . "</a> ";
                                 $html .= "<a href='#' id='" . $feedbackblockid . "-collapse-all-button'>"
-                                         . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
+                                    . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
 
                                 $html .= "<div id='" . $feedbackblockid . "'>";
-                                $html .=    $separatefeedbackrenderersummarised->render();
-                                $html .=    '<p/>'; // vertical space between summarized and detailed feedback buttons
-                                $separatefeedbackrendererdetailed = new separate_feedback_text_renderer(
-                                        $separatefeedbackhelper->get_detailed_feedback(), has_capability('mod/quiz:grade',
-                                                $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
+                                $html .= $separatefeedbackrenderersummarised->render();
+                                $html .= '<p/>'; // vertical space between summarized and detailed feedback buttons
+                                $separatefeedbackrendererdetailed = new grading_hints_renderer(
+                                    $separatefeedbackhelper->get_detailed_feedback(), has_capability('mod/quiz:grade',
+                                    $PAGE->context), $fileinfos, $qa->get_question()->showstudscorecalcscheme);
                                 $html .= $separatefeedbackrendererdetailed->render();
                                 $html .= '</div>';
                             } else {
                                 // Merged test feedback.
-                                $studentfb= $doc->getElementsByTagNameNS($namespace, "student-feedback")[0];
-                                if ($studentfb) {                                
+                                $studentfb = $doc->getElementsByTagNameNS($namespace, "student-feedback")[0];
+                                if ($studentfb) {
                                     $html .= html_writer::div($studentfb->nodeValue, 'studentfeedback');
                                 }
-                                $teacherfb= $doc->getElementsByTagNameNS($namespace, "teacher-feedback")[0];
+                                $teacherfb = $doc->getElementsByTagNameNS($namespace, "teacher-feedback")[0];
                                 if (has_capability('mod/quiz:grade', $PAGE->context) && $teacherfb) {
                                     $html .= '<hr/>';
                                     $html .= html_writer::div($teacherfb->nodeValue, 'teacherfeedback');
@@ -583,12 +701,12 @@ class qtype_moopt_renderer extends qtype_renderer {
                     } catch (\exception $ex) {
                         // Catch anything weird that might happend during processing of the response.
                         $html = html_writer::div($ex->getMessage(), 'gradingstatus') . html_writer::div($ex->getTraceAsString(),
-                                        'gradingstatus');
+                                'gradingstatus');
                     } catch (\Error $er) {
                         // Catch anything weird that might happend during processing of the response.
                         $html = html_writer::div('Error code: ' . $er->getCode() . ". Message: " .
-                                        $er->getMessage(), 'gradingstatus') .
-                                html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
+                                $er->getMessage(), 'gradingstatus') .
+                            html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
                     }
                 } else {
                     $html = html_writer::div('Response.zip doesn\'t contain a response.xml file', 'gradingstatus');
@@ -607,10 +725,10 @@ class qtype_moopt_renderer extends qtype_renderer {
                         'filename' => 'response.zip');
 
                     $checkfile = $fs->get_file($zipfileinfos['contextid'], $zipfileinfos['component'], $zipfileinfos['filearea'],
-                            $zipfileinfos['itemid'], $zipfileinfos['filepath'], $zipfileinfos['filename']);
+                        $zipfileinfos['itemid'], $zipfileinfos['filepath'], $zipfileinfos['filename']);
                     if ($checkfile) {
                         // response.zip
-                        $responsefileinfos= $zipfileinfos;
+                        $responsefileinfos = $zipfileinfos;
                     } else {
                         // response.xml
                         $responsefileinfos = array(
@@ -621,15 +739,14 @@ class qtype_moopt_renderer extends qtype_renderer {
                             'filename' => 'response.xml');
                     }
                     $responsefileinfos['itemid'] = "{$qa->get_usage_id()}/$slot/{$qa->get_database_id()}"; // see questionlib.php\question_pluginfile(...)
-                    
+
                     $url = moodle_url::make_pluginfile_url($responsefileinfos['contextid'], $responsefileinfos['component'],
-                                    $responsefileinfos['filearea'], $responsefileinfos['itemid'], $responsefileinfos['filepath'],
-                                    $responsefileinfos['filename'], true);
-                    $downloadable_responsefilename= $responsefileinfos['filename'];
+                        $responsefileinfos['filearea'], $responsefileinfos['itemid'], $responsefileinfos['filepath'],
+                        $responsefileinfos['filename'], true);
+                    $downloadable_responsefilename = $responsefileinfos['filename'];
                     $html .= "<a href='$url' style='display:block;text-align:right;'>" .
-                            " <span style='font-family: FontAwesome; display:inline-block;" .
-                            "margin-right: 5px'>&#xf019;</span> " .
-                            get_string('downloadcompletefile', 'qtype_moopt', $downloadable_responsefilename) . "</a>";
+                        " <span class='fa fa-download'></span> " .
+                        get_string('downloadcompletefile', 'qtype_moopt', $downloadable_responsefilename) . "</a>";
                 }
                 return $html;
             }

@@ -42,7 +42,7 @@ class qtype_moopt_external extends external_api {
             'taskuuid' => new external_value(PARAM_RAW, 'task\'s uuid', VALUE_OPTIONAL),
             'maxscoregradinghints' => new external_value(PARAM_FLOAT, 'maximum score', VALUE_OPTIONAL),
             'filesdisplayedingeneralfeedback' => new external_value(PARAM_RAW, 'general feedback', VALUE_OPTIONAL),
-            'enablefileinput' => new external_value(PARAM_BOOL, 'Enable file submissions'),
+            'enablefileinput' => new external_value(PARAM_BOOL, 'Enable file submissions', VALUE_OPTIONAL),
             'freetextfilesettings' => new external_multiple_structure(
                         new external_single_structure(
                             array(
@@ -56,7 +56,6 @@ class qtype_moopt_external extends external_api {
                         )
                     ,'Free text settings', VALUE_OPTIONAL),
             'moodleValidationProformaNamespace' => new external_value(PARAM_TEXT, 'detected namespace', VALUE_OPTIONAL),
-            'moodleValidationWarningInvalidNamespace' => new external_value(PARAM_TEXT, 'warning message in case of invalid XML namespace', VALUE_OPTIONAL),
             'moodleValidationWarnings' => new external_multiple_structure(
                     new external_single_structure(
                         array(
@@ -83,21 +82,22 @@ class qtype_moopt_external extends external_api {
         $usercontext = context_user::instance($USER->id);
         self::validate_context($usercontext);
 
-        $unzipinfo = unzip_task_file_in_draft_area($draftid, $usercontext);
+        $unzipinfo = unzip_task_file_in_file_area($usercontext, 'user', 'draft', $draftid);
         if ($unzipinfo == null) {
             return ['error' => 'Error extracting zip file'];
+        } else if (isset($unzipinfo['error'])) {
+            return $unzipinfo;
         }
         $taskxmlfilename = $unzipinfo['xml'];
         $taskzipfilename = $unzipinfo['zip'] ?? null;
         $keepfilename = $taskzipfilename != null ? $taskzipfilename : $taskxmlfilename;
 
-        $doc = create_domdocument_from_task_xml($usercontext, $draftid, $taskxmlfilename, $taskzipfilename);
+        $doc = create_domdocument_from_task_xml($usercontext, 'user', 'draft', $draftid, $taskxmlfilename, $taskzipfilename);
         $namespace = detect_proforma_namespace($doc);
         $returnval = array();
 
         if ($namespace == null) {
-
-            $returnval['moodleValidationWarningInvalidNamespace'] = get_string('invalidproformanamespace', 'qtype_moopt',
+            $returnval['error'] = get_string('invalidproformanamespace', 'qtype_moopt',
                     implode(", ", PROFORMA_TASK_XML_NAMESPACES));
         } else {
 
@@ -192,8 +192,12 @@ class qtype_moopt_external extends external_api {
                             break;
                         } else if ($child->localName == 'attached-txt-file') {
                             $pathinfo = pathinfo('/' . $child->nodeValue);
+                            $encoding = $child->attributes->getNamedItem('encoding')->nodeValue;
                             $filecontent = get_text_content_from_file($usercontext, $draftid, $keepfilename,
-                                $pathinfo['dirname'] . '/', $pathinfo['basename']);
+                                $pathinfo['dirname'] . '/', $pathinfo['basename'], true, $encoding);
+                            if($filecontent === null){
+                                $returnval['error'] = "Encoding of file ".$pathinfo['basename']." couldn't be detected.";
+                            }
                             $defaultfilename = basename($child->nodeValue);
                             $fileid = $file->attributes->getNamedItem('id')->nodeValue;
                             $enablefreetext = true;
@@ -259,8 +263,9 @@ class qtype_moopt_external extends external_api {
                         } else if ($child->localName == 'attached-txt-file') {
                             $pathinfo = pathinfo('/' . $child->nodeValue);
                             $filename = basename($child->nodeValue);
+                            $encoding = $child->attributes->getNamedItem('encoding')->nodeValue;
                             $filecontent = get_text_content_from_file($usercontext, $draftid, $keepfilename,
-                                $pathinfo['dirname'] . '/', $pathinfo['basename']);
+                                $pathinfo['dirname'] . '/', $pathinfo['basename'], true, $encoding);
                         }
 
                         if(!empty($filecontent))
@@ -285,7 +290,7 @@ class qtype_moopt_external extends external_api {
         }
 
         // Do a little bit of cleanup and remove everything from the file area we extracted.
-        remove_all_files_from_draft_area($draftid, $usercontext, $keepfilename);
+        remove_all_files_from_file_area($usercontext, 'user', 'draft', $draftid, $keepfilename);
 
         return $returnval;
     }
@@ -297,7 +302,19 @@ class qtype_moopt_external extends external_api {
     }
 
     public static function service_retrieve_grading_results_returns() {
-        return new external_value(PARAM_BOOL, "whether any grade process finished");
+        return new external_single_structure(
+            array(
+                'estimatedSecondsRemainingForEachQuestion' => new external_multiple_structure(
+                    new external_single_structure(
+                        array(
+                            'questionId' => new external_value(PARAM_INT, "the question id of the question to which the estimated seconds remaining belong"),
+                            'estimatedSecondsRemaining' => new external_value(PARAM_INT, "the estimated seconds remaining for this gradeprocess")
+                        )
+                    ), "the list of all estimated seconds remaining of an unfinished gradingprocess"
+                ),
+                'finished' => new external_value(PARAM_BOOL, "whether any grade process finished")
+            )
+        );
     }
 
     public static function service_retrieve_grading_results($qubaid) {
@@ -339,8 +356,68 @@ class qtype_moopt_external extends external_api {
                 return false;
             }
         }
-
         return retrieve_grading_results($qubaid);
+    }
+
+    public static function check_if_filearea_is_empty_parameters() {
+        return new external_function_parameters(
+            array(
+                'itemid' => new external_value(PARAM_INT, 'id of the draft area')
+            )
+        );
+    }
+
+    public static function check_if_filearea_is_empty_returns() {
+        return new external_value(PARAM_BOOL, 'Whether a filearea is empty or not');
+    }
+
+    public static function check_if_filearea_is_empty($itemid)
+    {
+        global $USER;
+
+        // Do some validation.
+        $params = self::validate_parameters(self::check_if_filearea_is_empty_parameters(), array('itemid' => $itemid));
+        $draftid = $params['itemid'];
+
+        $usercontext = context_user::instance($USER->id);
+        self::validate_context($usercontext);
+
+        $area = file_get_draft_area_info($draftid, "/");
+        return ($area['filecount'] == 0 && $area['foldercount'] == 0);
+    }
+
+    public static function get_grader_data_parameters() {
+        return new external_function_parameters([]);
+    }
+
+    public static function get_grader_data_returns() {
+        return new external_multiple_structure(
+            new external_single_structure(
+                array(
+                    'name' => new external_value(PARAM_TEXT, 'grader name', VALUE_REQUIRED),
+                    'version' => new external_value(PARAM_TEXT, 'grader version', VALUE_REQUIRED),
+                    'display_name' => new external_value(PARAM_TEXT, 'grader display name', VALUE_REQUIRED),
+                    'proglangs' => new external_multiple_structure(
+                        new external_value(PARAM_TEXT, 'the programming language that is supported', VALUE_OPTIONAL)
+                        , 'programming languages that are supported by the grader', VALUE_OPTIONAL),
+                    'result_spec' => new external_single_structure(
+                        array(
+                            'format' => new external_value(PARAM_TEXT, 'The Result Specifications Format', VALUE_OPTIONAL),
+                            'structure' => new external_value(PARAM_TEXT, 'The Result Specifications Structure', VALUE_OPTIONAL),
+                            'teacher_feedback_level' => new external_value(PARAM_TEXT, 'The feedback level for teachers', VALUE_OPTIONAL),
+                            'student_feedback_level' => new external_value(PARAM_TEXT, 'The feedback level for students', VALUE_OPTIONAL)
+                        )
+                        , 'Default Values for the Result Specifications for a grader', VALUE_OPTIONAL),
+                    'html_representation' => new external_value(PARAM_TEXT, 'html representation of the grader', VALUE_REQUIRED)
+                )
+            ), "Available Graders", VALUE_REQUIRED);
+    }
+
+    public static function get_grader_data() : array {
+        // Do some param validation.
+        self::validate_parameters(self::get_grader_data_parameters(), array());
+
+        return array_values(get_available_graders_form_data());
     }
 
 }

@@ -44,8 +44,15 @@ if ($ADMIN->fulltree) {
         new lang_string('chose_communicator', 'qtype_moopt'), "",
         qtype_moopt\utility\communicator\communicator_factory::$implementations[0], $communicators));
 
-    $settings->add(new admin_setting_configtext("qtype_moopt/service_url", new lang_string('service_url',
-                            'qtype_moopt'), "", '', PARAM_URL));
+    $serviceurlsetting = new admin_setting_configtext("qtype_moopt/service_url", new lang_string('service_url',
+        'qtype_moopt'), "", '', PARAM_URL);
+    $serviceurlsetting->set_updatedcallback(function() use ($serviceurlsetting) {
+        // remove trailing slashes as they will interfere with url concatenation
+        $url = $serviceurlsetting->get_setting();
+        if(!is_null($url))
+            $serviceurlsetting->write_setting(rtrim($url, '/'));
+    });
+    $settings->add($serviceurlsetting);
     $settings->add(new admin_setting_configduration("qtype_moopt/service_timeout",
                     new lang_string('timeout', 'qtype_moopt'), "", 10, 1));
     $settings->add(new admin_setting_configduration("qtype_moopt/service_client_polling_interval",

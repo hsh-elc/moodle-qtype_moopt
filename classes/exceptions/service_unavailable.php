@@ -19,16 +19,13 @@ namespace qtype_moopt\exceptions;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Exception indicating that no response file is available for
+ * Exception indicating connection problems on a network level,
+ * e.g. curl trying to reach the grappa webservice in vain,
+ * or grappa returning HTTP 503 Service Unavailable due to a
+ * required subservice being unavailable, such as redis or docker.
  */
-class resource_not_found_exception extends service_communicator_exception {
-
-    /**
-     * Constructor
-     * @param string $debuginfo some detailed information
-     */
+class service_unavailable extends \moodle_exception {
     public function __construct($debuginfo = null) {
-        parent::__construct('notfound', 'qtype_moopt', '', $debuginfo, $debuginfo);
+        parent::__construct('serviceunavailable', 'qtype_moopt', '', $debuginfo, $debuginfo);
     }
-
 }

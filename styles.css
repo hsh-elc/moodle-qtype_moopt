@@ -33,11 +33,11 @@
     align-items: center;
 }
 
-.specificfeedback p.expandcollapselink {
+p.expandcollapselink {
 	text-align: right;
 }
 
-.specificfeedback p.expandcollapselink a {
+p.expandcollapselink a {
 	margin-left: 15px;
 }
 
@@ -73,7 +73,7 @@
     margin-left: 10px;
 }
 
-.providedfiles{
+.providedfiles, .providedfilesteacher{
     margin-left: 10px;
 }
 
@@ -88,4 +88,9 @@
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+.internaldescription, .gradingscheme, .providedfilesteacher {
+    background-color: #C9F5E0;
+    margin-top: 10px;
 }

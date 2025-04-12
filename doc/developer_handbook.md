@@ -1,3 +1,27 @@
+## HowTo MooPT and Moodle Plugin Development in general
+
+[Plugintypes](https://moodledev.io/docs/4.5/apis/plugintypes) should be read first, as an introduction to the different kinds of Moodle-Plugins. 
+To get a general idea how Moodle-Plugins are structured in general, [Common Files](https://moodledev.io/docs/4.5/apis/commonfiles) should be read.
+MooPT is a [Questiontype](https://moodledev.io/docs/4.5/apis/plugintypes/qtype) Plugin. 
+Besides MooPT there are also several [Questionbehaviour](https://moodledev.io/docs/4.5/apis/subsystems/question#question-behaviours-qbehaviour_) Plugins, specifically created to work with MooPT-Questions.
+
+To understand the different parts of MooPT in Detail, the docs listed below could be relevant. Not all the details on all the pages are necessarily relevant. It is probably best to go through the corresponding MooPT code in parallel and look up the appropriate parts of the documentation accordingly.
+
+1. MooPT uses some [JavaScript Modules](https://moodledev.io/docs/4.5/guides/javascript/modules). For more Information about this, see: MooPT Architecture below
+2. [Upgrade API](https://moodledev.io/docs/4.4/guides/upgrade) and the [XMLDB Editor](https://moodledev.io/general/development/tools/xmldb) to understand how to upgrade the MooPT plugin and change the database
+3. [File Handling](https://moodledev.io/docs/4.5/apis/subsystems/files) is very important to understand how the different files that are used by MooPT are saved in Moodle
+4. [Webservice API](https://moodledev.io/docs/4.5/apis/subsystems/external/writing-a-service) to understand the Webservice written in db/services.php and externallib.php
+5. [Multi Language Support](https://docs.moodle.org/dev/String_API#Basic_concepts)
+6. [Automatic Class Loading](https://docs.moodle.org/dev/Automatic_class_loading) to understand what the purpose of the classes/ folder is
+7. [Output API](https://moodledev.io/docs/4.5/apis/subsystems/output) to understand the renderer that MooPT uses in classes/output/
+8. [Forms API](https://moodledev.io/docs/4.5/apis/subsystems/form) to understand how the Question-Creation-Form works in edit_moopt_form.php
+9. [Capabilities](https://moodledev.io/docs/4.4/apis/subsystems/access)
+10. [Import/Export](https://docs.moodle.org/dev/Import/export_for_questiontype_plugins) to understand the Import/Export to Moodle XML implementation in questiontype.php
+11. [Backup](https://moodledev.io/docs/4.4/apis/subsystems/backup) and [Restore](https://moodledev.io/docs/4.4/apis/subsystems/backup/restore) to understand how the Backup and Restore works in backup/moodle2/
+
+For general reference when developing: [APIs](https://moodledev.io/docs/4.5/apis) could be also helpful.
+
+
 ## MooPT architecture
 
 ```

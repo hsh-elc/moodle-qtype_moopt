@@ -20,6 +20,7 @@ defined('MOODLE_INTERNAL') || die();
 
 use qtype_moopt\exceptions\resource_not_found_exception;
 use qtype_moopt\exceptions\service_communicator_exception;
+use qtype_moopt\exceptions\service_unavailable;
 
 require_once($CFG->libdir . '/filelib.php');
 
@@ -41,10 +42,12 @@ class grappa_communicator implements communicator_interface {
         $url = "{$this->serviceurl}/graders";
         list($gradersjson, $httpstatuscode) = $this->get_from_grappa($url);
 
-        if ($httpstatuscode != 200) {
-            throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL GET $url. Returned contents: '$gradersjson'");
-        }
-        return json_decode($gradersjson, true);
+        if($httpstatuscode == 200)
+            return json_decode($gradersjson, true);
+        else if($httpstatuscode == 404)
+            throw new resource_not_found_exception("Resource $url was not found.");
+        throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL GET $url.\n\nServer reply:\n"
+            .strip_tags($gradersjson));
     }
 
     /**
@@ -59,9 +62,8 @@ class grappa_communicator implements communicator_interface {
             return true;
         } else if ($httpstatuscode == 404) {
             return false;
-        } else {
-            throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL HEAD $url");
         }
+        throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL HEAD $url");
     }
 
     /**
@@ -80,49 +82,78 @@ class grappa_communicator implements communicator_interface {
     }
 
     /**
-     * @throws grappa_exception
-     * @throws \invalid_response_exception
+     * @param string $gradername
+     * @param string $graderversion
+     * @param string $gradeprocessid
+     * @return \stdClass a stdClass with two fields:
+     * 'finished' - a boolean value that indicates whether the gradeprocess finished or not,
+     * 'response' - contains the response that came back from grappa
      */
     public function get_grading_result(string $gradername, string $graderversion, string $gradeprocessid) {
         $url = "{$this->serviceurl}/{$this->lmsid}/gradeprocesses/$gradeprocessid";
         list($response, $httpstatuscode) = $this->get_from_grappa($url);
+        $ret = new \stdClass();
         if ($httpstatuscode == 202) {
-            return false;
+            $ret->finished = false;
+            $ret->response = json_decode($response)->estimatedSecondsRemaining;
         } else if ($httpstatuscode == 200) {
-            return $response;
+            $ret->finished = true;
+            $ret->response = $response;
         } else if($httpstatuscode == 404) {
             throw new resource_not_found_exception("A grading result does not exist for grade process id $gradeprocessid");
         } else {
             throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL GET $url");
         }
+        return $ret;
     }
 
     /*
-     *
-     *
      * Utility functions to access grappa from here on
-     *
-     *
-     *
      */
 
-    private function get_from_grappa($url, $params = array(), $options = array()) {
+    // public function head_from_grappa($url, $options = array()): array {
+    //     return $this->request_from_grappa($url, function($curl, $options) use ($url) {
+    //         return $curl->head($url, $options);
+    //     });
+    // }
+
+    public function get_from_grappa($url, $params = array(), $options = array()): array {
+        return $this->request_from_grappa($url, function($curl, $options) use ($url, $params) {
+            return $curl->get($url, $params, $options);
+        });
+    }
+
+    // public function post_to_grappa($url, $content = '', $options = array()): array {
+    //     return $this->request_from_grappa($url, function($curl, $options) use ($url, $content) {
+    //         $curl->setHeader('Content-Type: application/octet-stream');
+    //         return $curl->post($url, $content, $options);
+    //     });
+    // }
+
+    private function request_from_grappa($url, $curlfunc): array {
         $curl = new \curl();
-        if (!isset($options['CURLOPT_TIMEOUT'])) {
+        if (!isset($options['CURLOPT_TIMEOUT']))
             $options['CURLOPT_TIMEOUT'] = $this->servicetimeout;
-        }
         $options['CURLOPT_USERPWD'] = $this->lmsid . ':' . $this->lmspw;
-
-        $response = $curl->get($url, $params, $options);
-
+        $response = $curlfunc($curl, $options);
         $info = $curl->get_info();
         $errno = $curl->get_errno();
         if ($errno != 0) {
-            // Errno indicates errors on transport level therefore this is almost certainly an error we do not want
-            // http errors need to be handled by each calling function individually.
-            throw new \invalid_response_exception("Error accessing GET $url;  CURL error code: $errno;  Error: {$curl->error}");
+            // Errno indicates errors on transport level therefore this is
+            // almost certainly an error we do not want http errors need
+            // to be handled by each calling function individually.
+            throw new service_unavailable("Error accessing \"$url\" ({$curl->error} (Code {$curl->errno}))");
         }
 
+        $httpcode = $curl->get_info()['http_code'];
+        if($httpcode == 503) { // the service or one of its sub services is unavailable
+            // for whatever reason, curl ignores the response message
+            // from the web service (meaning the actual error message)
+            // in favour of its own meaningless generic message, so setting the
+            // exception message to the response message has no real meaning anymore,
+            // but it may still serve some puprose ...
+            throw new service_unavailable($response);
+        }
         return array($response, $info['http_code']);
     }
 
@@ -177,22 +208,11 @@ class grappa_communicator implements communicator_interface {
 
     protected function __construct() {
         $this->serviceurl = get_config("qtype_moopt", "service_url");
+        if(!isset($this->serviceurl) || empty($this->serviceurl))
+            throw new service_communicator_exception("The web service URL is not configured or malformed.");
         $this->servicetimeout = get_config("qtype_moopt", "service_timeout");
         $this->lmsid = get_config("qtype_moopt", "lms_id");
         $this->lmspw = get_config("qtype_moopt", "lms_password");
     }
-
-    protected static $instance = null;
-
-    public static function get_instance(): grappa_communicator {
-        if (self::$instance === null) {
-            self::$instance = new self;
-        }
-        return self::$instance;
-    }
-
-    protected function __clone() {
-        
-    }
-
 }
+

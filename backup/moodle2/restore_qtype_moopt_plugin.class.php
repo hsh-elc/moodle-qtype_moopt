@@ -22,8 +22,7 @@ class restore_qtype_moopt_plugin extends restore_qtype_plugin {
      * Returns the paths to be handled by the plugin at question level
      */
     protected function define_question_plugin_structure() {
-        $this->step->log('Restore called', backup::LOG_INFO);
-
+        //$this->step->log('Restore called', backup::LOG_INFO); //TODO: Prüfe wieso das eine Exception auslöst
         $paths = array();
 
         // List the relevant paths in the XML.

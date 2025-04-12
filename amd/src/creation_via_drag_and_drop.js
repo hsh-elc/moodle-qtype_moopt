@@ -18,7 +18,7 @@ define(['core/ajax',
                     });
                 },
 
-                extractInformation: function (availableGraders) {
+                extractInformation: function () {
                     var fileManager = document.querySelector("#id_proformataskfileupload").parentNode;
                     var itemId = null;
                     fileManager.childNodes.forEach( function (child) {
@@ -48,95 +48,116 @@ define(['core/ajax',
                                 document.querySelector("#id_name").value = result.title;
                                 editorEditor.setContents('id_questiontext', result.description);
                                 editorEditor.setContents('id_internaldescription', result.internaldescription);
-                                editorEditor.setContentsOfText('id_taskuuid', result.taskuuid);
-                                editorEditor.setContentsOfText('id_defaultmark', result.maxscoregradinghints);
+                                editorEditor.setContents('id_taskuuid', result.taskuuid);
+                                editorEditor.setContents('id_defaultmark', result.maxscoregradinghints);
                                 editorEditor.setContents('id_generalfeedback', result.filesdisplayedingeneralfeedback);
 
-                                /*
-                                 * selects a grader that supports the proglang of the task.
-                                 * selects the grader with the higher version number if two or more graders with the same name exist
-                                 * if several graders with different names are supporting the proglang of the task,
-                                 * the first one will be used
-                                 */
-                                if (availableGraders.length > 0) {
-                                    let selectedGrader = availableGraders[0];
-                                    //use the already selected grader in case no grader is found that supports the proglang
-                                    let e = document.querySelector("#id_graderselect");
-                                    let alreadySelectedGraderIDHtmlRepresentation = e.options[e.selectedIndex].value;
-                                    for (let i = 0; i < availableGraders.length; i++) {
-                                        let graderIDHtmlRepresentation = availableGraders[i]['html_representation'];
-                                        if (graderIDHtmlRepresentation === alreadySelectedGraderIDHtmlRepresentation) {
-                                            selectedGrader = availableGraders[i];
-                                            break;
-                                        }
-                                    }
-
-                                    const supportedGraders = [];
-                                    availableGraders.forEach(function (grader) {
-                                        if ('proglangs' in grader) {
-                                            for (let i = 0; i < grader['proglangs'].length; i++) {
-                                                if (grader['proglangs'][i].toLowerCase() === result.proglang.toLowerCase()) {
-                                                    supportedGraders.push(grader);
-                                                    break;
+                                ajax.call([
+                                    {
+                                        methodname: 'qtype_moopt_get_grader_data',
+                                        args: {},
+                                        done: function (availableGraders) {
+                                            /*
+                                             * selects a grader that supports the proglang of the task.
+                                             * selects the grader with the higher version number if two or more graders with the same name exist
+                                             * if several graders with different names are supporting the proglang of the task,
+                                             * the first one will be used
+                                             */
+                                            if (availableGraders.length > 0) {
+                                                let selectedGrader = availableGraders[0];
+                                                //use the already selected grader in case no grader is found that supports the proglang
+                                                let e = document.querySelector("#id_graderselect");
+                                                let alreadySelectedGraderIDHtmlRepresentation = e.options[e.selectedIndex].value;
+                                                for (let i = 0; i < availableGraders.length; i++) {
+                                                    let graderIDHtmlRepresentation = availableGraders[i]['html_representation'];
+                                                    if (graderIDHtmlRepresentation === alreadySelectedGraderIDHtmlRepresentation) {
+                                                        selectedGrader = availableGraders[i];
+                                                        break;
+                                                    }
                                                 }
-                                            }
-                                        }
-                                    });
 
-                                    if (supportedGraders.length > 0) {
-                                        const supportedGradersWithSameName = [];
-                                        const firstName = supportedGraders[0]['name'];
-                                        supportedGraders.forEach(function (grader) {
-                                            if (grader['name'] === firstName) {
-                                                supportedGradersWithSameName.push(grader);
-                                            }
-                                        });
+                                                const supportedGraders = [];
+                                                availableGraders.forEach(function (grader) {
+                                                    if ('proglangs' in grader) {
+                                                        for (let i = 0; i < grader['proglangs'].length; i++) {
+                                                            if (grader['proglangs'][i].toLowerCase() === result.proglang.toLowerCase()) {
+                                                                supportedGraders.push(grader);
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                });
 
-                                        if (supportedGradersWithSameName.length > 0) {
-                                            selectedGrader = supportedGradersWithSameName[0];
-                                            //Algorithm to find the highest graderversion of the grader
-                                            for (let k=1; k < supportedGradersWithSameName.length; k++) {
-                                                const versionNumDigits = supportedGradersWithSameName[k]['version'].split(".");
-                                                const maxVersionNumDigits = selectedGrader['version'].split(".");
-                                                for (let i=0; i < 2; i++) {
-                                                    if (parseInt(versionNumDigits[i]) > parseInt(maxVersionNumDigits[i])) {
-                                                        selectedGrader = supportedGradersWithSameName[k];
-                                                        break;
-                                                    } else if (parseInt(versionNumDigits[i]) < parseInt(maxVersionNumDigits[i])) {
-                                                        break;
+                                                if (supportedGraders.length > 0) {
+                                                    const supportedGradersWithSameName = [];
+                                                    const firstName = supportedGraders[0]['name'];
+                                                    supportedGraders.forEach(function (grader) {
+                                                        if (grader['name'] === firstName) {
+                                                            supportedGradersWithSameName.push(grader);
+                                                        }
+                                                    });
+
+                                                    if (supportedGradersWithSameName.length > 0) {
+                                                        selectedGrader = supportedGradersWithSameName[0];
+                                                        //Algorithm to find the highest graderversion of the grader
+                                                        for (let k = 1; k < supportedGradersWithSameName.length; k++) {
+                                                            const versionNumDigits = supportedGradersWithSameName[k]['version'].split(".");
+                                                            const maxVersionNumDigits = selectedGrader['version'].split(".");
+                                                            for (let i = 0; i < Math.max(versionNumDigits.length, maxVersionNumDigits.length); i++) {
+                                                                let versionNumber = parseInt(versionNumDigits[i]);
+                                                                if (isNaN(versionNumber)) {
+                                                                    versionNumber = -1;
+                                                                }
+                                                                let maxVersionNumber = parseInt(maxVersionNumDigits[i]);
+                                                                if (isNaN(maxVersionNumber)) {
+                                                                    maxVersionNumber = -1;
+                                                                }
+                                                                if (versionNumber > maxVersionNumber) {
+                                                                    selectedGrader = supportedGradersWithSameName[k];
+                                                                    break;
+                                                                } else if (versionNumber < maxVersionNumber) {
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                let searchVal = selectedGrader["html_representation"];
+                                                setSelectionSafely("#id_graderselect option[value='" + searchVal + "']");
+
+                                                //setting the proglang and gradername as tag (easiest point to access selected grader name)
+                                                let tagInput = document.querySelectorAll('[id^=form_autocomplete_input]')[0];
+                                                tagInput.value = result.proglang;
+                                                enterKeyEvent(tagInput);
+                                                let gradername = document.querySelector("#id_graderselect option[value='" + searchVal + "']").text;
+                                                tagInput.value = gradername;
+                                                enterKeyEvent(tagInput);
+                                                tagInput.value = "MooPT";
+                                                enterKeyEvent(tagInput);
+
+                                                if ('result_spec' in selectedGrader) {
+                                                    if ('format' in selectedGrader['result_spec']) {
+                                                        searchVal = selectedGrader['result_spec']['format'];
+                                                        setSelectionSafely("#id_resultspecformat option[value='" + searchVal + "']");
+                                                    }
+                                                    if ('structure' in selectedGrader['result_spec']) {
+                                                        searchVal = selectedGrader['result_spec']['structure'];
+                                                        setSelectionSafely("#id_resultspecstructure option[value='" + searchVal + "']");
+                                                    }
+                                                    if ('teacher_feedback_level' in selectedGrader['result_spec']) {
+                                                        searchVal = selectedGrader['result_spec']['teacher_feedback_level'];
+                                                        setSelectionSafely("#id_teacherfeedbacklevel option[value='" + searchVal + "']");
+                                                    }
+                                                    if ('student_feedback_level' in selectedGrader['result_spec']) {
+                                                        searchVal = selectedGrader['result_spec']['student_feedback_level'];
+                                                        setSelectionSafely("#id_studentfeedbacklevel option[value='" + searchVal + "']");
                                                     }
                                                 }
                                             }
                                         }
                                     }
-
-                                    let searchVal = selectedGrader["html_representation"];
-                                    let query = "#id_graderselect option[value='" + searchVal + "']";
-                                    document.querySelector(query).selected = true;
-
-                                    if ('result_spec' in selectedGrader) {
-                                        if ('format' in selectedGrader['result_spec']) {
-                                            searchVal = selectedGrader['result_spec']['format'];
-                                            query = "#id_resultspecformat option[value='" + searchVal + "']";
-                                            document.querySelector(query).selected = true;
-                                        }
-                                        if ('structure' in selectedGrader['result_spec']) {
-                                            searchVal = selectedGrader['result_spec']['structure'];
-                                            query = "#id_resultspecstructure option[value='" + searchVal + "']";
-                                            document.querySelector(query).selected = true;
-                                        }
-                                        if ('teacher_feedback_level' in selectedGrader['result_spec']) {
-                                            searchVal = selectedGrader['result_spec']['teacher_feedback_level'];
-                                            query = "#id_teacherfeedbacklevel option[value='" + searchVal + "']";
-                                            document.querySelector(query).selected = true;
-                                        }
-                                        if ('student_feedback_level' in selectedGrader['result_spec']) {
-                                            searchVal = selectedGrader['result_spec']['student_feedback_level'];
-                                            query = "#id_studentfeedbacklevel option[value='" + searchVal + "']";
-                                            document.querySelector(query).selected = true;
-                                        }
-                                    }
-                                }
+                                ]);
 
                                 let elem = document.querySelector("#id_enablefilesubmissions");
                                 elem.checked = !result.enablefileinput;
@@ -155,6 +176,13 @@ define(['core/ajax',
                                     elem.value = ftsmaxnumfields;
                                     elem.click();
                                     elem.dispatchEvent(new Event('change')); // trigger hideIf rules in edit_moopt_form
+                                    elem = document.querySelector("#id_ftsstandardlang");
+                                    let options = elem.options;
+                                    for(let i = 0; i < options.length; i++) {
+                                        if(options[i].text.toLowerCase() === result.proglang.toLowerCase()) {
+                                            elem.selectedIndex = i;
+                                        }
+                                    }
                                     elem = document.querySelector("#id_enablecustomsettingsforfreetextinputfields");
                                     elem.checked = false;
                                     elem.click();
@@ -221,3 +249,25 @@ define(['core/ajax',
             };
         }
 );
+
+function setSelectionSafely(query) {
+    select = document.querySelector(query);
+    if(null !== select)
+        select.selected = true;
+}
+
+function enterKeyEvent(elem) {
+        var event = new KeyboardEvent("keydown", {
+            bubbles: true,
+            cancelBubble: false,
+            cancelable: true,
+            charCode: 0,
+            code: "Enter",
+            isTrusted: true,
+            key: "Enter",
+            keyCode: 13,
+            repeat: false,
+            type: "keydown",
+            which: 13});
+        elem.dispatchEvent(event);
+}

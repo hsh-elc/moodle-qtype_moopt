@@ -53,10 +53,10 @@ class qtype_moopt extends question_type {
      * @return mixed array as above, or null to tell the base class to do nothing.
      */
     public function extra_question_fields() {
-        return array("qtype_moopt_options", "internaldescription", "gradername", "graderversion", "taskuuid", 'showstudscorecalcscheme',
-            'enablefilesubmissions', 'enablefreetextsubmissions', 'ftsnuminitialfields', 'ftsmaxnumfields',
-            'ftsautogeneratefilenames', 'ftsstandardlang', 'resultspecformat', 'resultspecstructure',
-            'studentfeedbacklevel', 'teacherfeedbacklevel');
+        return array("qtype_moopt_options", "internaldescription", "gradername", "graderversion",
+            "taskuuid", 'showstudgradingscheme', 'showstudscorecalcscheme', 'enablefilesubmissions',
+            'enablefreetextsubmissions', 'ftsnuminitialfields', 'ftsmaxnumfields', 'ftsautogeneratefilenames',
+            'ftsstandardlang', 'resultspecformat', 'resultspecstructure', 'studentfeedbacklevel', 'teacherfeedbacklevel');
     }
 
     /**
@@ -69,14 +69,18 @@ class qtype_moopt extends question_type {
      */
     public function save_question_options($question) {
         // Convert the combined representation of the graderID to graderName and graderVersion
-        $separatedGraderID = get_name_and_version_from_graderid_html_representation($question->graderselect);
-        $question->gradername = $separatedGraderID->gradername;
-        $question->graderversion = $separatedGraderID->graderversion;
+        if (property_exists($question, 'graderselect') && !is_null($question->graderselect)) {
+            $separatedGraderID = get_name_and_version_from_graderid_html_representation($question->graderselect);
+            $question->gradername = $separatedGraderID->gradername;
+            $question->graderversion = $separatedGraderID->graderversion;
+        }
 
-        if (!isset($question->internaldescription['text'])) {
-            $question->internaldescription = '';
-        } else {
-            $question->internaldescription = trim($question->internaldescription['text']);
+        if (is_array($question->internaldescription)) {
+            if (!array_key_exists('text', $question->internaldescription) || !isset($question->internaldescription['text'])) {
+                $question->internaldescription = '';
+            } else {
+                $question->internaldescription = trim($question->internaldescription['text']);
+            }
         }
 
         parent::save_question_options($question);
@@ -95,7 +99,9 @@ class qtype_moopt extends question_type {
 
         // Store custom settings for free text input fields.
         $DB->delete_records('qtype_moopt_freetexts', array('questionid' => $question->id));
-        if ($question->{'enablefreetextsubmissions'} && $question->{'enablecustomsettingsforfreetextinputfields'}) {
+
+        if (property_exists($question, 'enablefreetextsubmissions') && $question->{'enablefreetextsubmissions'} &&
+            property_exists($question, 'enablecustomsettingsforfreetextinputfields') && $question->{'enablecustomsettingsforfreetextinputfields'}) {
             $maxfts = $question->ftsmaxnumfields;
             // make sure this user-entered max num does not exceed the
             // original plugin setting from when it was installed and first-time configured
@@ -104,7 +110,7 @@ class qtype_moopt extends question_type {
                 throw new \coding_exception("Assertion error: user-entered max free text input fields cannot be greater than the plugin's max number setting.");
 
             for ($i = 0; $i < $maxfts; $i++) {
-                if ($question->{"enablecustomsettingsforfreetextinputfield$i"}) {
+                if (property_exists($question, "enablecustomsettingsforfreetextinputfield$i") && $question->{"enablecustomsettingsforfreetextinputfield$i"}) {
                     $data = new stdClass();
                     $data->questionid = $question->id;
                     $data->inputindex = $i;
@@ -117,6 +123,7 @@ class qtype_moopt extends question_type {
                 }
             }
         }
+        $this->save_hints($question);
     }
 
     public function delete_question($questionid, $contextid) {
@@ -134,4 +141,135 @@ class qtype_moopt extends question_type {
         parent::delete_question($questionid, $contextid);
     }
 
+    /**
+     * Provide export functionality for xml format
+     * @param question object the question object
+     * @param format object the format object so that helper methods can be used
+     * @param extra mixed any additional format specific data that may be passed by the format (see format code for info)
+     * @return string the data to append to the output buffer or false if error
+     */
+    function export_to_xml($question, $format, $extra=null) {
+        global $DB, $COURSE;
+
+        $xml = new XMLWriter();
+        $xml->openMemory();
+        $xml->setIndent(1);
+        $xml->setIndentString('    ');
+
+        /* Add an empty answer-Element because Moodle-Import function expects it */
+        $xml->startElement('answer');
+        $xml->writeAttribute('fraction', 0);
+        $xml->writeElement('text', '');
+        $xml->endElement();
+
+        $fs = get_file_storage();
+        $taskFileRecord = $DB->get_record('qtype_moopt_files', array('questionid' => $question->id, 'fileid' => 'task'));
+        if (!$taskFileRecord) {
+            // taskxml file without zip
+            $taskFileRecord = $DB->get_record('qtype_moopt_files', array('questionid' => $question->id, 'fileid' => 'taskxml'));
+        }
+        $context = context_course::instance($COURSE->id);
+        $taskfile = $fs->get_file($context->id,COMPONENT_NAME, $taskFileRecord->filearea, $question->id, $taskFileRecord->filepath, $taskFileRecord->filename);
+
+        $taskfilename = $taskfile->get_filename();
+        $taskfilepath = $taskfile->get_filepath();
+        $taskfileencoding = 'base64';
+        $taskfilecontentbase64 = base64_encode($taskfile->get_content());
+
+        $xml->startElement('taskfile');
+        $xml->writeAttribute('filearea', $taskFileRecord->filearea);
+        $xml->writeAttribute('name', $taskfilename);
+        $xml->writeAttribute('path', $taskfilepath);
+        $xml->writeAttribute('encoding', $taskfileencoding);
+        $xml->writeRaw($taskfilecontentbase64);
+        $xml->endElement();
+
+        /* Add freetext specific options to export */
+        $customOptionsForAllFreetexts = $DB->get_records('qtype_moopt_freetexts', array('questionid' => $question->id));
+
+        if (count($customOptionsForAllFreetexts) > 0) {
+            $xml->startElement('customsettingsforfreetextinputfields');
+            foreach ($customOptionsForAllFreetexts as $customOptionsForOneFreetext) {
+                $inputindex = $customOptionsForOneFreetext->inputindex;
+                $xml->startElement('field');
+                $xml->writeAttribute('index', $inputindex);
+                $presetfilename = $customOptionsForOneFreetext->presetfilename ? "0" : "1"; //Invert because in the form later "0" means true
+                $xml->writeElement('namesettingsforfreetextinput', $presetfilename);
+                $xml->writeElement('freetextinputfieldname', $customOptionsForOneFreetext->filename);
+                $xml->writeElement('ftsoverwrittenlang', $customOptionsForOneFreetext->ftslang);
+                $xml->writeElement('ftsinitialdisplayrows', $customOptionsForOneFreetext->initialdisplayrows);
+                $xml->startElement('freetextinputfieldtemplate');
+                $xml->writeCdata($customOptionsForOneFreetext->filecontent);
+                $xml->endElement();
+                $xml->endElement();
+            }
+            $xml->endElement();
+        }
+
+        $xmloutput = $xml->outputMemory();
+        $xmloutput .= parent::export_to_xml($question, $format, $extra);
+        return $xmloutput;
+    }
+
+    /**
+     * Provide import functionality for xml format
+     * @param data mixed the segment of data containing the question
+     * @param question object question object processed (so far) by standard import code
+     * @param format object the format object so that helper methods can be used (in particular error() )
+     * @param extra mixed any additional format specific data that may be passed by the format (see format code for info)
+     * @return object question object suitable for save_options() call or false if cannot handle
+     */
+    function import_from_xml($data, $question, $format, $extra=null) {
+        global $COURSE;
+
+        $ret = parent::import_from_xml($data, $question, $format, $extra);
+        $root = $data['#'];
+
+        /* Import Taskfile */
+        if ($ret && array_key_exists('taskfile', $root)) {
+            $taskfileattributes = $root['taskfile'][0]['@'];
+            $taskfilearea = $taskfileattributes['filearea'];
+            $taskfilename = $taskfileattributes['name'];
+            $taskfilepath = $taskfileattributes['path'];
+            $taskfileencoding = $taskfileattributes['encoding'];
+            $taskfileencoded = $root['taskfile'][0]['#'];
+
+            /* Check encoding of */
+            $taskfilecontent = false;
+            if (strtolower($taskfileencoding) == 'base64') {
+                $taskfilecontent = base64_decode($taskfileencoded, true);
+            }
+
+            if (!$taskfilecontent) {
+                throw new InvalidArgumentException("The taskfile could not be encoded from moodle xml.");
+            }
+
+            $context = context_course::instance($COURSE->id);
+
+            $taskfileinfo = [
+                'context' => $context,
+                'component' => COMPONENT_NAME,
+                'filearea' => $taskfilearea,
+                'filepath' => $taskfilepath,
+                'filename' => $taskfilename,
+                'content' => $taskfilecontent
+            ]; // Only save the taskfile information here and save the file later because question id is unknown until later
+            $ret->taskfile = $taskfileinfo;
+        }
+
+        /* Import custom settings for FreetextInputFields */
+        if ($ret && array_key_exists('customsettingsforfreetextinputfields', $root)) {
+            $ret->{'enablecustomsettingsforfreetextinputfields'} = true;
+            $customsettingsforfreetextinputfields = $root['customsettingsforfreetextinputfields'][0]['#']['field'];
+            foreach ($customsettingsforfreetextinputfields AS $field) {
+                $inputIndex = $field['@']['index'];
+                $ret->{'enablecustomsettingsforfreetextinputfield' . $inputIndex} = true;
+                $options = $field['#'];
+                foreach ($options AS $option => $optionValue) {
+                    $ret->{$option . $inputIndex} = $optionValue[0]['#'];
+                }
+            }
+        }
+        return $ret;
+    }
 }

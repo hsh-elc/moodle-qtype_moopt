@@ -17,54 +17,22 @@
 namespace qtype_moopt\utility\proforma_xml;
 
 /**
- * Description of separate_feedback_text_node
+ * Contains all the feedback related data
  *
  * @author robin
  */
 class separate_feedback_text_node {
 
-    private $id;
-    private $heading;
-    private $children;
-    private $isnullified;
+    private $isnullified = false;
+    private $rawscore;
     private $score;
-    private $accumulatorfunction;
-    private $internaldescription;
-    private $title;
-    private $description;
     private $studentfeedback;
     private $teacherfeedback;
-    private $hasinternalerror;
-    private $maxscore;
+    private $hasinternalerror = false;
 
-    public function __construct($id, $heading = null, $content = null) {
-        $this->id = $id;
-        $this->heading = $heading;
-        $this->content = $content;
-        $this->children = [];
+    public function __construct() {
         $this->studentfeedback = [];
         $this->teacherfeedback = [];
-        $this->filerefs = [];
-    }
-
-    public function add_child(separate_feedback_text_node $node) {
-        $this->children[] = $node;
-    }
-
-    public function get_children(): array {
-        return $this->children;
-    }
-
-    public function get_id() {
-        return $this->id;
-    }
-
-    public function get_heading() {
-        return $this->heading;
-    }
-
-    public function set_heading($heading) {
-        $this->heading = $heading;
     }
 
     public function set_nullified($isnullified) {
@@ -75,44 +43,20 @@ class separate_feedback_text_node {
         return $this->isnullified;
     }
 
+    public function get_rawscore() {
+        return $this->rawscore;
+    }
+
+    public function set_rawscore($rawscore) {
+        $this->rawscore = $rawscore;
+    }
+
     public function get_score() {
         return $this->score;
     }
 
     public function set_score($score) {
         $this->score = $score;
-    }
-
-    public function get_accumulator_function() {
-        return $this->accumulatorfunction;
-    }
-
-    public function set_accumulator_function($accumulatorfunction) {
-        $this->accumulatorfunction = $accumulatorfunction;
-    }
-
-    public function get_title() {
-        return $this->title;
-    }
-
-    public function set_title($title) {
-        $this->title = $title;
-    }
-
-    public function get_internal_description() {
-        return $this->internaldescription;
-    }
-
-    public function set_internal_description($internaldescription) {
-        $this->internaldescription = $internaldescription;
-    }
-
-    public function get_description() {
-        return $this->description;
-    }
-
-    public function set_description($description) {
-        $this->description = $description;
     }
 
     public function get_student_feedback() {
@@ -144,13 +88,4 @@ class separate_feedback_text_node {
     public function set_has_internal_error($err) {
         $this->hasinternalerror = $err;
     }
-
-    public function set_max_score($score) {
-        $this->maxscore = $score;
-    }
-
-    public function get_max_score() {
-        return $this->maxscore;
-    }
-
 }

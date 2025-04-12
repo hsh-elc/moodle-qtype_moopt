@@ -21,6 +21,11 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Exception indicating an error or an unexpected response
  *  returned from the service communicator
+ *  (after establishing a successful connection)
+ *
+ * This is a generic exception class for HTTP Status codes
+ * indicating all errors that do not have a exception class
+ * of their own.
  */
 class service_communicator_exception extends \moodle_exception {
 
@@ -29,7 +34,7 @@ class service_communicator_exception extends \moodle_exception {
      * @param string $debuginfo some detailed information
      */
     public function __construct($debuginfo = null) {
-        parent::__construct('service communicator', 'debug', '', $debuginfo, $debuginfo);
+        parent::__construct('servicecommunicator', 'qtype_moopt', '', $debuginfo, $debuginfo);
     }
 
 }

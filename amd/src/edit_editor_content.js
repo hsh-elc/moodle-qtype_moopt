@@ -9,11 +9,15 @@ define([], function () {
     return {
 
         setContents: function (common_id, contents) {
-            if (typeof tinyMCE === 'undefined') {
-                var elem= document.getElementById(common_id + "editable");
+            let editor = null;
+            if (typeof tinyMCE !== 'undefined') {
+                editor = tinyMCE.get(common_id);
+            }
+            if (editor === null) {
+                var elem = document.getElementById(common_id + "editable");
                 if (elem === null) {
                     // probably we are facing the plain text editor:
-                    elem= document.getElementById(common_id);
+                    elem = document.getElementById(common_id);
                     elem.value = contents;
                 } else {
                     // Atto HTML editor uses a div containing inner html:
@@ -25,13 +29,8 @@ define([], function () {
                     elem.focus();
                 }
             } else {
-                tinyMCE.get(common_id).setContent(contents);
+                editor.setContent(contents);
             }
-        },
-
-        setContentsOfText: function (common_id, contents) {
-            document.querySelector("[id^='" + common_id + "']").value = contents;
         }
-
     };
 });
