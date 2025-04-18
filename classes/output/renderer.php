@@ -709,7 +709,14 @@ class qtype_moopt_renderer extends qtype_renderer {
                             html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
                     }
                 } else {
-                    $html = html_writer::div('Response.zip doesn\'t contain a response.xml file', 'gradingstatus');
+                    $qaid = $qa->get_database_id();
+                    $restrictionssummary = $DB->get_record('question_attempts', ['id' => $qaid])->responsesummary;
+
+                    if ($restrictionssummary) {
+                        $html = html_writer::div($restrictionssummary);
+                    } else {
+                        $html = html_writer::div('Response.zip doesn\'t contain a response.xml file', 'gradingstatus');
+                    }
                 }
                 // If teacher, display response.zip for download.
                 if (has_capability('mod/quiz:grade', $PAGE->context)) {

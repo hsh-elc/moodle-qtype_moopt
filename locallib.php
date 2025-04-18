@@ -1182,7 +1182,7 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
                     if (is_string($stringelement)) {
                         $sum += strlen($stringelement);
                     } else {
-                        throw new Exception("Unexpected type in submitted file (array)");
+                        throw new Exception("Unexpected type in submitted file array");
                     }
                 }
             } else if (is_object($file) && method_exists($file, 'get_filesize')) {
