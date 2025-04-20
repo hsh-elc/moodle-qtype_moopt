@@ -1320,13 +1320,23 @@ function does_key_exist_in_array(array $array, string $key, string $format) {
  */
 function write_proforma_submission_restrictions_msg_to_db($msg, $qa) {
     global $DB;
-    /* this is really not the best solution to abuse the responsesummary field of the question_attempt table */
-    //$responsesummary = mysqli_real_escape_string(render_proforma_submission_restrictions($msg));  // NOT NEEDED
     $responsesummary = render_proforma_submission_restrictions($msg); // Moodle Database API protects from SQL Injections
     $qaid = $qa->get_database_id();
-    //$sql = "UPDATE mdl_question_attempts SET responsesummary = '$responsesummary' WHERE id = $qaid";
-    // https://moodledev.io/docs/4.5/apis/core/dml#set_field
-    $DB->set_field('question_attempts', 'responsesummary', $responsesummary, ['id' => $qaid]);
+
+    $steps = $DB->get_records('question_attempt_steps', ['questionattemptid' => $qaid], 'id DESC');
+    
+    if(!empty($steps)) {
+        $laststep = reset($steps); // Get current step with highest id
+        $laststepid = $laststep->id;
+
+        // Create new step data for submission restriction summary
+        $stepdata = new stdClass();
+        $stepdata->attemptstepid = $laststepid;
+        $stepdata->name = 'submissionrestrictionssummary';
+        $stepdata->value = $responsesummary;
+
+        $DB->insert_record('question_attempt_step_data', $stepdata);
+    }
 }
 
 /**
