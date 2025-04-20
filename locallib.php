@@ -1197,11 +1197,7 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
         }
     }
 
-    $firstfile = null;
-    foreach($submissionfiles as $file) {
-        $firstfile = $file;
-        break;
-    }
+    $firstfile = reset($submissionfiles);
 
     if(!is_null($firstfile)) {
         $filesRenamedWhileExtraction = false;
@@ -1215,8 +1211,8 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
             $submissionfiles = $archive_files_return_value->files;
             $filesRenamedWhileExtraction = ($archive_files_return_value->filesRenamed > 0);
 
-            //Remove all the extracted files afterwards, we saved the files in the $submissionfiles array so we dont need them in the filearea anymore
-            remove_all_files_from_draft_area($firstfile->get_itemid(), $usercontext, $firstfile->get_filename());
+            // Delete archive file after extraction
+            $firstfile->delete();
         }
     }
 
