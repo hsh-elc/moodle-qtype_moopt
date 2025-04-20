@@ -62,8 +62,6 @@ class qtype_moopt_question extends question_graded_automatically {
     public $studentfeedbacklevel;
     public $teacherfeedbacklevel;
 
-    public $submission_proforma_restrictions_message;
-
     /**
      * What data may be included in the form submission when a student submits
      * this question in its current state?
@@ -300,10 +298,6 @@ class qtype_moopt_question extends question_graded_automatically {
         if (!empty($msgarr)) {
             //Submission Restrictions violated, the submission is invalid, don't grade it
 
-            //the use of this public attribute could go wrong when several students do the same question at the same time
-            //because it belongs to the question in general not to the question attempt, is needed for the summarise_response function
-            $this->submission_proforma_restrictions_message = render_proforma_submission_restrictions($msgarr);
-
             write_proforma_submission_restrictions_msg_to_db($msgarr, $qa);
             return question_state::$gradedwrong;
         }
@@ -424,12 +418,7 @@ class qtype_moopt_question extends question_graded_automatically {
      * @return string a plain text summary of that response, that could be used in reports.
      */
     public function summarise_response(array $response): string {
-        //This is added to ensure that "nusummaryavailable" does not override the restriction message
-        if($this->submission_proforma_restrictions_message != null) {
-            return $this->submission_proforma_restrictions_message;
-        } else {
-            return get_string('nosummaryavailable', 'qtype_moopt');
-        }
+        return get_string('nosummaryavailable', 'qtype_moopt');
     }
 
 }
