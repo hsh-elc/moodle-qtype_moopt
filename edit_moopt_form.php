@@ -68,6 +68,7 @@ class qtype_moopt_edit_form extends question_edit_form {
             if ($usereditor === null || $usereditor === 'tiny') {
                 foreach ($this->query_editor_elements($mform) as $editor) {
                     $this->add_editor_warning_before_element($mform, $editor);
+                    break;
                 }
             }
 
