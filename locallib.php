@@ -1211,7 +1211,11 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
             $submissionfiles = $archive_files_return_value->files;
             $filesRenamedWhileExtraction = ($archive_files_return_value->filesRenamed > 0);
 
-            // Delete archive file after extraction
+            // Delete all files inside archive (they are saved in $submissionfiles, so they are not needed anymore)
+            foreach($archive_files_return_value->files as $archivefile) {
+                $archivefile->delete();
+            }
+            // Delete archive file 
             $firstfile->delete();
         }
     }
@@ -1221,12 +1225,18 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
         if ($filerestriction->hasAttribute('pattern-format')) {
             $format = $filerestriction->getAttribute('pattern-format');
         }
+
+        // Check for invalid pattern-formats, so that we don't have to do it multiple times later on
+        if (!($format === 'none' || $format === 'posix-ere')) {
+            throw new InvalidArgumentException("pattern-format: '$format' is unknown");
+        }
+
         $nodeValue = add_slash_to_filename($filerestriction->nodeValue, $format);
         $searchValue = $nodeValue; //The seperation of node and search value is used to get the correct message later
 
         //this block is used to ensure that an archivefile inside an archivefile with the same name also work with the restrictions correctly
         if ($filesRenamedWhileExtraction) {
-            if (does_key_exist_in_array(array($firstfile->get_filepath() . $firstfile->get_filename() => $firstfile) ,$nodeValue, $format)) {
+            if (array_key_exists($nodeValue, array($firstfile->get_filepath() . $firstfile->get_filename() => $firstfile))) {
                 $fs = get_file_storage();
                 $context = context_user::instance($USER->id);
                 $searchValue = $fs->get_unused_filename($context->id, $firstfile->get_component(), $firstfile->get_filearea(), $firstfile->get_itemid(), $firstfile->get_filepath(), $firstfile->get_filename());
@@ -1235,29 +1245,43 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
             }
         }
 
-        switch($filerestriction->getAttribute('use')){
-            case 'required':
-                if (!does_key_exist_in_array($submissionfiles ,$searchValue, $format)) {
+        $use = $filerestriction->getAttribute('use');
+        if ($use === 'required') {
+            if ($format === 'none') {
+                if (!array_key_exists($searchValue, $submissionfiles)) {
                     if (empty($returnval["requiredfilemissing"])) {
                         $returnval["requiredfilemissing"] = array();
                     }
                     $returnval["requiredfilemissing"][] = $nodeValue;
                 }
-                break;
-            case 'optional':
-                // No actions required here
-                break;
-            case 'prohibited':
-                if (does_key_exist_in_array($submissionfiles ,$searchValue, $format)) {
+            } else if ($format === 'posix-ere') {
+                if (!do_all_keys_match_posix_ere($submissionfiles, $searchValue)) {
+                    if (empty($returnval["requiredposixeremismatch"])) {
+                        $returnval["requiredposixeremismatch"] = array();
+                    }
+                    $returnval["requiredposixeremismatch"][] = $nodeValue;
+                }
+            }
+        } else if ($use === 'optional') {
+            // Nothing to do here
+        } else if ($use === 'prohibited') {
+            if ($format === 'none') {
+                if (array_key_exists($searchValue, $submissionfiles)) {
                     if (empty($returnval["prohibitedfileexists"])) {
                         $returnval["prohibitedfileexists"] = array();
                     }
                     $returnval["prohibitedfileexists"][] = $nodeValue;
                 }
-                break;
-            default:
-                $use_value = $filerestriction->getAttribute('use');
-                throw new InvalidArgumentException("the use-attribute value: '$use_value' is unknown");
+            } else if ($format === 'posix-ere') {
+                if (does_any_key_match_posix_ere($submissionfiles, $searchValue)) {
+                    if (empty($returnval["prohibitedposixerematch"])) {
+                        $returnval["prohibitedposixerematch"] = array();
+                    }
+                    $returnval["prohibitedposixerematch"][] = $nodeValue;
+                }
+            }
+        } else {
+            throw new InvalidArgumentException("the use-attribute value: '$use' is unknown");
         }
     }
     /* find the description in the child nodes of the 'submission-restrictions' node */
@@ -1279,30 +1303,32 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
 }
 
 /**
- * Checks if a given key exists in a given array
- *
- * @param array $array The array in which to search for the key
- * @param string $key The key to search for in the given array
- * @param string $format The pattern format in which this should be checked: "none" for standard string comparison
- * and "posix-ere" for standard regular expression comparison
- * @return bool whether the key exists in the array or not
+ * Checks if all keys of a given array match a poxis-ere pattern
+ * 
+ * @param array $array The array of which the keys should be checked
+ * @param string $pattern The pattern to check against
+ * @return bool Whether all keys of the given array match against the given pattern
  */
-function does_key_exist_in_array(array $array, string $key, string $format) {
+function do_all_keys_match_posix_ere(array $array, string $pattern) {
     foreach($array as $arrkey => $element) {
-        switch($format) {
-            case 'none':
-                if ($arrkey === $key) {
-                    return true;
-                }
-                break;
-            case 'posix-ere':
-                if (preg_match("#$key#", "$arrkey")) {
-                    return true;
-                }
-                break;
-            default:
-                throw new InvalidArgumentException("pattern-format: '$format' is unknown");
-                break;
+        if (!preg_match("#$pattern#", "$arrkey")) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Checks if any key of a given array matches a posix-ere pattern
+ * 
+ * @param array $array The array of which the keys should be checked
+ * @param string $pattern The pattern to check against
+ * @return bool Whether any key of the given array matches against the given pattern
+ */
+function does_any_key_match_posix_ere(array $array, string $pattern) {
+    foreach($array as $arrkey => $element) {
+        if(preg_match("#$pattern#", "$arrkey")) {
+            return true;
         }
     }
     return false;
@@ -1328,7 +1354,7 @@ function write_proforma_submission_restrictions_msg_to_db($msg, $qa) {
         // Create new step data for submission restriction summary
         $stepdata = new stdClass();
         $stepdata->attemptstepid = $laststepid;
-        $stepdata->name = 'submissionrestrictionssummary';
+        $stepdata->name = '-submissionrestrictionssummary';
         $stepdata->value = $responsesummary;
 
         $DB->insert_record('question_attempt_step_data', $stepdata);
@@ -1371,6 +1397,24 @@ function render_proforma_submission_restrictions($msg) {
         $o .= "<p>You submitted file(s) that are not allowed to be submitted:</p><ul>";
         foreach($msg['prohibitedfileexists'] as $prohibitedfilename) {
             $o .= "<li>$prohibitedfilename</li>";
+        }
+        $o .= "</ul></div>";
+        $o .= "<br>";
+    }
+    if(!empty($msg['requiredposixeremismatch'])) {
+        $o .= "<div><h4>File name mismatch</h4>";
+        $o .= "<p>You submitted file(s) that don't have a correct file name:</p><ul>";
+        foreach($msg['requiredposixeremismatch'] as $mismatch) {
+            $o .= "<li>Match pattern: $mismatch</li>";
+        }
+        $o .= "</ul></div>";
+        $o .= "<br>";
+    }
+    if(!empty($msg['prohibitedposixerematch'])) {
+        $o .= "<div><h4>Prohibited file name match</h4>";
+        $o .= "<p>You submitted file(s) that have a non-accepted file name:</p><ul>";
+        foreach($msg['prohibitedposixerematch'] as $match) {
+            $o .= "<li>Match pattern: $match</li>";
         }
         $o .= "</ul></div>";
         $o .= "<br>";

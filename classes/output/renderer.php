@@ -720,7 +720,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                         $stepdata = $DB->get_records('question_attempt_step_data', ['attemptstepid' => $step->id]);
 
                         foreach($stepdata as $stepdataentry) {
-                            if ($stepdataentry->name === 'submissionrestrictionssummary') {
+                            if ($stepdataentry->name === '-submissionrestrictionssummary') {
                                 $restrictionssummary = $stepdataentry->value;
                             }
                         }
