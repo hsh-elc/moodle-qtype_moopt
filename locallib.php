@@ -1200,21 +1200,13 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
     $firstfile = reset($submissionfiles);
 
     if(!is_null($firstfile)) {
-        $filesRenamedWhileExtraction = false;
-
         $firstfilemimetype = translate_archive_extension_into_mimetype($firstfile);
         /* when the submission only contains one archivefile, the proforma submission restrictions should use the files inside the archivefile not the archivefile itself for the check
            this is done after the "max-size" checking above because the "max-size" attribute relates to the size of the archivefile not the size of the extracted archivefile */
         if(count($submissionfiles) == 1 && (in_array($firstfilemimetype, get_supported_archive_types()))) {
             $usercontext = context_user::instance($USER->id);
-            $archive_files_return_value = get_files_inside_archive_file($firstfile, $usercontext, false, false, true);
-            $submissionfiles = $archive_files_return_value->files;
-            $filesRenamedWhileExtraction = ($archive_files_return_value->filesRenamed > 0);
-
-            // Delete all files inside archive (they are saved in $submissionfiles, so they are not needed anymore)
-            foreach($archive_files_return_value->files as $archivefile) {
-                $archivefile->delete();
-            }
+            $submissionfiles = get_files_inside_archive_file($firstfile, $usercontext);
+            
             // Delete archive file 
             $firstfile->delete();
         }
@@ -1234,52 +1226,46 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
         $nodeValue = add_slash_to_filename($filerestriction->nodeValue, $format);
         $searchValue = $nodeValue; //The seperation of node and search value is used to get the correct message later
 
-        //this block is used to ensure that an archivefile inside an archivefile with the same name also work with the restrictions correctly
-        if ($filesRenamedWhileExtraction) {
-            if (array_key_exists($nodeValue, array($firstfile->get_filepath() . $firstfile->get_filename() => $firstfile))) {
-                $fs = get_file_storage();
-                $context = context_user::instance($USER->id);
-                $searchValue = $fs->get_unused_filename($context->id, $firstfile->get_component(), $firstfile->get_filearea(), $firstfile->get_itemid(), $firstfile->get_filepath(), $firstfile->get_filename());
-                $format = "none";
-                $searchValue = add_slash_to_filename($searchValue, $format);
-            }
+        // Check if submission restriction has attribute "use"
+        if (!$filerestriction->hasAttribute('use')) {
+            throw new InvalidArgumentException("Missing use attribute");
         }
 
         $use = $filerestriction->getAttribute('use');
-        if ($use === 'required') {
-            if ($format === 'none') {
-                if (!array_key_exists($searchValue, $submissionfiles)) {
-                    if (empty($returnval["requiredfilemissing"])) {
-                        $returnval["requiredfilemissing"] = array();
-                    }
-                    $returnval["requiredfilemissing"][] = $nodeValue;
+        if ($use === 'required' && $format === 'none') {
+            // Required file must exist
+            if (!array_key_exists($searchValue, $submissionfiles)) {
+                if (empty($returnval["requiredfilemissing"])) {
+                    $returnval["requiredfilemissing"] = array();
                 }
-            } else if ($format === 'posix-ere') {
-                if (!do_all_keys_match_posix_ere($submissionfiles, $searchValue)) {
-                    if (empty($returnval["requiredposixeremismatch"])) {
-                        $returnval["requiredposixeremismatch"] = array();
-                    }
-                    $returnval["requiredposixeremismatch"][] = $nodeValue;
+                $returnval["requiredfilemissing"][] = $nodeValue;
+            }
+        } else if ($use === 'required' && $format === 'posix-ere') {
+            // All file names must match the given posix-ere
+            if (!do_all_keys_match_posix_ere($submissionfiles, $searchValue)) {
+                if (empty($returnval["requiredposixeremismatch"])) {
+                    $returnval["requiredposixeremismatch"] = array();
                 }
+                $returnval["requiredposixeremismatch"][] = $nodeValue;
+            }
+        } else if ($use === 'prohibited' && $format === 'none') {
+            // Prohibited file must not exist
+            if (array_key_exists($searchValue, $submissionfiles)) {
+                if (empty($returnval["prohibitedfileexists"])) {
+                    $returnval["prohibitedfileexists"] = array();
+                }
+                $returnval["prohibitedfileexists"][] = $nodeValue;
+            }
+        } else if ($use === 'prohibited' && $format === 'posix-ere') {
+            // All file names must not match the given posix-ere
+            if (does_any_key_match_posix_ere($submissionfiles, $searchValue)) {
+                if (empty($returnval["prohibitedposixerematch"])) {
+                    $returnval["prohibitedposixerematch"] = array();
+                }
+                $returnval["prohibitedposixerematch"][] = $nodeValue;
             }
         } else if ($use === 'optional') {
             // Nothing to do here
-        } else if ($use === 'prohibited') {
-            if ($format === 'none') {
-                if (array_key_exists($searchValue, $submissionfiles)) {
-                    if (empty($returnval["prohibitedfileexists"])) {
-                        $returnval["prohibitedfileexists"] = array();
-                    }
-                    $returnval["prohibitedfileexists"][] = $nodeValue;
-                }
-            } else if ($format === 'posix-ere') {
-                if (does_any_key_match_posix_ere($submissionfiles, $searchValue)) {
-                    if (empty($returnval["prohibitedposixerematch"])) {
-                        $returnval["prohibitedposixerematch"] = array();
-                    }
-                    $returnval["prohibitedposixerematch"][] = $nodeValue;
-                }
-            }
         } else {
             throw new InvalidArgumentException("the use-attribute value: '$use' is unknown");
         }
@@ -1449,11 +1435,8 @@ function add_slash_to_filename($filename, $format) {
  * @param bool $extract_in_seperate_dir Specifies if the files should be extracted inside the same directory like the archivefile or in a seperate directory, the seperate directory has the name of the archivefile
  * @param bool $overwriteexistingfiles Should this function overwrite existing files? When no: the extracted files that would overwrite other files will be renamed instead
  * @return stdClass An Object with the following fields: files -> The files of the archivefile, the keys of the array are the filename + the relative path of the file to the filearea
- * | filesRenamed -> the number of files that has been renamed while the extraction | filesOverwritten -> the number of files that has been overwritten while the extraction
  */
 function get_files_inside_archive_file($archivefile, $context, $extract_in_seperate_dir = false, bool $overwriteexistingfiles = false) {
-
-    $return = new stdClass();
     $fs = get_file_storage();
 
     $filepath = $archivefile->get_filepath();
@@ -1490,11 +1473,7 @@ function get_files_inside_archive_file($archivefile, $context, $extract_in_seper
     //Exclude all the files that where in the directory before extracting, we only want to return extracted files
     $files = array_diff_key($files, $donotsavefiles);
 
-    $return->filesRenamed = $extract_return_value->filesRenamed;
-    $return->filesOverwritten = $extract_return_value->filesOverwritten;
-    $return->files = $files;
-
-    return $return;
+    return $files;
 }
 
 /**
