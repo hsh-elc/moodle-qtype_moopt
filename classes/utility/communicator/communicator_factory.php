@@ -16,6 +16,11 @@
 
 namespace qtype_moopt\utility\communicator;
 
+/**
+ * factory method pattern for the communicators
+ * currently there is only one grading middleware and therefore only one communicator,
+ * so it may seem a bit unnecessary
+ */
 class communicator_factory {
 
     public static $implementations = ['grappa'];

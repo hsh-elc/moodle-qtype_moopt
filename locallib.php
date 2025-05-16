@@ -1145,3 +1145,503 @@ function mangle_pathname($filename) {
     $filename = ltrim($filename, '/');                  // No leading slash.
     return $filename;
 }
+
+/**
+ * Checks if the file-restrictions of the specific task.xml file are violated by the submission of a student
+ *
+ * @param DOMDocument $taskdoc the content of the task.xml file as a DOMDocument
+ * @param array $submissionfiles the files that belong to the submission as an array
+ * @return array an array that contains the messages with the following fields:
+ * generaldescription,
+ * maxfilesizeforthistask,
+ * filesizesubmitted,
+ * requiredfilemissing,
+ * prohibitedfileexists
+ */
+function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $submissionfiles) : array {
+    global $USER;
+    $returnval = array();
+
+    $taskxmlnamespace = detect_proforma_namespace($taskdoc);
+
+    $submissionrestrictions = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'submission-restrictions');
+    if ($submissionrestrictions->length < 1) {
+        return array(); // Just return an empty array when they are no restrictions provided
+    } else {
+        $submissionrestrictions = $submissionrestrictions[0];
+    }
+
+    if ($submissionrestrictions->hasAttribute('max-size')){
+        $sum = 0;
+        foreach($submissionfiles as $file) {
+            if (is_string($file)) {
+                $sum += strlen($file);
+            } else if (is_array($file)) {
+                // GraFlap returns an array of Strings as submission file from plain text
+                foreach($file as $stringelement) {
+                    if (is_string($stringelement)) {
+                        $sum += strlen($stringelement);
+                    } else {
+                        throw new Exception("Unexpected type in submitted file array");
+                    }
+                }
+            } else if (is_object($file) && method_exists($file, 'get_filesize')) {
+                $sum += $file->get_filesize();   
+            } else {
+                throw new Exception("Unexpected type in submission files");
+            }
+        }
+        if($sum > $submissionrestrictions->getAttribute('max-size')) {
+            $returnval['maxfilesizeforthistask'] = $submissionrestrictions->getAttribute('max-size') . " bytes";
+            $returnval['filesizesubmitted'] = $sum ." bytes";
+        }
+    }
+
+    $firstfile = reset($submissionfiles);
+
+    if(!is_null($firstfile)) {
+        $firstfilemimetype = translate_archive_extension_into_mimetype($firstfile);
+        /* when the submission only contains one archivefile, the proforma submission restrictions should use the files inside the archivefile not the archivefile itself for the check
+           this is done after the "max-size" checking above because the "max-size" attribute relates to the size of the archivefile not the size of the extracted archivefile */
+        if(count($submissionfiles) == 1 && (in_array($firstfilemimetype, get_supported_archive_types()))) {
+            $usercontext = context_user::instance($USER->id);
+            $submissionfiles = get_files_inside_archive_file($firstfile, $usercontext);
+            
+            // Delete archive file 
+            $firstfile->delete();
+        }
+    }
+
+    foreach($taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'file-restriction') as $filerestriction) {
+        $format = "none";  //The default pattern-format
+        if ($filerestriction->hasAttribute('pattern-format')) {
+            $format = $filerestriction->getAttribute('pattern-format');
+        }
+
+        // Check for invalid pattern-formats, so that we don't have to do it multiple times later on
+        if (!($format === 'none' || $format === 'posix-ere')) {
+            throw new InvalidArgumentException("pattern-format: '$format' is unknown");
+        }
+
+        $nodeValue = add_slash_to_filename($filerestriction->nodeValue, $format);
+        $searchValue = $nodeValue; //The seperation of node and search value is used to get the correct message later
+
+        // Check if submission restriction has attribute "use"
+        if (!$filerestriction->hasAttribute('use')) {
+            throw new InvalidArgumentException("Missing use attribute");
+        }
+
+        $use = $filerestriction->getAttribute('use');
+        if ($use === 'required' && $format === 'none') {
+            // Required file must exist
+            if (!array_key_exists($searchValue, $submissionfiles)) {
+                if (empty($returnval["requiredfilemissing"])) {
+                    $returnval["requiredfilemissing"] = array();
+                }
+                $returnval["requiredfilemissing"][] = $nodeValue;
+            }
+        } else if ($use === 'required' && $format === 'posix-ere') {
+            // All file names must match the given posix-ere
+            if (!do_all_keys_match_posix_ere($submissionfiles, $searchValue)) {
+                if (empty($returnval["requiredposixeremismatch"])) {
+                    $returnval["requiredposixeremismatch"] = array();
+                }
+                $returnval["requiredposixeremismatch"][] = $nodeValue;
+            }
+        } else if ($use === 'prohibited' && $format === 'none') {
+            // Prohibited file must not exist
+            if (array_key_exists($searchValue, $submissionfiles)) {
+                if (empty($returnval["prohibitedfileexists"])) {
+                    $returnval["prohibitedfileexists"] = array();
+                }
+                $returnval["prohibitedfileexists"][] = $nodeValue;
+            }
+        } else if ($use === 'prohibited' && $format === 'posix-ere') {
+            // All file names must not match the given posix-ere
+            if (does_any_key_match_posix_ere($submissionfiles, $searchValue)) {
+                if (empty($returnval["prohibitedposixerematch"])) {
+                    $returnval["prohibitedposixerematch"] = array();
+                }
+                $returnval["prohibitedposixerematch"][] = $nodeValue;
+            }
+        } else if ($use === 'optional') {
+            // Nothing to do here
+        } else {
+            throw new InvalidArgumentException("the use-attribute value: '$use' is unknown");
+        }
+    }
+    /* find the description in the child nodes of the 'submission-restrictions' node */
+    $description = "";
+    foreach($submissionrestrictions->childNodes as $child) {
+        if ($child->localName === 'description') {
+            $description = $child->nodeValue;
+            break;
+        }
+    }
+    //This is done indirectly because we want that the generaldescription field is always set (""), even when it is empty
+    //so the following if statement will work
+    $returnval["generaldescription"] = $description;
+    if(count($returnval) > 1) {
+        return $returnval;
+    } else {
+        return array(); //Just return an empty array when no restrictions are violated
+    }
+}
+
+/**
+ * Checks if all keys of a given array match a poxis-ere pattern
+ * 
+ * @param array $array The array of which the keys should be checked
+ * @param string $pattern The pattern to check against
+ * @return bool Whether all keys of the given array match against the given pattern
+ */
+function do_all_keys_match_posix_ere(array $array, string $pattern) {
+    foreach($array as $arrkey => $element) {
+        if (!preg_match("#$pattern#", "$arrkey")) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Checks if any key of a given array matches a posix-ere pattern
+ * 
+ * @param array $array The array of which the keys should be checked
+ * @param string $pattern The pattern to check against
+ * @return bool Whether any key of the given array matches against the given pattern
+ */
+function does_any_key_match_posix_ere(array $array, string $pattern) {
+    foreach($array as $arrkey => $element) {
+        if(preg_match("#$pattern#", "$arrkey")) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Writes the proforma submission restrictions message to the moodle database
+ *
+ * @param $msg The array with the proforma submission restrictions message
+ * @param $qa The question attempt of the question
+ */
+function write_proforma_submission_restrictions_msg_to_db($msg, $qa) {
+    global $DB;
+    $responsesummary = render_proforma_submission_restrictions($msg); // Moodle Database API protects from SQL Injections
+    $qaid = $qa->get_database_id();
+
+    $steps = $DB->get_records('question_attempt_steps', ['questionattemptid' => $qaid], 'id DESC');
+    
+    if(!empty($steps)) {
+        $laststep = reset($steps); // Get current step with highest id
+        $laststepid = $laststep->id;
+
+        // Create new step data for submission restriction summary
+        $stepdata = new stdClass();
+        $stepdata->attemptstepid = $laststepid;
+        $stepdata->name = '-submissionrestrictionssummary';
+        $stepdata->value = $responsesummary;
+
+        $DB->insert_record('question_attempt_step_data', $stepdata);
+    }
+}
+
+/**
+ * Converts the proforma_submission_restrictions_message array into html text
+ *
+ * @param $msg the array that contains the proforma_submission_restrictions_message
+ * @return string the proforma_submission_restrictions_messagem as html text
+ */
+function render_proforma_submission_restrictions($msg) {
+    $o = "<div><h3>Submission Restrictions</h3>";
+    $o .= "<p>Your submission violated some restrictions, because of this, your submission will not be graded.</p>";
+    $o .= "<br>";
+    if($msg['generaldescription'] != "") {
+        $o .= "<div><h4>General Description</h4>";
+        $o .= "<p>{$msg['generaldescription']}</p></div>";
+        $o .= "<br>";
+    }
+    if(!empty($msg['maxfilesizeforthistask'])) {
+        $o .= "<div><h4>Filesize</h4>";
+        $o .= "<p>The sum of your submitted files exceeded the maximum filesize a submission could have. </p>";
+        $o .= "<p>The maximum filesize that is allowed for this task: {$msg['maxfilesizeforthistask']}</p>";
+        $o .= "<p>The size of your files in total: {$msg['filesizesubmitted']}</p></div>";
+        $o .= "<br>";
+    }
+    if (!empty($msg['requiredfilemissing'])) {
+        $o .= "<div><h4>Files missing</h4>";
+        $o .= "<p>There are file(s) missing that are expected to be submitted:</p><ul>";
+        foreach($msg['requiredfilemissing'] as $missingfilename) {
+            $o .= "<li>$missingfilename</li>";
+        }
+        $o .= "</ul></div>";
+        $o .= "<br>";
+    }
+    if(!empty($msg['prohibitedfileexists'])) {
+        $o .= "<div><h4>Prohibited files</h4>";
+        $o .= "<p>You submitted file(s) that are not allowed to be submitted:</p><ul>";
+        foreach($msg['prohibitedfileexists'] as $prohibitedfilename) {
+            $o .= "<li>$prohibitedfilename</li>";
+        }
+        $o .= "</ul></div>";
+        $o .= "<br>";
+    }
+    if(!empty($msg['requiredposixeremismatch'])) {
+        $o .= "<div><h4>File name mismatch</h4>";
+        $o .= "<p>You submitted file(s) that don't have a correct file name:</p><ul>";
+        foreach($msg['requiredposixeremismatch'] as $mismatch) {
+            $o .= "<li>Match pattern: $mismatch</li>";
+        }
+        $o .= "</ul></div>";
+        $o .= "<br>";
+    }
+    if(!empty($msg['prohibitedposixerematch'])) {
+        $o .= "<div><h4>Prohibited file name match</h4>";
+        $o .= "<p>You submitted file(s) that have a non-accepted file name:</p><ul>";
+        foreach($msg['prohibitedposixerematch'] as $match) {
+            $o .= "<li>Match pattern: $match</li>";
+        }
+        $o .= "</ul></div>";
+        $o .= "<br>";
+    }
+    $o .= "</div>";
+    return $o;
+}
+
+/**
+ * @param string $filename The filename to check as a String
+ * @param string $format The pattern-format that is used in the proforma submission restriction
+ * @return string returns the filename with an added "/" at the beginning when the proforma pattern-format is "none",
+ * if there were a "/" before at the beginning of the filename it will be returned as it was before
+ */
+function add_slash_to_filename($filename, $format) {
+    if ($format == "none") {
+        if ("/" != substr($filename, 0, 1)) {
+            return "/" . $filename;
+        } else {
+            return $filename;
+        }
+    } else {
+        return $filename;
+    }
+}
+
+/**
+ * Gets the files of an archivefile and saves them into an array.
+ *
+ * @param stored_file $archivefile The archivefile to get the files from
+ * @param $context
+ * @param bool $extract_in_seperate_dir Specifies if the files should be extracted inside the same directory like the archivefile or in a seperate directory, the seperate directory has the name of the archivefile
+ * @param bool $overwriteexistingfiles Should this function overwrite existing files? When no: the extracted files that would overwrite other files will be renamed instead
+ * @return stdClass An Object with the following fields: files -> The files of the archivefile, the keys of the array are the filename + the relative path of the file to the filearea
+ */
+function get_files_inside_archive_file($archivefile, $context, $extract_in_seperate_dir = false, bool $overwriteexistingfiles = false) {
+    $fs = get_file_storage();
+
+    $filepath = $archivefile->get_filepath();
+    if($extract_in_seperate_dir) {
+        $filepath = $archivefile->get_filepath() . $archivefile->get_filename() . '/';
+    }
+
+    //Get all files in the directory $filepath to exclude them later, we only want to return files that have been extracted
+    $donotsavefiles = $fs->get_area_tree($context->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid());
+    $rootdir = set_rootdir_of_tree($filepath, $donotsavefiles);
+    if($rootdir === null){ //When the directory does not exist, there cant be files inside to exclude later
+        $donotsavefiles = array();
+    } else {
+        $donotsavefiles = get_files_of_dir($rootdir);
+    }
+
+    /* extract the archivefile into the directory: $filepath */
+    $mimetype = translate_archive_extension_into_mimetype($archivefile);
+    $extract_return_value = extract_file($archivefile, $filepath, $archivefile->get_filename(), $archivefile->get_filearea(),
+                                      $archivefile->get_itemid(), $archivefile->get_component(), $context, $mimetype, $overwriteexistingfiles);
+
+    if(!$extract_return_value) {
+        throw new RuntimeException("Something went wrong while extracting the submitted archivefile");
+    }
+
+    //Get all the files of the filearea and save it into the $files array
+    $rootdir = $fs->get_area_tree($context->id, $archivefile->get_component(), $archivefile->get_filearea(), $archivefile->get_itemid());
+
+    //Only save the files that are inside the $extractedfilepath
+    $rootdir = set_rootdir_of_tree($extract_return_value->filepath, $rootdir);
+
+    $files = get_files_of_dir($rootdir);
+
+    //Exclude all the files that where in the directory before extracting, we only want to return extracted files
+    $files = array_diff_key($files, $donotsavefiles);
+
+    return $files;
+}
+
+/**
+ * Extracts an archived file into the same filearea
+ * Currently only supports .zip, .tar.gz .tgz files and .tar files
+ *
+ * If this function does not work: try using: "translate_archive_extension_into_mimetype($archivefile)" before to get the correct mimetype
+ *
+ * @param stored_file $archivefile The archivefile to be extracted
+ * @param string $filepath The filepath of the directory in which the extracted files should be stored
+ * @param string $filename The filename of the archivefile
+ * @param string $filearea The filearea of the archivefile
+ * @param int $itemid The itemid of the archivefile (the filearea id)
+ * @param $component
+ * @param $context
+ * @param $mimetype
+ * @param bool $overwriteexistingfiles Should this function overwrite existing files? When no: the extracted files that would overwrite other files will be renamed instead
+ * @return false|stdClass when nothing goes wrong: An Object with the following fields: filepath -> The filepath in which the extracted files have been saved
+ * | filesRenamed -> the number of files that has been renamed while the extraction | filesOverwritten -> the number of files that has been overwritten while the extraction, else: false
+ */
+function extract_file($archivefile, $filepath, $filename, $filearea, $itemid, $component, $context, $mimetype, bool $overwriteexistingfiles = false) {
+    global $USER;
+    $return = new stdClass();
+    $return->filesRenamed = 0;
+    $return->filesOverwritten = 0;
+
+    if (in_array($mimetype, get_supported_archive_types())) {
+        $fs = get_file_storage();
+
+        //The following code is copied from draftfiles_ajax.php and slightly changed
+        $zipper = get_file_packer($mimetype);
+        $temppath = $fs->get_unused_dirname($context->id, $component, $filearea, $itemid,
+            $filepath . pathinfo($filename, PATHINFO_FILENAME) . '/');
+        $donotremovedirs = array();
+        $doremovedirs = array($temppath);
+
+        // Extract archive and move all files from $temppath to $filepath
+        if (($processed = $archivefile->extract_to_storage($zipper, $context->id, $component, $filearea, $itemid, $temppath, $USER->id))
+            !== false) {
+            $extractedfiles = $fs->get_directory_files($context->id, $component, $filearea, $itemid, $temppath, true);
+            $xtemppath = preg_quote($temppath, '|');
+            foreach ($extractedfiles as $file) {
+                $realpath = preg_replace('|^' . $xtemppath . '|', $filepath, $file->get_filepath());
+                if (!$file->is_directory()) {
+                    // Set the source to the extracted file to indicate that it came from archive.
+                    $file->set_source(serialize((object)array('source' => $archivefile->get_filepath())));
+                }
+                if (!$fs->file_exists($context->id, $component, $filearea, $itemid, $realpath, $file->get_filename())) {
+                    // File or directory did not exist, just move it.
+                    $file->rename($realpath, $file->get_filename());
+                } else if (!$file->is_directory()) {
+                    if ($overwriteexistingfiles) {
+                        // File already existed, overwrite it
+                        repository::overwrite_existing_draftfile($itemid, $realpath, $file->get_filename(), $file->get_filepath(), $file->get_filename());
+                        $return->filesOverwritten++;
+                    } else {
+                        // File already existed, dont overwrite it, rename it
+                        $file->rename($realpath, $fs->get_unused_filename($context->id, $component, $filearea, $itemid, $realpath, $file->get_filename()));
+                        $return->filesRenamed++;
+                    }
+                } else {
+                    // Directory already existed, remove temporary dir but make sure we don't remove the existing dir
+                    $doremovedirs[] = $file->get_filepath();
+                    $donotremovedirs[] = $realpath;
+                }
+            }
+        } else {
+            return false;
+        }
+        foreach (array_diff($doremovedirs, $donotremovedirs) as $path) {
+            if ($file = $fs->get_file($context->id, $component, $filearea, $itemid, $path, '.')) {
+                $file->delete();
+            }
+        }
+        $return->filepath = $filepath;
+        return $return;
+    } else {
+        throw new InvalidArgumentException("The File that should be extracted has an unknown archive type");
+    }
+}
+
+/**
+ * Searches all files in a specific directory, only accepts the $dir parameter as an array
+ * which contains the other two arrays: "subdirs" and "files", the "subdirs" array contains another "subdirs" and "files" array
+ *
+ * @param array $dir
+ * @return array of all files in the directory
+ */
+function get_files_of_dir(array $dir) : array{
+    $files = array();
+    foreach($dir["subdirs"] as $subdir) {
+        $files = array_merge($files, get_files_of_dir($subdir));
+    }
+    foreach($dir["files"] as $file) {
+        $files[$file->get_filepath() . $file->get_filename()] = $file;
+    }
+    return $files;
+}
+
+/**
+ * Navigates trough a filetree, and returns the specific subfiletree
+ *
+ * @param $filespath The path of which you want the filetree
+ * @param $dirtree The tree of all the files
+ * @return mixed The subfiletree of the $filepath as an array
+ */
+function set_rootdir_of_tree($filespath, $dirtree) {
+    //Only get files in the specified directory
+    $path = explode("/", $filespath);
+    $path = array_diff($path, array("")); //Delete all elements in the path that only contain "", this can happen when using explode
+    foreach($path as $subdir) {
+        $dirtree = $dirtree["subdirs"][$subdir];
+    }
+    return $dirtree;
+}
+
+/**
+ * Function that translates the file extension of a specific archivefile into a specific mimetype.
+ * Is needed because there is a mismatch between the mimetypes of some archivefiles.
+ * For example: test.tar.gz has the mimetype 'application/g-zip' but moodle's "get_file_packer" needs: 'application/x-gzip'
+ * for .tar.gz archivefiles
+ *
+ * @param stored_file $archivefile The archivefile to check
+ * @return string The mimetype of the archivefile, if there is no translation needed it will just return the normal mimetype of the file
+ */
+function translate_archive_extension_into_mimetype($archivefile) : string {
+    // is_array could be problematic in future implementations. Required for check_proforma_submission_restrictions().
+    if (is_string($archivefile)) {
+        return 'text/plain';
+    } else if (is_array($archivefile)) {
+        foreach($archivefile as $fileelement) {
+            if (!is_string($fileelement)) {
+                throw new Exception("Unexpected type in archive file array");
+            }
+            return 'text/plain';
+        }
+    }
+
+    $fileinfo = pathinfo($archivefile->get_filename());
+    $filetype = '';
+    if (array_key_exists('extension', $fileinfo)) {
+        $filetype = strtolower($fileinfo['extension']);
+    }
+    switch ($filetype){
+        case 'gz':
+            $filename = strtolower($fileinfo['filename']);
+            $fileinfo = pathinfo($filename);
+            $extension = '';
+            if (array_key_exists('extension', $fileinfo)) {
+                $extension = strtolower($fileinfo['extension']);
+            }
+            if ($extension === 'tar'){
+                return 'application/x-gzip';
+            } else {
+                return $archivefile->get_mimetype();
+            }
+        case 'tgz':
+            return 'application/x-gzip';
+        case 'tar':
+            return 'application/x-gzip';
+        default:
+            return $archivefile->get_mimetype();
+    }
+}
+
+/**
+ * @return string[] Array of the mimetypes that are supported to be extracted by the function: "extract_file"
+ */
+function get_supported_archive_types() : array {
+    return array('application/zip', 'application/x-gzip');
+}

@@ -231,15 +231,17 @@ class qtype_moopt_question extends question_graded_automatically {
         // Get response files.
         $qubaid = $qa->get_usage_id();
         $files = array();   // Array for all files that end up in the ZIP file.
+        $submissionfiles = array(); // Array for all submission files, is needed for to check the proforma_submission_restrictions
 
         foreach ($responsefiles as $file) {
             $files["submission/{$file->get_filename()}"] = $file;
+            $submissionfiles[$file->get_filepath() . $file->get_filename()] = $file;
         }
 
         foreach ($freetextanswers as $filename => $filecontent) {
             $mangledname = mangle_pathname($filename);
-            $files["submission/$mangledname"] = [$filecontent]; // Syntax to use a string as
-            // file contents.
+            $files["submission/$mangledname"] = [$filecontent]; // Syntax to use a string as file contents.
+            $submissionfiles[$mangledname] = [$filecontent];
         }
 
         global $PAGE;
@@ -290,11 +292,23 @@ class qtype_moopt_question extends question_graded_automatically {
         $gradinghints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
         $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
 
+
+        /* Check if the submitted files of the students violates the proforma submission restrictions */
+        $msgarr = check_proforma_submission_restrictions($taskdoc, $submissionfiles, $qa);
+        if (!empty($msgarr)) {
+            //Submission Restrictions violated, the submission is invalid, don't grade it
+
+            write_proforma_submission_restrictions_msg_to_db($msgarr, $qa);
+            return question_state::$gradedwrong;
+        }
+
         // Create the submission.xml file.
         $submissionxmlcreator = new proforma_submission_xml_creator();
-        $submissionxml = $submissionxmlcreator->create_submission_xml($taskreftype, $includetaskfile ?
-                $taskfilename : $this->taskuuid, $files, $this->resultspecformat, $this->resultspecstructure, $this->studentfeedbacklevel, $this->teacherfeedbacklevel,
-                $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark(), $USER->id, $COURSE->id);
+
+        $submissionxml = $submissionxmlcreator->create_submission_xml($taskreftype,
+        ($includetaskfile ? $taskfilename : $this->taskuuid), $files, $this->resultspecformat,
+        $this->resultspecstructure, $this->studentfeedbacklevel, $this->teacherfeedbacklevel,
+        $gradinghints, $tests, $taskxmlnamespace, $qa->get_max_mark(), $USER->id, $COURSE->id);
 
         // Load task file and add it to the files that go into the zip file.
         if ($includetaskfile) {

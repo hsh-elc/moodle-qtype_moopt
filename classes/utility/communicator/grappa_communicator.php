@@ -24,6 +24,9 @@ use qtype_moopt\exceptions\service_unavailable;
 
 require_once($CFG->libdir . '/filelib.php');
 
+/**
+ * class to communicate with grappa
+ */
 class grappa_communicator implements communicator_interface {
 
     private $serviceurl;
@@ -31,6 +34,10 @@ class grappa_communicator implements communicator_interface {
     private $lmsid;
     private $lmspw;
 
+    /**
+     * @throws \invalid_response_exception
+     * @throws grappa_exception
+     */
     public function get_graders(): array {
         $url = "{$this->serviceurl}/graders";
         list($gradersjson, $httpstatuscode) = $this->get_from_grappa($url);
@@ -43,6 +50,10 @@ class grappa_communicator implements communicator_interface {
             .strip_tags($gradersjson));
     }
 
+    /**
+     * @throws \invalid_response_exception
+     * @throws grappa_exception
+     */
     public function is_task_cached($uuid): bool {
         $url = "{$this->serviceurl}/tasks/$uuid";
         list(, $httpstatuscode) = $this->head_from_grappa($url);
@@ -55,6 +66,10 @@ class grappa_communicator implements communicator_interface {
         throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL HEAD $url");
     }
 
+    /**
+     * @throws \invalid_response_exception
+     * @throws grappa_exception
+     */
     public function enqueue_submission(string $gradername, string $graderversion, bool $asynch, \stored_file $submissionfile) {
         $url = "{$this->serviceurl}/{$this->lmsid}/gradeprocesses?graderName=$gradername&graderVersion=$graderversion&async=$asynch";
 
@@ -87,7 +102,7 @@ class grappa_communicator implements communicator_interface {
         } else if($httpstatuscode == 404) {
             throw new resource_not_found_exception("A grading result does not exist for grade process id $gradeprocessid");
         } else {
-            throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL POST $url");
+            throw new service_communicator_exception("Received HTTP status code $httpstatuscode when accessing URL GET $url");
         }
         return $ret;
     }
@@ -141,6 +156,14 @@ class grappa_communicator implements communicator_interface {
         }
         return array($response, $info['http_code']);
     }
+
+    /*
+     *
+     *
+     * Singleton related code from here on
+     *
+     *
+     */
 
     public function __construct() {
         $this->serviceurl = get_config("qtype_moopt", "service_url");

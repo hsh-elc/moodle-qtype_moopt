@@ -709,7 +709,28 @@ class qtype_moopt_renderer extends qtype_renderer {
                             html_writer::div('Stack trace:<br/>' . $er->getTraceAsString(), 'gradingstatus');
                     }
                 } else {
-                    $html = html_writer::div('Response.zip doesn\'t contain a response.xml file', 'gradingstatus');
+                    $restrictionssummary = null;
+
+                    // Get the response summary from the db
+                    $qaid = $qa->get_database_id();
+                    $steps = $DB->get_records('question_attempt_steps', ['questionattemptid' => $qaid]);
+
+                    // Check every step and corresponding step data entry if it contains data for the submission restriction summary
+                    foreach ($steps as $step) {
+                        $stepdata = $DB->get_records('question_attempt_step_data', ['attemptstepid' => $step->id]);
+
+                        foreach($stepdata as $stepdataentry) {
+                            if ($stepdataentry->name === '-submissionrestrictionssummary') {
+                                $restrictionssummary = $stepdataentry->value;
+                            }
+                        }
+                    }
+
+                    if ($restrictionssummary) {
+                        $html = html_writer::div($restrictionssummary);
+                    } else {
+                        $html = html_writer::div('Response.zip doesn\'t contain a response.xml file', 'gradingstatus');
+                    }
                 }
                 // If teacher, display response.zip for download.
                 if (has_capability('mod/quiz:grade', $PAGE->context)) {
