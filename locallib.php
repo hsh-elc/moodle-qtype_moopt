@@ -1156,12 +1156,13 @@ function mangle_pathname($filename) {
  * maxfilesizeforthistask,
  * filesizesubmitted,
  * requiredfilemissing,
- * prohibitedfileexists
+ * requiredposixeremismatch,
+ * prohibitedfileexists,
+ * prohibitedposixerematch
  */
 function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $submissionfiles) : array {
     global $USER;
     $returnval = array();
-
     $taskxmlnamespace = detect_proforma_namespace($taskdoc);
 
     $submissionrestrictions = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'submission-restrictions');
@@ -1242,7 +1243,7 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
             }
         } else if ($use === 'required' && $format === 'posix-ere') {
             // All file names must match the given posix-ere
-            if (!do_all_keys_match_posix_ere($submissionfiles, $searchValue)) {
+            if (!does_any_key_match_posix_ere($submissionfiles, $searchValue)) {
                 if (empty($returnval["requiredposixeremismatch"])) {
                     $returnval["requiredposixeremismatch"] = array();
                 }
@@ -1289,7 +1290,7 @@ function check_proforma_submission_restrictions(DOMDocument $taskdoc, array $sub
 }
 
 /**
- * Checks if all keys of a given array match a poxis-ere pattern
+ * Checks if all keys of a given array match a posix-ere pattern
  * 
  * @param array $array The array of which the keys should be checked
  * @param string $pattern The pattern to check against
@@ -1371,7 +1372,7 @@ function render_proforma_submission_restrictions($msg) {
     }
     if (!empty($msg['requiredfilemissing'])) {
         $o .= "<div><h4>Files missing</h4>";
-        $o .= "<p>There are file(s) missing that are expected to be submitted:</p><ul>";
+        $o .= "<p>A valid submission must include required files:</p><ul>";
         foreach($msg['requiredfilemissing'] as $missingfilename) {
             $o .= "<li>$missingfilename</li>";
         }
@@ -1388,19 +1389,19 @@ function render_proforma_submission_restrictions($msg) {
         $o .= "<br>";
     }
     if(!empty($msg['requiredposixeremismatch'])) {
-        $o .= "<div><h4>File name mismatch</h4>";
-        $o .= "<p>You submitted file(s) that don't have a correct file name:</p><ul>";
+        $o .= "<div><h4>Required file name mismatch</h4>";
+        $o .= "<p>A valid submission must include required files:</p><ul>";
         foreach($msg['requiredposixeremismatch'] as $mismatch) {
-            $o .= "<li>Match pattern: $mismatch</li>";
+            $o .= "<li>At least one submitted file is required matching the pattern: $mismatch</li>";
         }
         $o .= "</ul></div>";
         $o .= "<br>";
     }
     if(!empty($msg['prohibitedposixerematch'])) {
         $o .= "<div><h4>Prohibited file name match</h4>";
-        $o .= "<p>You submitted file(s) that have a non-accepted file name:</p><ul>";
+        $o .= "<p>A valid submission must not include prohibited files:</p><ul>";
         foreach($msg['prohibitedposixerematch'] as $match) {
-            $o .= "<li>Match pattern: $match</li>";
+            $o .= "<li>No submitted file is allowed matching the pattern: $match</li>";
         }
         $o .= "</ul></div>";
         $o .= "<br>";
@@ -1415,7 +1416,7 @@ function render_proforma_submission_restrictions($msg) {
  * @return string returns the filename with an added "/" at the beginning when the proforma pattern-format is "none",
  * if there were a "/" before at the beginning of the filename it will be returned as it was before
  */
-function add_slash_to_filename($filename, $format) {
+function add_slash_to_filename($filename, $format = "none") {
     if ($format == "none") {
         if ("/" != substr($filename, 0, 1)) {
             return "/" . $filename;
@@ -1568,7 +1569,7 @@ function get_files_of_dir(array $dir) : array{
         $files = array_merge($files, get_files_of_dir($subdir));
     }
     foreach($dir["files"] as $file) {
-        $files[$file->get_filepath() . $file->get_filename()] = $file;
+        $files[add_slash_to_filename($file->get_filepath() . $file->get_filename())] = $file;
     }
     return $files;
 }
