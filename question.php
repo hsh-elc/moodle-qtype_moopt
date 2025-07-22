@@ -281,6 +281,14 @@ class qtype_moopt_question extends question_graded_automatically {
             $taskreftype = 'uuid';
         }
 
+        // Load task.xml file because we need the grading_hints if feedback-mode is merged-test-feedback.
+        $taskxmlfile = get_task_xml_file_from_filearea($this);
+        $taskdoc = new DOMDocument();
+        $taskdoc->loadXML($taskxmlfile->get_content());
+        $taskxmlnamespace = detect_proforma_namespace($taskdoc);
+        $gradinghints = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'grading-hints')[0];
+        $tests = $taskdoc->getElementsByTagNameNS($taskxmlnamespace, 'tests')[0];
+
         // Create the submission.xml file.
         $submissionxmlcreator = new proforma_submission_xml_creator();
 
