@@ -60,6 +60,35 @@ class qtype_moopt extends question_type {
     }
 
     /**
+     * Override the parent method and extend the structure so it matches the structure for backup and restore
+     * @see backup/moodle2/restore_qtype_moopt_plugin.class.php::convert_backup_to_questiondata
+     */
+    #[\Override]
+    public function get_question_options($question) {
+        global $DB;
+        parent::get_question_options($question);
+
+        $fileRecords = $DB->get_records('qtype_moopt_files', array('questionid' => $question->id));
+        if (count($fileRecords) >= 1) {
+            $question->options->mooptfiles = array();
+            foreach ($fileRecords as $fileRecord) {
+                unset($fileRecord->questionid);
+                array_push($question->options->mooptfiles, $fileRecord);
+            }
+        }
+
+        $freetextRecords = $DB->get_records('qtype_moopt_freetexts', array('questionid' => $question->id));
+        if (count($freetextRecords) >= 1) {
+            $question->options->mooptfreetexts = array();
+            foreach ($freetextRecords as $freetextRecord) {
+                unset($freetextRecord->questionid);
+                array_push($question->options->mooptfreetexts, $freetextRecord);
+            }
+        }
+        return $question;
+    }
+
+    /**
      * Saves question-type specific options
      *
      * This is called by {@link save_question()} to save the question-type specific data

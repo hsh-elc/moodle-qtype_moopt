@@ -22,7 +22,6 @@ class restore_qtype_moopt_plugin extends restore_qtype_plugin {
      * Returns the paths to be handled by the plugin at question level
      */
     protected function define_question_plugin_structure() {
-        //$this->step->log('Restore called', backup::LOG_INFO); //TODO: Prüfe wieso das eine Exception auslöst
         $paths = array();
 
         // List the relevant paths in the XML.
@@ -110,5 +109,58 @@ class restore_qtype_moopt_plugin extends restore_qtype_plugin {
             new restore_decode_content('qtype_moopt_freetexts', array('filecontent'),
                 'qtype_moopt_freetexts'),
         );
+    }
+
+    /**
+     * @link https://moodledev.io/docs/5.0/apis/plugintypes/qtype/restore#how-do-i-tell-what-changes-i-need-to-make
+     */
+    #[\Override]
+    public static function convert_backup_to_questiondata(array $backupdata): \stdClass
+    {
+        $questiondata = parent::convert_backup_to_questiondata($backupdata);
+        $qtype = $questiondata->qtype;
+
+        // Merge general MooPT specific options into the $questiondata structure
+        if (isset($backupdata["plugin_qtype_{$qtype}_question"]['mooptoptions'])) {
+            $questiondata->options = (object) array_merge(
+                (array) $questiondata->options,
+                $backupdata["plugin_qtype_{$qtype}_question"]['mooptoptions'][0],
+            );
+        }
+
+        // Merge all MooPT Freetexts into the $questiondata structure
+        if (isset($backupdata["plugin_qtype_{$qtype}_question"]['mooptfreetexts']['mooptfreetext'])) {
+            $i = 0;
+            foreach($backupdata["plugin_qtype_{$qtype}_question"]['mooptfreetexts']['mooptfreetext'] as $freetext_array) {
+                /* Convert to Object because otherwise Moodle cannot remove “/options/mooptfreetexts/id” later (defined: define_excluded_identity_hash_fields()) */
+                $questiondata->options->mooptfreetexts[$i] = (Object) $freetext_array;
+                $i++;
+            }
+        }
+
+        // Merge all MooPT Files into the $questiondata structure
+        if (isset($backupdata["plugin_qtype_{$qtype}_question"]['mooptfiles']['mooptfile'])) {
+            $i = 0;
+            foreach($backupdata["plugin_qtype_{$qtype}_question"]['mooptfiles']['mooptfile'] as $file_array) {
+                /* Convert to Object because otherwise Moodle cannot remove “/options/mooptfiles/id” later (defined: define_excluded_identity_hash_fields()) */
+                $questiondata->options->mooptfiles[$i] = (Object) $file_array;
+                $i++;
+            }
+        }
+
+        return $questiondata;
+    }
+
+    /**
+     * @link https://moodledev.io/docs/5.0/apis/plugintypes/qtype/restore#how-do-i-tell-what-changes-i-need-to-make
+     */
+    #[\Override]
+    protected function define_excluded_identity_hash_fields(): array
+    {
+        return [
+            '/options/id',
+            '/options/mooptfreetexts/id',
+            '/options/mooptfiles/id'
+        ];
     }
 }

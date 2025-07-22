@@ -77,7 +77,7 @@ class qtype_moopt_question extends question_graded_automatically {
         $expected = ['answer' => question_attempt::PARAM_FILES];
         for ($i = 0; $i < get_config("qtype_moopt", "max_number_free_text_inputs"); $i++) {
             $expected["answertext$i"] = PARAM_RAW;
-            $expected["answerfilename$i"] = PARAM_FILE;
+            $expected["answerfilename$i"] = PARAM_PATH;
         }
         return $expected;
     }
@@ -241,7 +241,7 @@ class qtype_moopt_question extends question_graded_automatically {
         foreach ($freetextanswers as $filename => $filecontent) {
             $mangledname = mangle_pathname($filename);
             $files["submission/$mangledname"] = [$filecontent]; // Syntax to use a string as file contents.
-            $submissionfiles[$mangledname] = [$filecontent];
+            $submissionfiles[add_slash_to_filename($mangledname)] = [$filecontent];
         }
 
         global $PAGE;
