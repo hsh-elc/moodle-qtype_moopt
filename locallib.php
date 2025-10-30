@@ -118,6 +118,10 @@ use qtype_moopt\exceptions\resource_not_found_exception;
 use qtype_moopt\utility\communicator\communicator_factory;
 use qtype_moopt\utility\proforma_xml\separate_feedback_handler;
 
+use mod_quiz\grade_calculator;
+use mod_quiz\quiz_attempt;
+use mod_quiz\quiz_settings;
+
 /**
  * Unzips the task zip file in the given file area into the area
  * moodle doesn't display thrown exceptions, so we handle them as array with key 'error' in calling function
@@ -871,9 +875,9 @@ function internal_retrieve_grading_results($qubaid) : array
             $DB->update_record('quiz_attempts', $attempt);
 
             // Update gradebook.
-            $quiz = $DB->get_record('quiz', array('id' => $attempt->quiz), '*', MUST_EXIST);
-            quiz_save_best_grade($quiz, $USER->id);
-
+            $quiz = quiz_settings::create($attempt->quiz, $USER->id);
+            $calculator = grade_calculator::create($quiz);
+            $calculator->recompute_final_grade($USER->id);
 
         } else {
             if ($response->response != null) {

@@ -77,7 +77,7 @@ class grading_hints_renderer
         $text .= "<div class='card'>
                     <div $additionalheaderclasses id='$currentid'>
                       <h5 class='mb-0'>
-                        <button type='button' class='btn btn-link' data-toggle='collapse' data-target='#collapse_$currentid'" .
+                        <button type='button' class='btn btn-link' data-bs-toggle='collapse' data-bs-target='#collapse_$currentid'" .
             " aria-expanded='false' aria-controls='collapse_$currentid' style='width: 100%;'>
                             {$this->format_heading($node)}
                         </button>";
@@ -85,7 +85,7 @@ class grading_hints_renderer
 
         $attributes = '';
         if ($this->showfeedbackdata || $node !== $this->rootnode) {
-            $attributes = "id='collapse_$currentid' class='collapse' aria-labelledby='heading_$currentid' data-parent='#$accordionid'";
+            $attributes = "id='collapse_$currentid' class='collapse' aria-labelledby='heading_$currentid' data-bs-parent='#$accordionid'";
         }
 
         $text .= "<div $attributes>

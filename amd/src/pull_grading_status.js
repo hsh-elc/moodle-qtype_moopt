@@ -1,5 +1,5 @@
-define(['core/ajax', 'core/modal_factory', 'core/modal_events', 'core/str'],
-function (ajax, ModalFactory, ModalEvents, Strings) {
+define(['core/ajax', 'core/modal_save_cancel', 'core/modal_events', 'core/str'],
+function (ajax, SaveCancelModal, ModalEvents, Strings) {
 
     var timer;
     var qubaid;
@@ -54,24 +54,19 @@ function (ajax, ModalFactory, ModalEvents, Strings) {
             component: 'qtype_moopt'
         }];
 
-        Strings.get_strings(strings).then(function (values) {
-            ModalFactory.create({
-                type: ModalFactory.types.SAVE_CANCEL,
+        Strings.get_strings(strings).then(values => {
+            SaveCancelModal.create({
                 title: values[0],
-                body: values[1]
-            }).done(function (modal) {
-                modal.setSaveButtonText(values[2]);
-
-                modal.getRoot().on(ModalEvents.save, function () {
+                body: values[1],
+                show: true,
+                removeOnClose: true,
+                buttons: {
+                    save: values[2]
+                }
+            }).then(modal => {
+                modal.getRoot().on(ModalEvents.save, () => {
                     location.reload(true);
-                    isCurrentlyShowingModal = false;
                 });
-
-                modal.getRoot().on(ModalEvents.hidden, function () {
-                    isCurrentlyShowingModal = false;
-                });
-
-                modal.show();
             });
         });
     }
