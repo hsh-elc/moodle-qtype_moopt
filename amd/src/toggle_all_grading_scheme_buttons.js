@@ -18,7 +18,7 @@ define([], function () {
 
         toggle: function (feedbackblockid, operation) {
             let expanded = operation == "show" ? "false" : "true";
-            let selector = "#" + feedbackblockid + " button[data-toggle='collapse'][aria-expanded='" + expanded + "']";
+            let selector = "#" + feedbackblockid + " button[data-bs-toggle='collapse'][aria-expanded='" + expanded + "']";
             let buttons = document.querySelectorAll(selector);
             buttons.forEach(
                 function(b) {
