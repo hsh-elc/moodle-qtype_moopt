@@ -178,7 +178,7 @@ class qtype_moopt extends question_type {
      * @return string the data to append to the output buffer or false if error
      */
     function export_to_xml($question, $format, $extra=null) {
-        global $DB, $COURSE;
+        global $DB;
 
         $xml = new XMLWriter();
         $xml->openMemory();
@@ -197,7 +197,7 @@ class qtype_moopt extends question_type {
             // taskxml file without zip
             $taskFileRecord = $DB->get_record('qtype_moopt_files', array('questionid' => $question->id, 'fileid' => 'taskxml'));
         }
-        $context = context_course::instance($COURSE->id);
+        $context = $this->get_context_by_category_id($question->category);
         $taskfile = $fs->get_file($context->id,COMPONENT_NAME, $taskFileRecord->filearea, $question->id, $taskFileRecord->filepath, $taskFileRecord->filename);
 
         $taskfilename = $taskfile->get_filename();
@@ -249,7 +249,9 @@ class qtype_moopt extends question_type {
      * @return object question object suitable for save_options() call or false if cannot handle
      */
     function import_from_xml($data, $question, $format, $extra=null) {
-        global $COURSE;
+        $context = $format->category->context;
+
+        require_capability("qtype/moopt:author", $context);
 
         $ret = parent::import_from_xml($data, $question, $format, $extra);
         $root = $data['#'];
@@ -272,8 +274,6 @@ class qtype_moopt extends question_type {
             if (!$taskfilecontent) {
                 throw new InvalidArgumentException("The taskfile could not be encoded from moodle xml.");
             }
-
-            $context = context_course::instance($COURSE->id);
 
             $taskfileinfo = [
                 'context' => $context,
