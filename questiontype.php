@@ -305,6 +305,8 @@ class qtype_moopt extends question_type {
     public function move_files($questionid, $oldcontextid, $newcontextid)
     {
         $fs = get_file_storage();
+
+        parent::move_files($questionid, $oldcontextid, $newcontextid);
         $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $questionid);
         $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $questionid);
         $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA, $questionid);
