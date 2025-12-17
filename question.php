@@ -174,8 +174,7 @@ class qtype_moopt_question extends question_graded_automatically {
             $firstelem = reset($records);
             $onlyteacher = $firstelem->visibletostudents == 'no' ? true : false;
 
-            $contextrecord = $DB->get_record('context', ['id' => $question->contextid]);
-            $context = context_course::instance($contextrecord->instanceid);
+            $context = context::instance_by_id($question->contextid);
 
             if ($onlyteacher && !has_capability('mod/quiz:grade', $context)) {
                 return false;
