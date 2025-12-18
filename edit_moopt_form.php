@@ -65,7 +65,7 @@ class qtype_moopt_edit_form extends question_edit_form {
             parent::definition();
 
             $usereditor = get_user_preferences('htmleditor', null); // In table "mdl_user_preferences" on DB
-            if ($usereditor === null || $usereditor === 'tiny') {
+            if ($usereditor === null || $usereditor !== 'textarea') {
                 foreach ($this->query_editor_elements($mform) as $editor) {
                     $this->add_editor_warning_before_element($mform, $editor);
                     break;
