@@ -233,7 +233,10 @@ class qtype_moopt_question extends question_graded_automatically {
         $files = array();   // Array for all files that end up in the ZIP file.
 
         foreach ($responsefiles as $file) {
-            $file->rename($file->get_filepath(), trim_filename($file->get_filename())); // Trim whitespace characters in file name
+            $trimmedfilename = trim_filename($file->get_filename());
+            if ($file->get_filename() !== $trimmedfilename) {   // File got trimmed. Rename it.
+                $file->rename($file->get_filepath(), $trimmedfilename);
+            }
             $files["submission/{$file->get_filename()}"] = $file;
         }
 
