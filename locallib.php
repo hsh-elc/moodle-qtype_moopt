@@ -1149,3 +1149,16 @@ function mangle_pathname($filename) {
     $filename = ltrim($filename, '/');                  // No leading slash.
     return $filename;
 }
+
+/**
+ * Removes trailing dots and surrounding whitespace characters from a file name.
+ * 
+ * Info: Moodle's file picker automatically appends a trailing "." to file names if the
+ * selected file has a trailing " " in it's name. Therefore, before trimming whitespace
+ * characters, the trailing "." gets removed.
+ */
+function trim_filename(string $filename): string {
+    $filename = rtrim($filename, '.');  // Remove trailing .
+    $filename = trim($filename);        // Trim whitespace characters
+    return $filename;
+}
