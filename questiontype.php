@@ -300,18 +300,52 @@ class qtype_moopt extends question_type {
         return $ret;
     }
 
-    public function move_files($questionid, $oldcontextid, $newcontextid)
-    {
+    public function move_files($questionid, $oldcontextid, $newcontextid) {
         $fs = get_file_storage();
 
         parent::move_files($questionid, $oldcontextid, $newcontextid);
-        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $questionid);
-        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $questionid);
-        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA, $questionid);
-        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA_EMBEDDED, $questionid);
-        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE, $questionid);
-        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_SUBMISSION_ZIP_FILEAREA, $questionid);
-        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA, $questionid);
-        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_TASKZIP_FILEAREA, $questionid);
+        $this->move_moopt_files($fs, $oldcontextid, $newcontextid, $questionid);
+
+        $qafileitemids = $this->get_itemids_for_question_attempt_files($questionid);
+        foreach ($qafileitemids as $itemid) {
+            $this->move_moopt_files($fs, $oldcontextid, $newcontextid, $itemid);
+        }
+    }
+
+    /**
+     * Returns an array containing all itemid's of files that are attached to a
+     * question attempt for this question. This is collected for all question attempts
+     * that belong to the given question id.
+     * 
+     * Note that multiple files can have the same itemid (therefore multiple files can
+     * point to the same question attempt), but duplicates get removed in this query.
+     * This is because this function is used to fetch itemids's for usage in 
+     * $fs->move_area_files_to_new_context(...), which automatically moves all files 
+     * having the given itemid.
+     */
+    private function get_itemids_for_question_attempt_files(int $questionid): array {
+        global $DB;
+        $sql = "SELECT DISTINCT f.itemid
+                  FROM {question} q
+                  JOIN {question_attempts} qa ON q.id = qa.questionid
+                  JOIN {files} f ON qa.id = f.itemid
+                 WHERE q.id = ?";
+        
+        $files = $DB->get_fieldset_sql($sql, [$questionid]);
+        return $files;
+    }
+
+    /**
+     * Move all files having a specific itemid to the new context in all files areas used by MooPT.
+     */
+    private function move_moopt_files(file_storage $fs, int $oldcontextid, int $newcontextid, int $itemid): void {
+        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_ATTACHED_TASK_FILES_FILEAREA, $itemid);
+        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_EMBEDDED_TASK_FILES_FILEAREA, $itemid);
+        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA, $itemid);
+        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA_EMBEDDED, $itemid);
+        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_RESPONSE_FILE_AREA_RESPONSEFILE, $itemid);
+        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_SUBMISSION_ZIP_FILEAREA, $itemid);
+        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_TASKXML_FILEAREA, $itemid);
+        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, COMPONENT_NAME, PROFORMA_TASKZIP_FILEAREA, $itemid);
     }
 }
