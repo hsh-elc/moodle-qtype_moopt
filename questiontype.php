@@ -329,7 +329,7 @@ class qtype_moopt extends question_type {
                   FROM {question} q
                   JOIN {question_attempts} qa ON q.id = qa.questionid
                   JOIN {files} f ON qa.id = f.itemid
-                 WHERE q.id = ?";
+                 WHERE q.id = ? AND f.component = '" . COMPONENT_NAME . "'";
         
         $files = $DB->get_fieldset_sql($sql, [$questionid]);
         return $files;
