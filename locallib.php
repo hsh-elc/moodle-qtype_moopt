@@ -626,6 +626,7 @@ function internal_retrieve_grading_results($qubaid) : array
     $qubarecord = $DB->get_record('question_usages', ['id' => $qubaid]);
     $gradeprocessrecords = $DB->get_records('qtype_moopt_gradeprocesses', ['qubaid' => $qubaid]);
     foreach ($gradeprocessrecords as $gradeprocrecord) {
+        $response = null;
         if (!$qubarecord) {
             // The quba got deleted for whatever reason. There's no need to keep this particular gradeprocess
             // record anymore because it has no purpose without its quba, so we mark it for deletion.
@@ -666,10 +667,12 @@ function internal_retrieve_grading_results($qubaid) : array
             $quba->process_action($slot, ['-graderunavailable' => 1, 'gradeprocessdbid' => $gradeprocrecord->id]);
             question_engine::save_questions_usage_by_activity($quba);
             $finishedgradingprocesses[] = $gradeprocrecord->id;
+            continue;
         } catch (Throwable $e) {
             // Treat network errors, authorization errors etc differently, do not abbandon the automatic
             // polling for a grading result, since these types of errors are easily fixable.
             debugging($e->getMessage());
+            continue;
         }
 
         if ($response->finished) {
