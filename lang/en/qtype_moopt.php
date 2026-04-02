@@ -21,6 +21,7 @@
  * @category    string
  * @copyright   2019 ZLB-ELC Hochschule Hannover <elc@hs-hannover.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @var array $string
  */
 defined('MOODLE_INTERNAL') || die();
 
@@ -147,10 +148,12 @@ $string['scorecalculationscheme'] = 'Score calculation scheme';
 $string['scorewasnullifiedbecause'] = 'The Score of this {$a} was nullified because: ';
 $string['servicecommunicator'] = 'The service encountered a problem. {$a}';
 $string['serviceunavailable'] = 'The service is unavailable. {$a}';
+$string['showstudentfeedback'] = 'Show student feedback';
 $string['showstudgradingscheme'] = 'Show grading scheme to students before first submission';
 $string['showstudgradingscheme_help'] = 'If selected, students will see the grading scheme in the question before submitting an answer.';
 $string['showstudscorecalcscheme'] = 'Show students score calculation scheme';
 $string['showstudscorecalcscheme_help'] = 'If selected, students will see score calculation rules in the feedback. By default, Moodle gives teachers detailed information about the calculation rules how a aggregated grading score was calculated. E. g. 5 = 3 + 2 + 0, if there were three grading aspects that have been added. Another example is 0 = Minimum {0, 2}, if a tasks\'s grading scheme defines to aggregate the minimum of two grading aspects.';
+$string['showteacherfeedback'] = 'Show teacher feedback';
 $string['service_url'] = 'Service URL';
 $string['singleproformataskfilerequired'] = 'Only one file (xml or zip) is allowed to be in this draft area.';
 $string['studentfeedbacklevel'] = 'Student Feedback Level';

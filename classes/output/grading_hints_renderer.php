@@ -158,18 +158,26 @@ class grading_hints_renderer
                                           </ol>';
             $content .= $weightedscoreexplanation;
         }
-        if ($node->get_description() != null || ($node->get_internal_description() != null && $this->displayteachercontent)) {
-            if ($node->get_description() != null) {
-                $content .= "<div class='moopt-feedback-description'><h4>" . get_string('description', 'qtype_moopt') .
-                    "</h4><i><p>{$node->get_description()}</p></i></div>";
-            }
-            if ($this->displayteachercontent && $node->get_internal_description() != null) {
-                $content .= "<div class='moopt-feedback-internal-description'><h4>" . get_string('internaldescription', 'qtype_moopt') .
-                    "</h4><i><p>{$node->get_internal_description()}</p></i></div>";
-            }
+        
+        if ($node->get_description() != null) {                
+            $content .= "<div class='moopt-student-feedback-tab'><div class='moopt-feedback-description'><h4>" .
+                get_string('description', 'qtype_moopt') .
+                "</h4><i><p>{$node->get_description()}</p></i></div></div>";
         }
+        if ($this->displayteachercontent && $node->get_internal_description() != null) {
+            $content .= "<div class='moopt-teacher-feedback-tab hidden'><div class='moopt-feedback-internal-description'><h4>" .
+                get_string('internaldescription', 'qtype_moopt') .
+                "</h4><i><p>{$node->get_internal_description()}</p></i></div></div>";
+        }
+
         if (!empty($node->get_children())) {
             if ($this->displayteachercontent || $this->showstudentsscorecalculationscheme) {
+                if ($this->displayteachercontent && !$this->showstudentsscorecalculationscheme) {
+                    $content .= "<div class='moopt-teacher-feedback-tab hidden'>";
+                    $wrappedintabdiv = true;
+                } else {
+                    $wrappedintabdiv = false;
+                }
                 $content .= '<div align="right" style="margin-bottom: 10px">';
                 $scorecalc = '<small>';
                 if (!$this->showfeedbackdata && $node->get_max_score() === null) {
@@ -219,11 +227,15 @@ class grading_hints_renderer
                     }
                 }
                 $content .= "<i>$scorecalc</i></small></div>";
+                if ($wrappedintabdiv) {
+                    $content .= '</div>';
+                }
             }
         } else {
             if ($this->showfeedbackdata) {
                 if (!empty($node->getSeparateFeedbackData()->get_student_feedback())) {
-                    $content .= '<div class=\'moopt-feedback-student\'><h4>' . get_string('feedback', 'qtype_moopt') . '</h4>';
+                    $content .= '<div class=\'moopt-student-feedback-tab\'><div class=\'moopt-feedback-student\'><h4>' .
+                        get_string('feedback', 'qtype_moopt') . '</h4>';
                     foreach ($node->getSeparateFeedbackData()->get_student_feedback() as $studfeed) {
                         if ($studfeed['title'] != null) {
                             $content .= "<p><strong>{$studfeed['title']}</strong></p>";
@@ -249,10 +261,11 @@ class grading_hints_renderer
                             $content .= '</ul></p>';
                         }
                     }
-                    $content .= '</div>';
+                    $content .= '</div></div>';
                 }
                 if (!empty($node->getSeparateFeedbackData()->get_teacher_feedback()) && $this->displayteachercontent) {
-                    $content .= '<div class=\'moopt-feedback-teacher\'><h4>' . get_string('teacherfeedback', 'qtype_moopt') . '</h4>';
+                    $content .= '<div class=\'moopt-teacher-feedback-tab hidden\'><div class=\'moopt-feedback-teacher\'><h4>' .
+                        get_string('teacherfeedback', 'qtype_moopt') . '</h4>';
                     foreach ($node->getSeparateFeedbackData()->get_teacher_feedback() as $teacherfeed) {
                         $content .= '<p>';
                         if ($teacherfeed['title'] != null) {
@@ -279,7 +292,7 @@ class grading_hints_renderer
                             $content .= '</ul></p>';
                         }
                     }
-                    $content .= '</div>';
+                    $content .= '</div></div>';
                 }
                 if ($content == '') {
                     $content = '<div><i>' . get_string('nofeedback', 'qtype_moopt') . '</i></div>';
@@ -342,10 +355,10 @@ class grading_hints_renderer
                     $o .= $nullifyconditionroot->get_title();
                 }
                 if ($nullifyconditionroot->get_description() !== null) {
-                    $o .= '<br>' . $nullifyconditionroot->get_description();
+                    $o .= '<div class=\'moopt-student-feedback-tab\'><br>' . $nullifyconditionroot->get_description() . '</div>';
                 }
                 if ($nullifyconditionroot->get_internaldescription() !== null && $this->displayteachercontent) {
-                    $o .= '<br>' . $nullifyconditionroot->get_internaldescription();
+                    $o .= '<div class=\'moopt-teacher-feedback-tab hidden\'><br>' . $nullifyconditionroot->get_internaldescription() . '</div>';
                 }
                 $o .= '<br>(';
                 switch(get_class($nullifyconditionroot)) {

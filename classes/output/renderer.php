@@ -184,7 +184,7 @@ class qtype_moopt_renderer extends qtype_renderer {
 
         $blockid = "moopt-gradingscheme-" . $qa->get_usage_id() . "-" . $qa->get_slot();
         $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_grading_scheme_buttons', 'init', [$blockid]);
-        $o .= "<p class='expandcollapselink'><a href='#' id='" . $blockid . "-expand-all-button'>"
+        $o .= "<p class='separate-feedback-button-link'><a href='#' id='" . $blockid . "-expand-all-button'>"
             . get_string('expand_all', 'qtype_moopt') . "</a> ";
         $o .= "<a href='#' id='" . $blockid . "-collapse-all-button'>"
             . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
@@ -600,6 +600,7 @@ class qtype_moopt_renderer extends qtype_renderer {
                     try {
                         if ($doc) {
                             $namespace = detect_proforma_namespace($doc);
+                            $feedbackblockid = "moopt-feedbackblock-" . $qa->get_usage_id() . "-" . $qa->get_slot();
 
                             $separatetestfeedbacklist = $doc->getElementsByTagNameNS($namespace, "separate-test-feedback");
 
@@ -656,17 +657,22 @@ class qtype_moopt_renderer extends qtype_renderer {
                                     'contextid' => $qa->get_question()->contextid,
                                     'filepath' => "/"
                                 ];
-                                $feedbackblockid = "moopt-feedbackblock-" . $qa->get_usage_id() . "-" . $qa->get_slot();
-                                $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_grading_scheme_buttons', 'init', [$feedbackblockid]);
-
                                 $separatefeedbackrenderersummarised = new grading_hints_renderer(
                                     $separatefeedbackhelper->get_summarised_feedback(),
                                     has_capability('mod/quiz:grade', $PAGE->context), $fileinfos,
                                     $qa->get_question()->showstudscorecalcscheme);
-                                $html .= "<p class='expandcollapselink'><a href='#' id='" . $feedbackblockid . "-expand-all-button'>"
+
+                                if (has_capability('mod/quiz:grade', $PAGE->context)) {
+                                    $PAGE->requires->js_call_amd('qtype_moopt/toggle_feedback_tabs_buttons', 'init', [$feedbackblockid]);
+                                    $html .= $this->render_feedback_tabs_buttons($feedbackblockid);
+                                }
+
+                                $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_grading_scheme_buttons', 'init', [$feedbackblockid]);
+                                $html .= "<p class='separate-feedback-button-link'><a href='#' id='" . $feedbackblockid . "-expand-all-button'>"
                                     . get_string('expand_all', 'qtype_moopt') . "</a> ";
                                 $html .= "<a href='#' id='" . $feedbackblockid . "-collapse-all-button'>"
                                     . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
+                                $html .= '<hr/>';
 
                                 $html .= "<div id='" . $feedbackblockid . "'>";
                                 $html .= $separatefeedbackrenderersummarised->render();
@@ -678,15 +684,24 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 $html .= '</div>';
                             } else {
                                 // Merged test feedback.
+                                if (has_capability('mod/quiz:grade', $PAGE->context)) {
+                                    $PAGE->requires->js_call_amd('qtype_moopt/toggle_feedback_tabs_buttons', 'init', [$feedbackblockid]);
+                                    $html .= $this->render_feedback_tabs_buttons($feedbackblockid);
+                                }
+                                $html .= '<div id="' . $feedbackblockid . '">';
                                 $studentfb = $doc->getElementsByTagNameNS($namespace, "student-feedback")[0];
                                 if ($studentfb) {
+                                    $html .= '<div class="moopt-student-feedback-tab">';
                                     $html .= html_writer::div($studentfb->nodeValue, 'studentfeedback');
+                                    $html .= '</div>';
                                 }
                                 $teacherfb = $doc->getElementsByTagNameNS($namespace, "teacher-feedback")[0];
                                 if (has_capability('mod/quiz:grade', $PAGE->context) && $teacherfb) {
-                                    $html .= '<hr/>';
+                                    $html .= '<div class="moopt-teacher-feedback-tab hidden">';
                                     $html .= html_writer::div($teacherfb->nodeValue, 'teacherfeedback');
+                                    $html .= '</div>';
                                 }
+                                $html .= '</div>';
                             }
 
                             // Restore the (hidden) general feedback now that the grader has returned a
@@ -752,6 +767,20 @@ class qtype_moopt_renderer extends qtype_renderer {
             }
         }
         return '';
+    }
+    
+    /**
+     * Generates the html for the "Show student feedback" and "Show teacher feedback" buttons.
+     * @param string $feedbackblockid The html id of the div containing the feedback
+     * @return string The html for the buttons
+     */
+    private function render_feedback_tabs_buttons(string $feedbackblockid): string {
+        $html = "<p class='separate-feedback-button-link'><a href='#' id='" . $feedbackblockid . "-show-student-feedback-button'>"
+            . get_string('showstudentfeedback', 'qtype_moopt') . "</a>";
+        $html .= "<a href='#' id='" . $feedbackblockid . "-show-teacher-feedback-button'>"
+            . get_string('showteacherfeedback', 'qtype_moopt') . "</a></p>";
+        $html .= '<hr/>';
+        return $html;
     }
 
     /**

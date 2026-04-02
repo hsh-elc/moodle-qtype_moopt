@@ -33,11 +33,11 @@
     align-items: center;
 }
 
-p.expandcollapselink {
+p.separate-feedback-button-link {
 	text-align: right;
 }
 
-p.expandcollapselink a {
+p.separate-feedback-button-link a {
 	margin-left: 15px;
 }
 
