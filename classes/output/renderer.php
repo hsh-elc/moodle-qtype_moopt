@@ -184,9 +184,10 @@ class qtype_moopt_renderer extends qtype_renderer {
 
         $blockid = "moopt-gradingscheme-" . $qa->get_usage_id() . "-" . $qa->get_slot();
         $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_grading_scheme_buttons', 'init', [$blockid]);
-        $o .= "<p class='separate-feedback-button-link'><a href='#' id='" . $blockid . "-expand-all-button'>"
+        $o .= "<p class='separate-feedback-button-link'>";
+        $o .= "<a href='#' class='btn btn-secondary btn-sm' id='" . $blockid . "-expand-all-button'>"
             . get_string('expand_all', 'qtype_moopt') . "</a> ";
-        $o .= "<a href='#' id='" . $blockid . "-collapse-all-button'>"
+        $o .= "<a href='#' class='btn btn-secondary btn-sm' id='" . $blockid . "-collapse-all-button'>"
             . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
 
         $taskxmlfile = get_task_xml_file_from_filearea($qa->get_question());
@@ -668,9 +669,10 @@ class qtype_moopt_renderer extends qtype_renderer {
                                 }
 
                                 $PAGE->requires->js_call_amd('qtype_moopt/toggle_all_grading_scheme_buttons', 'init', [$feedbackblockid]);
-                                $html .= "<p class='separate-feedback-button-link'><a href='#' id='" . $feedbackblockid . "-expand-all-button'>"
+                                $html .= "<p class='separate-feedback-button-link'>";
+                                $html .= "<a href='#' class='btn btn-secondary btn-sm' id='" . $feedbackblockid . "-expand-all-button'>"
                                     . get_string('expand_all', 'qtype_moopt') . "</a> ";
-                                $html .= "<a href='#' id='" . $feedbackblockid . "-collapse-all-button'>"
+                                $html .= "<a href='#' class='btn btn-secondary btn-sm' id='" . $feedbackblockid . "-collapse-all-button'>"
                                     . get_string('collapse_all', 'qtype_moopt') . "</a></p>";
                                 $html .= '<hr/>';
 
@@ -775,9 +777,10 @@ class qtype_moopt_renderer extends qtype_renderer {
      * @return string The html for the buttons
      */
     private function render_feedback_tabs_buttons(string $feedbackblockid): string {
-        $html = "<p class='separate-feedback-button-link'><a href='#' id='" . $feedbackblockid . "-show-student-feedback-button'>"
+        $html = "<p class='separate-feedback-button-link'>";
+        $html .= "<a href='#' class='btn btn-secondary btn-sm' id='" . $feedbackblockid . "-show-student-feedback-button'>"
             . get_string('showstudentfeedback', 'qtype_moopt') . "</a>";
-        $html .= "<a href='#' id='" . $feedbackblockid . "-show-teacher-feedback-button'>"
+        $html .= "<a href='#' class='btn btn-secondary btn-sm' id='" . $feedbackblockid . "-show-teacher-feedback-button'>"
             . get_string('showteacherfeedback', 'qtype_moopt') . "</a></p>";
         $html .= '<hr/>';
         return $html;
