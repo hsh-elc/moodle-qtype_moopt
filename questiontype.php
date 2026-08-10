@@ -183,7 +183,7 @@ class qtype_moopt extends question_type {
         $xml = new XMLWriter();
         $xml->openMemory();
         $xml->setIndent(1);
-        $xml->setIndentString('    ');
+        $xml->setIndentString('  '); // use 2 spaces for indentation
 
         /* Add an empty answer-Element because Moodle-Import function expects it */
         $xml->startElement('answer');
@@ -206,10 +206,10 @@ class qtype_moopt extends question_type {
         $taskfilecontentbase64 = base64_encode($taskfile->get_content());
 
         $xml->startElement('taskfile');
+        $xml->writeAttribute('encoding', $taskfileencoding);
         $xml->writeAttribute('filearea', $taskFileRecord->filearea);
         $xml->writeAttribute('name', $taskfilename);
         $xml->writeAttribute('path', $taskfilepath);
-        $xml->writeAttribute('encoding', $taskfileencoding);
         $xml->writeRaw($taskfilecontentbase64);
         $xml->endElement();
 
@@ -235,9 +235,13 @@ class qtype_moopt extends question_type {
             $xml->endElement();
         }
 
-        $xmloutput = $xml->outputMemory();
-        $xmloutput .= parent::export_to_xml($question, $format, $extra);
-        return $xmloutput;
+        $rawxml = $xml->outputMemory();
+        $indentedxml = implode("\n", array_map(
+            fn($line) => $line === '' ? '' : '    ' . $line, // each line gets 2 levels of extra indentation
+            explode("\n", $rawxml)
+        ));
+        $indentedxml .= parent::export_to_xml($question, $format, $extra);
+        return $indentedxml;
     }
 
     /**
@@ -249,7 +253,7 @@ class qtype_moopt extends question_type {
      * @return object question object suitable for save_options() call or false if cannot handle
      */
     function import_from_xml($data, $question, $format, $extra=null) {
-        $context = $format->category->context;
+        $context = reset($format->contexts);
 
         require_capability("qtype/moopt:author", $context);
 
