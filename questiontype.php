@@ -249,7 +249,7 @@ class qtype_moopt extends question_type {
      * @return object question object suitable for save_options() call or false if cannot handle
      */
     function import_from_xml($data, $question, $format, $extra=null) {
-        $context = $format->category->context;
+        $context = reset($format->contexts);
 
         require_capability("qtype/moopt:author", $context);
 
