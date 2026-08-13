@@ -394,7 +394,8 @@ class qtype_moopt_renderer extends qtype_renderer {
                             'input', array('type' => 'hidden', 'name' => $qa->get_qt_field_name('answer'),
                         'value' => $pickeroptions->itemid));
 
-            $renderedarea .= $filesrenderer->render($fm) . $hidden;
+            // Class and data-fieldtype are set like this, so behat tests can find the filemanager (pattern seen in: qtype_coderunner)
+            $renderedarea .= html_writer::div($filesrenderer->render($fm) . $hidden, 'form-filemanager', ['data-fieldtype' => 'filemanager']);
 
             $filemanagerid = 'filemanager-'.$fm->options->client_id;
             $itemid = $pickeroptions->itemid;

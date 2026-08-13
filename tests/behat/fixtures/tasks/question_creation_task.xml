@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><p:task xmlns:p="urn:proforma:v2.1" xmlns:l="urn:proforma:lmsinputfields:v0.2" uuid="11111111-2222-3333-4444-555555555555">
+  <p:title>Creation Test Question</p:title>
+  <p:description>Description</p:description>
+  <p:internal-description>Internal-Description</p:internal-description>
+  <p:proglang version="1.0">java</p:proglang>
+  <p:files>
+    <p:file id="general-feedback" used-by-grader="false" visible="delayed" usage-by-lms="display">
+      <p:embedded-txt-file filename="general-feedback">general feedback</p:embedded-txt-file>
+    </p:file>
+    <p:file id="first-file" used-by-grader="false" visible="yes" usage-by-lms="edit">
+      <p:embedded-txt-file filename="FirstFile.java">template0</p:embedded-txt-file>
+    </p:file>
+    <p:file id="second-file" used-by-grader="false" visible="yes" usage-by-lms="edit">
+      <p:embedded-txt-file filename="SecondFile.java">template1</p:embedded-txt-file>
+    </p:file>
+  </p:files>
+  <p:tests>
+    <p:test id="dummytest">
+      <p:title>dummy test</p:title>
+      <p:test-type>dummy</p:test-type>
+      <p:test-configuration/>
+    </p:test>
+  </p:tests>
+  <p:grading-hints>
+    <p:root function="sum">
+      <p:test-ref ref="dummytest" weight="7.0"/>
+    </p:root>
+  </p:grading-hints>
+  <p:meta-data>
+    <l:lms-input-fields>
+      <l:fileinput filename="solution.java" fixedfilename="true" proglang="java"/>
+      <l:textfield file-ref="first-file" fixedfilename="true" proglang="java" initial-display-rows="13"/>
+      <l:textfield file-ref="second-file" fixedfilename="false" proglang="txt" initial-display-rows="17"/>
+    </l:lms-input-fields>
+  </p:meta-data>
+</p:task>

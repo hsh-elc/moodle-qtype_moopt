@@ -1043,9 +1043,11 @@ function readLmsInputFieldSettingsFromTaskXml(\DOMDocument $doc)
 
     $lmsinputfieldsV01 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.1', 'lms-input-fields');
     $lmsinputfieldsV02 = $doc->getElementsByTagNameNS('urn:proforma:lmsinputfields:v0.2', 'lms-input-fields');
-    if (1 <= $lmsinputfieldsV01->length && 1 <= $lmsinputfieldsV02->length) {
+    $number_of_lmsinputfields = $lmsinputfieldsV01->length + $lmsinputfieldsV02->length;
+    if (1 < $number_of_lmsinputfields) {
         throw new Exception('Task meta-data contains more than one lms-input-fields element.');
     }
+    $lmsinputfields = null;
     if (1 == $lmsinputfieldsV01->length) {
         $lmsinputfields = $lmsinputfieldsV01;
         $version = "0.1";
@@ -1053,10 +1055,7 @@ function readLmsInputFieldSettingsFromTaskXml(\DOMDocument $doc)
         $lmsinputfields = $lmsinputfieldsV02;
         $version = "0.2";
     }
-    if (1 < $lmsinputfields->length) {
-        throw new Exception('Task meta-data contains more than one lms-input-fields element.');
-    }
-    if (1 == $lmsinputfields->length) {
+    if ($lmsinputfields != null) {
         $includeenablefileinput = true;
         foreach ($lmsinputfields[0]->childNodes as $child) {
             if ($child->localName == 'fileinput') {
