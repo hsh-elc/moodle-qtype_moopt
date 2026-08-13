@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><p:task xmlns:p="urn:proforma:v2.1" xmlns:l="urn:proforma:lmsinputfields:v0.1" uuid="22222222-3333-4444-5555-666666666666">
+    <p:title>DummyGrader Schnelltest</p:title>
+    <p:description>Geben Sie den Score ein, den der DummyGrader zurueckgeben soll.</p:description>
+    <p:internal-description/>
+    <p:proglang version="1.0">plaintext</p:proglang>
+    <p:files>
+        <p:file id="score" used-by-grader="true" visible="yes" usage-by-lms="edit">
+            <p:embedded-txt-file filename="score">0.0</p:embedded-txt-file>
+        </p:file>
+    </p:files>
+    <p:tests>
+        <p:test id="alive">
+            <p:title>Still alive?</p:title>
+            <p:test-type>still-alive</p:test-type>
+            <p:test-configuration/>
+        </p:test>
+    </p:tests>
+    <p:grading-hints>
+        <p:root function="sum">
+            <p:test-ref ref="alive" weight="1.0"/>
+        </p:root>
+    </p:grading-hints>
+    <p:meta-data>
+        <l:lms-input-fields>
+            <l:textfield file-ref="score" fixedfilename="true" proglang="txt"/>
+        </l:lms-input-fields>
+    </p:meta-data>
+</p:task>

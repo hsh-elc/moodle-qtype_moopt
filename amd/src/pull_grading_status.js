@@ -1,9 +1,10 @@
-define(['core/ajax', 'core/modal_save_cancel', 'core/modal_events', 'core/str'],
-function (ajax, SaveCancelModal, ModalEvents, Strings) {
+define(['core/ajax', 'core/modal_save_cancel', 'core/modal_events', 'core/str', 'core/pending'],
+function (ajax, SaveCancelModal, ModalEvents, Strings, Pending) {
 
     var timer;
     var qubaid;
     var isCurrentlyShowingModal = false;
+    var gradingPending;
 
     function checkGradingFinished() {
         ajax.call([
@@ -67,6 +68,7 @@ function (ajax, SaveCancelModal, ModalEvents, Strings) {
                 modal.getRoot().on(ModalEvents.save, () => {
                     location.reload(true);
                 });
+                gradingPending.resolve(); // So behat knows when the grading is ready and the reload button exists
             });
         });
     }
@@ -81,6 +83,10 @@ function (ajax, SaveCancelModal, ModalEvents, Strings) {
 
             qubaid = qubaid_param;
             if (typeof timer === 'undefined') {
+                // Needed because the grading is async and behat would otherwise click reload immediately after
+                // this function returns (see https://jsdoc.moodledev.io/main/module-core_pending.html)
+                gradingPending = new Pending('qtype_moopt/pull_grading_status:grading');
+                
                 timer = setInterval(checkGradingFinished, polling_interval);
             }
         }
