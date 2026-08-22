@@ -235,13 +235,9 @@ class qtype_moopt extends question_type {
             $xml->endElement();
         }
 
-        $rawxml = $xml->outputMemory();
-        $indentedxml = implode("\n", array_map(
-            fn($line) => $line === '' ? '' : '    ' . $line, // each line gets 2 levels of extra indentation
-            explode("\n", $rawxml)
-        ));
-        $indentedxml .= parent::export_to_xml($question, $format, $extra);
-        return $indentedxml;
+        $xmloutput = $xml->outputMemory();
+        $xmloutput .= parent::export_to_xml($question, $format, $extra);
+        return $xmloutput;
     }
 
     /**
