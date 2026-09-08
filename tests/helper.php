@@ -28,7 +28,7 @@ class qtype_moopt_test_helper extends question_test_helper
 {
     public function get_test_questions(): array
     {
-        return ['graflap_grammar_for_nfa1', 'dummygrader_quicktest', 'graja_pointrotate', 'asqlg_quicktest'];
+        return ['graflap_grammar_for_nfa1', 'dummygrader_quicktest', 'graja_pointrotate', 'asqlg_quicktest', 'creation_task'];
     }
 
     public function get_moopt_question_form_data_asqlg_quicktest(): stdClass
@@ -51,6 +51,11 @@ class qtype_moopt_test_helper extends question_test_helper
     {
         // Version of the Grader must be 2.6 to grade this task
         return $this->extract_form_data_from_task("fixtures/tasks/graja_pointrotate.zip", 'graja');
+    }
+
+    public function get_moopt_question_form_data_creation_task(): stdClass
+    {
+        return $this->extract_form_data_from_task("fixtures/tasks/question_creation_task.xml", 'dummygrader');
     }
 
     /**

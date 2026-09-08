@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Class holding the custom steps needed for behat tests or moopt.
+ * Class holding the custom steps needed for behat tests of moopt.
  */
 class behat_qtype_moopt extends behat_base {
 
@@ -59,12 +59,6 @@ class behat_qtype_moopt extends behat_base {
         // Pattern seen in qtype_coderunner from which the ace integration comes anyway
         $this->getSession()->executeScript("sessionStorage.setItem('disableUis', true);");
     }
-
-    /** Fills a form field (located by xpath) with the content of a file.
-     *
-     *
-     * @When /^I set the field with xpath "(?P<xpath>[^"]*)" to the contents of "(?P<path>[^"]*)"$/
-     */
 
     /** Fills a field located by xpath with the content of a file.
      *
