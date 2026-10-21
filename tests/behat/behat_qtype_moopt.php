@@ -15,9 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Class holding the custom steps needed for behat tests or moopt.
+ * Class holding the custom steps needed for behat tests of moopt.
  */
 class behat_qtype_moopt extends behat_base {
+
+    /** @var string|null Absolute path of a generated solution file.
+     *
+     * Used by i_generate_a_solution_for_the_subtask_from_the_template_and_the_solution_file and i_upload_the_generated_moopt_solution
+     * to store a generated solution between steps.
+     */
+    private ?string $generatedsolution = null;
 
     /** Configures moopt for testing. This step must be called for every scenario that uses a live grading middleware.
      *
@@ -29,7 +36,8 @@ class behat_qtype_moopt extends behat_base {
      *
      * @Given /^MooPT is configured for testing$/
      */
-    public function moopt_is_configured_for_testing() {
+    public function moopt_is_configured_for_testing(): void
+    {
         global $CFG;
 
         $settingprefix = 'behat_qtype_moopt_';
@@ -55,16 +63,11 @@ class behat_qtype_moopt extends behat_base {
      *
      * @When /^I disable UI plugins in the MooPT question type$/
      */
-    public function i_disable_ui_plugins() {
+    public function i_disable_ui_plugins(): void
+    {
         // Pattern seen in qtype_coderunner from which the ace integration comes anyway
         $this->getSession()->executeScript("sessionStorage.setItem('disableUis', true);");
     }
-
-    /** Fills a form field (located by xpath) with the content of a file.
-     *
-     *
-     * @When /^I set the field with xpath "(?P<xpath>[^"]*)" to the contents of "(?P<path>[^"]*)"$/
-     */
 
     /** Fills a field located by xpath with the content of a file.
      *
@@ -73,7 +76,8 @@ class behat_qtype_moopt extends behat_base {
      *
      * @When /^I set the field with xpath "(?P<xpath>[^"]*)" to the contents of "(?P<path>[^"]*)"$/
      */
-    public function i_set_the_field_with_xpath_to_the_contents_of(string $xpath, string $path) {
+    public function i_set_the_field_with_xpath_to_the_contents_of(string $xpath, string $path): void
+    {
         global $CFG;
         $fullpath = $CFG->dirroot . '/' . $path;
         if (!is_readable($fullpath)) {
@@ -89,8 +93,87 @@ class behat_qtype_moopt extends behat_base {
      *
      * @When /^I upload "(?P<path>[^"]*)" as MooPT submission$/
      */
-    public function i_upload_as_moopt_submission(string $path) {
+    public function i_upload_as_moopt_submission(string $path): void
+    {
         // Will only find the first file manager on the page (pattern seen in: qtype_coderunner)
         $this->execute('behat_repository_upload::i_upload_file_to_filemanager', [$path, '']);
+    }
+
+    /** Generates a correct solution for a subtask from the template and solution file.
+     * Note: Does only work with asqlg.
+     *
+     * @param string $subtask Name of the subtask to locate the correct block in the template e.g. "DBS1.7.1.b".
+     * @param string $templatelink Link from which the template can be downloaded.
+     * @param string $solutionfilepath File path to the solution file that contains a list of solutions for all the variants.
+     *
+     * @When /^I generate a solution for the subtask "(?P<subtask>[^"]*)" from the template "(?P<templatelink>[^"]*)" and the solution file "(?P<solutionfilepath>[^"]*)"$/
+     */
+    public function i_generate_a_solution_for_the_subtask_from_the_template_and_the_solution_file(string $subtask, string $templatelink, string $solutionfilepath): void
+    {
+        global $CFG;
+        $templatecontent = behat_context_helper::get('behat_general')->download_file_from_link($templatelink);
+        $templatedescription = "";
+        $insidedescriptionblock = false;
+        $solutionfromtemplate = "";
+        foreach (preg_split('/\R/', $templatecontent) as $line) {
+            if ($insidedescriptionblock) {
+                if (!preg_match('/^--/', $line)) {
+                    break; // Description ended
+                } else {
+                    $templatedescription .= $line; // Collect description
+                }
+            } else if (preg_match('/^--\s*' . preg_quote($subtask, '/') . '::\s*$/', $line)) {
+                $insidedescriptionblock = true; // Next lines will be the description for the specific subtask
+            }
+            $solutionfromtemplate .= $line . "\n";
+        }
+
+        $solutioncontent = file_get_contents($CFG->dirroot . '/' . $solutionfilepath);
+        $insidedescriptionblock = false;
+        $solutiondescription = "";
+        $foundsolution = false;
+        foreach (preg_split('/\R/', $solutioncontent) as $line) {
+            if ($insidedescriptionblock) {
+                if (!preg_match('/^--/', $line)) { // Description ended
+                    if ($solutiondescription === $templatedescription) {
+                        $foundsolution = true;
+                    }
+                    $solutiondescription = "";
+                    $insidedescriptionblock = false;
+                } else {
+                    $solutiondescription .= $line; // Collect description
+                }
+            } else if (preg_match('/^--\s*' . preg_quote($subtask, '/') . '(.*)::\s*$/', $line)) {
+                $insidedescriptionblock = true; // Next lines will be a description for the specific subtask
+            }
+
+            if ($foundsolution) {
+                if (preg_match('/^--/', $line)) break; // New block started
+                $solutionfromtemplate .= $line . "\n";
+            }
+        }
+
+        if (!$foundsolution) {
+            throw new moodle_exception("No variant in '$solutionfilepath' matched the template '$templatelink'.");
+        }
+
+        // Write the built solution into temp area and remember its path for the upload step.
+        $outputpath = make_request_directory() . '/generated_solution.sql';
+        if (file_put_contents($outputpath, $solutionfromtemplate) === false) {
+            throw new moodle_exception("Could not write generated solution to: $outputpath");
+        }
+        $this->generatedsolution = $outputpath;
+    }
+
+    /** Uploads the solution generated by the "I generate a solution for the subtask from the template and the solution file" step into the MooPT submission file manager.
+     * 
+     * @When /^I upload the generated MooPT solution$/
+     */
+    public function i_upload_the_generated_moopt_solution(): void
+    {
+        if ($this->generatedsolution === null) {
+            throw new moodle_exception('No generated MooPT solution available: The step that generates the solution must have been run first.');
+        }
+        $this->i_upload_as_moopt_submission($this->generatedsolution);
     }
 }

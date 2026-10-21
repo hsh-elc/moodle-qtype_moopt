@@ -28,7 +28,22 @@ class qtype_moopt_test_helper extends question_test_helper
 {
     public function get_test_questions(): array
     {
-        return ['graflap_grammar_for_nfa1', 'dummygrader_quicktest', 'graja_pointrotate', 'asqlg_quicktest'];
+        return ['graflap_grammar_for_nfa1', 'dummygrader_quicktest', 'graja_pointrotate', 'asqlg_quicktest', 'asqlg_variable', 'creation_task'];
+    }
+
+    public function get_moopt_question_form_data_graflap_grammar_for_nfa1(): stdClass
+    {
+        return $this->extract_form_data_from_task("fixtures/tasks/graflap_grammar_for_nfa1.zip", 'graflap');
+    }
+    public function get_moopt_question_form_data_dummygrader_quicktest(): stdClass
+    {
+        return $this->extract_form_data_from_task("fixtures/tasks/dummygrader_quicktest.xml", 'dummygrader');
+    }
+
+    public function get_moopt_question_form_data_graja_pointrotate(): stdClass
+    {
+        // Version of the Grader must be 2.6 to grade this task
+        return $this->extract_form_data_from_task("fixtures/tasks/graja_pointrotate.zip", 'graja');
     }
 
     public function get_moopt_question_form_data_asqlg_quicktest(): stdClass
@@ -37,20 +52,15 @@ class qtype_moopt_test_helper extends question_test_helper
         return $this->extract_form_data_from_task("fixtures/tasks/asqlg_quicktest.zip", 'asqlg');
     }
 
-    public function get_moopt_question_form_data_dummygrader_quicktest(): stdClass
+    public function get_moopt_question_form_data_asqlg_variable(): stdClass
     {
-        return $this->extract_form_data_from_task("fixtures/tasks/dummygrader_quicktest.xml", 'dummygrader');
+        // The asqlg grader used must provide the uri: de.hsh.inform.hr.postgres
+        return $this->extract_form_data_from_task("fixtures/tasks/asqlg_variable.zip", 'asqlg');
     }
 
-    public function get_moopt_question_form_data_graflap_grammar_for_nfa1(): stdClass
+    public function get_moopt_question_form_data_creation_task(): stdClass
     {
-        return $this->extract_form_data_from_task("fixtures/tasks/graflap_grammar_for_nfa1.zip", 'graflap');
-    }
-
-    public function get_moopt_question_form_data_graja_pointrotate(): stdClass
-    {
-        // Version of the Grader must be 2.6 to grade this task
-        return $this->extract_form_data_from_task("fixtures/tasks/graja_pointrotate.zip", 'graja');
+        return $this->extract_form_data_from_task("fixtures/tasks/question_creation_task.xml", 'dummygrader');
     }
 
     /**

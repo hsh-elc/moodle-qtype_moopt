@@ -1,0 +1,1 @@
+S -> d d A | e e B, A -> d d S, B -> e e B | E
